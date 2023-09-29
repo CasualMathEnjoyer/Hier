@@ -3,6 +3,8 @@
 
 # accuracy = 0.8873 with attention
 # accuracy = 0.8825 - 0.8841 without
+# at_input = [network_outputs, network_outputs] acc = 0.8873
+# at_input = [network_inputs, network_outputs]
 
 # !!! sent len musi byt stejna
 
@@ -76,7 +78,7 @@ def vectorise(final_file, input_dim, slovnik, mezera=' '):
 
     return(input_text)
 
-from keras.layers import Layer, Activation, dot, concatenate
+from keras.layers import Layer, Activation, dot, concatenate, Attention
 import tensorflow as tf
 
 class AttentionLayer(Layer):
@@ -194,12 +196,14 @@ def main():
             network_inputs = Input(shape=(sent_len, embed_dim))
             network = Bidirectional(LSTM(num_neurons, return_sequences=True, activation='tanh'))
             network_outputs = network(network_inputs)
-            attention = AttentionLayer()(network_outputs)
+            #attention = AttentionLayer()(network_outputs)
+            at_input = [network_outputs, network_outputs]
+            attention = Attention()(at_input)
             network_timestep = TimeDistributed(Dense(1, activation='sigmoid'))
-            network_outputs = network_timestep(attention)
+            network_outputs2 = network_timestep(attention)
             #network_outputs = network_timestep(network_outputs)
 
-            model = Model(inputs=network_inputs, outputs=network_outputs)
+            model = Model(inputs=network_inputs, outputs=network_outputs2)
 
             model.compile(loss=BinaryCrossentropy(from_logits=False),
                           optimizer=Adam(learning_rate=learning_rate),

@@ -1,8 +1,12 @@
 # tries to split text into words
 # input is a char and output is between zero and one based on whether a space should come after that
 
-# i put it in main and did not test hetner it works!
+# accuracy = 0.8873 with attention
+# accuracy = 0.8825 - 0.8841 without
 
+# !!! sent len musi byt stejna
+
+# create inspection mechanisms
 
 import random
 
@@ -72,6 +76,35 @@ def vectorise(final_file, input_dim, slovnik, mezera=' '):
 
     return(input_text)
 
+from keras.layers import Layer, Activation, dot, concatenate
+import tensorflow as tf
+
+class AttentionLayer(Layer):
+    def __init__(self, **kwargs):
+        super(AttentionLayer, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        # Create a trainable weight variable for this layer.
+        self.W_a = self.add_weight(name='W_a',
+                                   shape=tf.TensorShape((input_shape[-1], input_shape[-1])),
+                                   initializer='uniform',
+                                   trainable=True)
+        super(AttentionLayer, self).build(input_shape)  # Be sure to call this at the end
+
+    def call(self, x):
+        q = x  # Query
+        k = x  # Key
+        v = x  # Value
+
+        q_dot_k = dot([q, k], axes=-1)  # Calculate the dot product of Query and Key
+        q_dot_k = Activation('softmax')(q_dot_k)  # Apply softmax to get attention scores
+
+        output = dot([q_dot_k, v], axes=(2, 1))  # Weighted sum of Values using attention scores
+
+        self.add_loss(tf.reduce_sum(self.W_a))
+
+        return output
+
 def model_test(sample_1, model_name, input_dims, slovnik):
     from keras.models import load_model
     model = load_model(model_name)
@@ -125,18 +158,15 @@ def main():
     learning_rate = 1e-5
     batch_size = 128
 
+    input_file_name = "../data/smallervoc_fr_unspaced.txt"
     final_file_name = "../data/smallervoc_fr.txt"
     space_file_name = "space_file.npy"
     model_file_name = '../data/hier2bin2'
     pikle_slovnik_name = 'hier2bin_slovnik.pkl'
 
     if train_formating:
+        input_file = open(input_file_name, "r", encoding="utf-8").read()
         final_file = open(final_file_name, "r", encoding="utf-8").read()
-        input_file = ""
-        # remove spaces section
-        for char in final_file:
-            if char != ' ':
-                input_file+=char
 
         list_chars, sent_len = create_letter_array(final_file)   # has to be from final file cos longer then input
         num_lines = len(final_file.split('\n'))
@@ -164,8 +194,11 @@ def main():
             network_inputs = Input(shape=(sent_len, embed_dim))
             network = Bidirectional(LSTM(num_neurons, return_sequences=True, activation='tanh'))
             network_outputs = network(network_inputs)
+            attention = AttentionLayer()(network_outputs)
             network_timestep = TimeDistributed(Dense(1, activation='sigmoid'))
-            network_outputs = network_timestep(network_outputs)
+            network_outputs = network_timestep(attention)
+            #network_outputs = network_timestep(network_outputs)
+
             model = Model(inputs=network_inputs, outputs=network_outputs)
 
             model.compile(loss=BinaryCrossentropy(from_logits=False),

@@ -38,6 +38,7 @@ def create_letter_array(final_file, sentence_split_point='\n'):
         for letter in line:
             if letter not in slovnikk:
                 slovnikk.append(letter)
+    slovnikk.append('end_char')
     return slovnikk, sent_len
 
 def vectorise(final_file, input_dim, slovnik, mezera=' '):
@@ -50,7 +51,8 @@ def vectorise(final_file, input_dim, slovnik, mezera=' '):
             input_text[l][i][slovnik[letter]] = 1
             k += 1
         while k < sent_len:
-            input_text[l][k][slovnik[mezera]] = 1
+            input_text[l][k][slovnik['end_char']] = 1
+            # input_text[l][k][slovnik[mezera]] = 1
             k += 1
 
     for line in input_text:  # kontrola zda zadny vektor neni nulovy
@@ -111,7 +113,7 @@ def main():
     train = 1
 
     epochs = 4
-    num_neurons = 200
+    num_neurons = 20
     learning_rate = 1e-5
     batch_size = 128
 

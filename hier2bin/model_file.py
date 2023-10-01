@@ -32,15 +32,8 @@ class AttentionLayer(Layer):
 
         return output
 
-def model_func(sent_len, embed_dim, num_neurons):
-    network_inputs = Input(shape=(sent_len, embed_dim))
-    network = Bidirectional(LSTM(num_neurons, return_sequences=True, activation='tanh'))
-    network_outputs = network(network_inputs)
-    # at_input = [network_outputs, network_outputs]
-    # attention = Attention()(at_input)  # a
-    # attention = AttentionLayer()(network_outputs)  # b
 
-    attention = Dense(1, activation='tanh')(network_outputs)
+"""attention = Dense(1, activation='tanh')(network_outputs)
     attention = Flatten()(attention)
     attention = Activation('softmax')(attention)
     attention = RepeatVector(sent_len)(attention)
@@ -51,10 +44,26 @@ def model_func(sent_len, embed_dim, num_neurons):
     sent_repres = Multiply()([network_outputs, attention])
     sent_repres = Lambda(lambda xin: K.sum(xin, axis=-2), output_shape=(num_neurons+2,))(sent_repres)
 
-    output_layer = TimeDistributed(Dense(1, activation='sigmoid'))(sent_repres)
+    output_layer = TimeDistributed(Dense(1, activation='sigmoid'))(sent_repres)"""
 
-    #network_timestep = TimeDistributed(Dense(1, activation='sigmoid'))
-    #network_outputs2 = network_timestep(output_layer)
+def model_func(sent_len, embed_dim, num_neurons):
+    network_inputs = Input(shape=(sent_len, embed_dim))
+    network = Bidirectional(LSTM(num_neurons, return_sequences=True, activation='tanh'))
+    network_outputs = network(network_inputs)
+
+    # decoder_seq_len = sent_len
+    # decoder_hidden_dim = 40
+    # decoder_hidden_states = Input(shape=(decoder_seq_len, decoder_hidden_dim))
+    # at_input = [decoder_hidden_states, network_outputs]
+    # attention = Attention()(at_input)
+
+    attention = AttentionLayer()(network_outputs)
+
+    # TODO attention to work on the timedistributed as that is my decoder?
+
+    network_timestep = TimeDistributed(Dense(1, activation='sigmoid'))
+    output_layer = network_timestep(network_outputs)
+
     #network_outputs = network_timestep(network_outputs)
 
     model = Model(inputs=network_inputs, outputs=output_layer)

@@ -47,7 +47,7 @@ class AttentionLayer(Layer):
     output_layer = TimeDistributed(Dense(1, activation='sigmoid'))(sent_repres)"""
 
 def model_func(sent_len, embed_dim, num_neurons):
-    network_inputs = Input(shape=(sent_len, embed_dim))
+    network_inputs = Input(shape=(None, embed_dim))
     network = Bidirectional(LSTM(num_neurons, return_sequences=True, activation='tanh'))
     network_outputs = network(network_inputs)
 
@@ -58,8 +58,6 @@ def model_func(sent_len, embed_dim, num_neurons):
     # attention = Attention()(at_input)
 
     attention = AttentionLayer()(network_outputs)
-
-    # TODO attention to work on the timedistributed as that is my decoder?
 
     network_timestep = TimeDistributed(Dense(1, activation='sigmoid'))
     output_layer = network_timestep(network_outputs)

@@ -5,6 +5,7 @@
 # accuracy = 0.8825 - 0.8841 without
 # at_input = [network_outputs, network_outputs] acc = 0.8873
 # at_input = [network_inputs, network_outputs]
+# 0.9675 !!
 
 # !!! sent len musi byt stejna
 
@@ -108,8 +109,8 @@ def model_test(sample_1, model_name, input_dims, slovnik):
 def main():
     # OVLADACI PANEL
     train_formating = 1
-    model_new = 1
-    model_load = 0
+    model_new = 0
+    model_load = 1
     train = 1
 
     epochs = 4
@@ -124,7 +125,7 @@ def main():
     input_file_name = "../data/smallervoc_fr_unspaced.txt"
     final_file_name = "../data/smallervoc_fr.txt"
     space_file_name = "space_file.npy"
-    model_file_name = '../data/hier2bin2'
+    model_file_name = '../data/hier2bin1'
     pikle_slovnik_name = 'hier2bin_slovnik.pkl'
 
     if train_formating:

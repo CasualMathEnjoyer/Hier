@@ -23,6 +23,10 @@ a = 1261263827
 set_random_seed(a)
 print("seed fixed! ", a)
 
+# 0.3734
+# 0.3890 with no shuffle and step e04
+
+
 def vectorise(final_file, input_dim, slovnik, mezera=' '):
     (radky, sent_len, embed_dim) = input_dim
     input_text = np.zeros((radky, sent_len, embed_dim))
@@ -51,7 +55,7 @@ def add_start_end(input_file, output_file):
     target_texts = []
     target_characters = set()
     for input_text in input_file.split('\n'):
-        input_text = input_text + "\n"  # "\t" +
+        input_text = "\t" + input_text + "\n"
         input_texts.append(input_text)
         # for char in input_text:
         #     if char not in input_characters:
@@ -79,7 +83,7 @@ def create_data(input_texts, target_texts, sent_len_enc, sent_len_dec, embed_dim
     for i, (input_text, target_text) in enumerate(zip(input_texts, target_texts)):
         for t, char in enumerate(input_text):
             encoder_input_data[i, t, slovnik[char]] = 1.0
-        encoder_input_data[i, t + 1:, slovnik[" "]] = 1.0
+        encoder_input_data[i, t + 1:, slovnik[" "]] = 1.0  # filling the remainder
         for t, char in enumerate(target_text):
             # decoder_target_data is ahead of decoder_input_data by one timestep
             decoder_input_data[i, t, slovnik[char]] = 1.0
@@ -88,18 +92,26 @@ def create_data(input_texts, target_texts, sent_len_enc, sent_len_dec, embed_dim
                 # and will not include the start character.
                 decoder_target_data[i, t - 1, slovnik[char]] = 1.0
         decoder_input_data[i, t + 1:, slovnik[" "]] = 1.0
-        decoder_target_data[i, t:, slovnik[" "]] = 1.0
+        decoder_target_data[i, t:, slovnik[" "]] = 1.0  # filling the remainder
 
     return encoder_input_data, decoder_input_data, decoder_target_data
+def embed_one_sent(sample_1, sent_len, embed_dim, slovnik):
+    sample = np.zeros(
+        (1, sent_len, embed_dim), dtype="float32"
+    )
+    sample[0, 0, slovnik['\t']] = 1.0
+    i = 1
+    for c in sample_1:
+        sample[0, i, slovnik[c]] = 1.0
+        i += 1
+    sample[0, i, slovnik['\n']] = 1.0
+    return sample
+
 def model_test(sample_1, model_name, input_dims, slovnik):
     model = load_model(model_name)
     lines, sent_len, embed_dim = input_dims
 
-    sample = np.zeros(
-        (1, sent_len, embed_dim), dtype="float32"
-    )
-    for i, c in enumerate(sample_1):
-        sample[0, i, slovnik[c]] = 1.0
+    sample = embed_one_sent(sample_1, sent_len, embed_dim, slovnik)
 
     print("encoding of the sentence")
     print(sample)
@@ -120,7 +132,6 @@ def model_test(sample_1, model_name, input_dims, slovnik):
     print('')
 
 
-
 def main():
     # OVLADACI PANEL
     train_formating = 1
@@ -129,9 +140,9 @@ def main():
     train = 1
 
     epochs = 4
-    num_neurons = 200
-    learning_rate = 1e-5
-    batch_size = 128
+    num_neurons = 400
+    learning_rate = 1e-4
+    batch_size = 14
 
     # embed_dim = 30
     # num_lines = 14
@@ -190,7 +201,7 @@ def main():
                 model.fit([input_text, input_decoder], output_text,
                           batch_size=batch_size,
                           epochs=epochs,
-                          shuffle=True)  # validation_split=0.2
+                          shuffle=False)  # validation_split=0.2
                 q = input("continue?")
                 if q == "q":
                     break
@@ -205,16 +216,21 @@ def main():
             #weights = model.layers[1].get_weights()
             #print(weights)
 
-
-    #embed_dim = 40
-    #sent_len = 114
-
     # loading saved dictionary
     with open('hier2bin_slovnik.pkl', 'rb') as f:
         dict_chars = pickle.load(f)
+    from model_testing import reconstruct_model, decode_sequence
+    sample_1 = "cechatétaitmonanimallepluaimé."
+    sample_2 = "lesétats-unisestparfoisoccupéenjanvier,etilestparfoischaudennovembre."
+    sample1 = embed_one_sent(sample_1, sent_len, embed_dim, dict_chars)
+    result_1 = decode_sequence(sample1, sent_len, embed_dim, dict_chars, num_neurons)
+    sample2 = embed_one_sent(sample_2, sent_len, embed_dim, dict_chars)
+    result_2 = decode_sequence(sample2, sent_len, embed_dim, dict_chars, num_neurons)
+    print('result:', result_1)
+    print('result:', result_2)
 
-    model_test("cechatétaitmonanimallepluaimé.", model_file_name, (1, sent_len, embed_dim), dict_chars)
-    model_test("lesétats-unisestparfoisoccupéenjanvier,etilestparfoischaudennovembre.", model_file_name, (1, sent_len, embed_dim), dict_chars)
+    # model_test("cechatétaitmonanimallepluaimé.", model_file_name, (1, sent_len, embed_dim), dict_chars)
+    # model_test("lesétats-unisestparfoisoccupéenjanvier,etilestparfoischaudennovembre.", model_file_name, (1, sent_len, embed_dim), dict_chars)
 
 if __name__ == '__main__':
     main()

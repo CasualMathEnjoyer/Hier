@@ -8,12 +8,12 @@ import tensorflow as tf
 
 def model_func(sent_len, embed_dim, num_neurons):
     # not bidirectional yet
-    encoder_inputs = Input(shape=(sent_len, embed_dim))
+    encoder_inputs = Input(shape=(None, embed_dim))
     encoder = LSTM(num_neurons, return_state=True, return_sequences=False, activation='tanh')
     encoder_outputs, state_h, state_c = encoder(encoder_inputs)
     encoder_states = [state_h, state_c]
 
-    decoder_inputs = Input(shape=(sent_len, embed_dim))  # sent_len tam mozna byt nemusi?
+    decoder_inputs = Input(shape=(None, embed_dim))  # sent_len tam mozna byt nemusi?
     decoder = LSTM(num_neurons, return_state=True, return_sequences=True, activation='tanh')
     decoder_outputs, _, _ = decoder(decoder_inputs, initial_state=encoder_states)
 

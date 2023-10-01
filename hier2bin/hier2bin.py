@@ -10,40 +10,24 @@
 
 # create inspection mechanisms
 
-import random
-
 print("starting hier2bin")
-from keras.layers import LSTM, Input, Dense, TimeDistributed, Bidirectional
+import random
+import pickle
+
 from keras.optimizers import Adam, SGD
 from keras.losses import BinaryCrossentropy, mean_squared_error
-from keras.models import Model, Sequential
 from keras.metrics import Mean, mse
 import numpy as np
 
 from keras.utils import set_random_seed
+
+from model_file import model_func
 
 a = random.randrange(0, 2**32 - 1)
 #a = 250286255
 a = 1261263827
 set_random_seed(a)
 print("seed fixed! ", a)
-
-def create_binary_file(input, spaced_text, output_name, sent_len, spacing=' ', endline='\n'):
-    output = []
-    spaced_text.split(endline)
-    spaces = 0
-    for i, sentence in enumerate(input.split(endline)):
-        list_sent = np.ones(sent_len)
-        for j, letter in enumerate(sentence):
-            if spaced_text[j + spaces + 1] != spacing:
-                list_sent[j] = 0
-            else:
-                list_sent[j] = 1
-                spaces += 1
-        output.append(list_sent)
-        #output.write('0') # za tecku nakonci
-    output = np.asarray(output)
-    np.save(output_name, output)
 
 def create_letter_array(final_file, sentence_split_point='\n'):
     slovnikk = []
@@ -78,34 +62,6 @@ def vectorise(final_file, input_dim, slovnik, mezera=' '):
 
     return(input_text)
 
-from keras.layers import Layer, Activation, dot, concatenate, Attention
-import tensorflow as tf
-
-class AttentionLayer(Layer):
-    def __init__(self, **kwargs):
-        super(AttentionLayer, self).__init__(**kwargs)
-
-    def build(self, input_shape):
-        # Create a trainable weight variable for this layer.
-        self.W_a = self.add_weight(name='W_a',
-                                   shape=tf.TensorShape((input_shape[-1], input_shape[-1])),
-                                   initializer='uniform',
-                                   trainable=True)
-        super(AttentionLayer, self).build(input_shape)  # Be sure to call this at the end
-
-    def call(self, x):
-        q = x  # Query
-        k = x  # Key
-        v = x  # Value
-
-        q_dot_k = dot([q, k], axes=-1)  # Calculate the dot product of Query and Key
-        q_dot_k = Activation('softmax')(q_dot_k)  # Apply softmax to get attention scores
-
-        output = dot([q_dot_k, v], axes=(2, 1))  # Weighted sum of Values using attention scores
-
-        self.add_loss(tf.reduce_sum(self.W_a))
-
-        return output
 
 def model_test(sample_1, model_name, input_dims, slovnik):
     from keras.models import load_model
@@ -150,7 +106,6 @@ def model_test(sample_1, model_name, input_dims, slovnik):
 def main():
     # OVLADACI PANEL
     train_formating = 1
-    create_space_file = 0
     model_new = 1
     model_load = 0
     train = 1
@@ -159,6 +114,10 @@ def main():
     num_neurons = 200
     learning_rate = 1e-5
     batch_size = 128
+
+    # embed_dim = 30
+    # num_lines = 14
+    # sent_len = 90
 
     input_file_name = "../data/smallervoc_fr_unspaced.txt"
     final_file_name = "../data/smallervoc_fr.txt"
@@ -172,7 +131,6 @@ def main():
 
         list_chars, sent_len = create_letter_array(final_file)   # has to be from final file cos longer then input
         num_lines = len(final_file.split('\n'))
-        #dict_chars = dict.fromkeys(list_chars)
         dict_chars = {j:i for i,j in enumerate(list_chars)}
         embed_dim = len(dict_chars)
 
@@ -184,41 +142,25 @@ def main():
         input_text = vectorise(input_file, (num_lines, sent_len, embed_dim), dict_chars)
 
         # creating output_text
-        if create_space_file:
-            create_binary_file(input_file, final_file, space_file_name, sent_len)
         binary_data = np.load(space_file_name, allow_pickle=True)
         output_text = binary_data
 
         assert len(input_text) == len(output_text)
 
-        # getting the model
+        # model creation and selection
         if model_new:
-            network_inputs = Input(shape=(sent_len, embed_dim))
-            network = Bidirectional(LSTM(num_neurons, return_sequences=True, activation='tanh'))
-            network_outputs = network(network_inputs)
-            #attention = AttentionLayer()(network_outputs)
-            at_input = [network_outputs, network_outputs]
-            attention = Attention()(at_input)
-            network_timestep = TimeDistributed(Dense(1, activation='sigmoid'))
-            network_outputs2 = network_timestep(attention)
-            #network_outputs = network_timestep(network_outputs)
-
-            model = Model(inputs=network_inputs, outputs=network_outputs2)
-
+            model = model_func(sent_len, embed_dim, num_neurons)
             model.compile(loss=BinaryCrossentropy(from_logits=False),
                           optimizer=Adam(learning_rate=learning_rate),
                           metrics=['accuracy'])
-            model.summary()
-
         elif model_load:
             from keras.models import load_model
             model = load_model(model_file_name)
         else:
-            print("not valid")
-            model = 0
+            raise Exception("No model selected")
+        model.summary()
 
         # save the dictionary
-        import pickle
         with open(pikle_slovnik_name, 'wb') as f:
             pickle.dump(dict_chars, f)
 
@@ -246,7 +188,8 @@ def main():
 
     #embed_dim = 40
     #sent_len = 114
-    import pickle
+
+    # loading saved dictionary
     with open('hier2bin_slovnik.pkl', 'rb') as f:
         dict_chars = pickle.load(f)
 

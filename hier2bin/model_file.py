@@ -51,18 +51,8 @@ def model_func(sent_len, embed_dim, num_neurons):
     network = Bidirectional(LSTM(num_neurons, return_sequences=True, activation='tanh'))
     network_outputs = network(network_inputs)
 
-    # decoder_seq_len = sent_len
-    # decoder_hidden_dim = 40
-    # decoder_hidden_states = Input(shape=(decoder_seq_len, decoder_hidden_dim))
-    # at_input = [decoder_hidden_states, network_outputs]
-    # attention = Attention()(at_input)
-
-    attention = AttentionLayer()(network_outputs)
-
     network_timestep = TimeDistributed(Dense(1, activation='sigmoid'))
     output_layer = network_timestep(network_outputs)
-
-    #network_outputs = network_timestep(network_outputs)
 
     model = Model(inputs=network_inputs, outputs=output_layer)
     return model

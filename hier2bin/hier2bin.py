@@ -49,7 +49,10 @@ def vectorise(final_file, input_dim, slovnik, mezera=' '):
         k = 0
         for i, letter in enumerate(line):
             assert letter != mezera
-            input_text[l][i][slovnik[letter]] = 1
+            try:
+                input_text[l][i][slovnik[letter]] = 1
+            except KeyError:
+                input_text[l][i][slovnik['a']] = 1   # davam a v pripade key error - not final!!!1!!!!
             k += 1
         while k < sent_len:
             input_text[l][k][slovnik['end_char']] = 1
@@ -72,36 +75,16 @@ def model_test(sample_1, model_name, input_dims, slovnik):
     sample = vectorise(sample_1, input_dims, slovnik)
     value = model.predict(sample)  # has to be in the shape of the input for it to predict
     #print(value)
-    o = 0
-    for values in value:
-        for v in values:
-            o += float(v)
-    o = float(o/len(values))
-    print("prumer = ", o)
-    #o = 0.5
+    for num in value[0]:
+        if num[0] > 0.5:
+            print(1, end=' ')
+        else:
+            print(0, end='')
+    print('')
     i = 0
     for char in sample_1:
         print(char, end='')
-        if value[0][i] > o:
-            print(' ', end='')
-        i += 1
-    while i < len(values):
-        print(0, end='')
-        if value[0][i] > o:
-            print(' ', end='')
-        i+=1
-    print('')
-    print("polovina")
-    o = 0.5
-    i=0
-    for char in sample_1:
-        print(char, end='')
-        if value[0][i] > o:
-            print(' ', end='')
-        i += 1
-    while i < len(values):
-        print(0, end='')
-        if value[0][i] > o:
+        if value[0][i] > 0.5:
             print(' ', end='')
         i+=1
     print('')
@@ -113,12 +96,14 @@ def main():
     model_load = 1
     train = 1
 
+    instant_save = 1
+
     epochs = 4
-    num_neurons = 20
+    num_neurons = 60
     learning_rate = 1e-5
     batch_size = 128
 
-    # embed_dim = 30
+    # embed_dim = 31
     # num_lines = 14
     # sent_len = 90
 
@@ -150,6 +135,8 @@ def main():
 
         assert len(input_text) == len(output_text)
 
+        print("starting model creation...")
+
         # model creation and selection
         if model_new:
             model = model_func(sent_len, embed_dim, num_neurons)
@@ -174,14 +161,17 @@ def main():
                           batch_size=batch_size,
                           epochs=epochs,
                           shuffle=True)
-                q = input("continue?")
-                if q == "q":
+                if  instant_save != 1:
+                    q = input("continue?")
+                    if q == "q":
+                        break
+                    try:
+                        q = int(q)
+                        epochs = q
+                    except ValueError:
+                        pass
+                else:
                     break
-                try:
-                    q = int(q)
-                    epochs = q
-                except ValueError:
-                    pass
             print("saving model ...")
             model.save(model_file_name)
             print("model saved")
@@ -196,8 +186,14 @@ def main():
     with open('hier2bin_slovnik.pkl', 'rb') as f:
         dict_chars = pickle.load(f)
 
-    model_test("cechatétaitmonanimallepluaimé.", model_file_name, (1, sent_len, embed_dim), dict_chars)
-    model_test("lesétats-unisestparfoisoccupéenjanvier,etilestparfoischaudennovembre.", model_file_name, (1, sent_len, embed_dim), dict_chars)
+    with open(input_file_name) as f:
+        file = f.read()
+    file = file.split('\n')
+    for i in range(len(file)):
+        model_test(file[i], model_file_name, (1, sent_len, embed_dim), dict_chars)
+
+    # model_test("cechatétaitmonanimallepluaimé.", model_file_name, (1, sent_len, embed_dim), dict_chars)
+    # model_test("lesétats-unisestparfoisoccupéenjanvier,etilestparfoischaudennovembre.", model_file_name, (1, sent_len, embed_dim), dict_chars)
 
 if __name__ == '__main__':
     main()

@@ -139,9 +139,9 @@ def main():
     model_load = 0
     train = 1
 
-    epochs = 4
-    num_neurons = 400
-    learning_rate = 1e-4
+    epochs = 100
+    num_neurons = 200
+    learning_rate = 1e-5
     batch_size = 14
 
     # embed_dim = 30
@@ -201,7 +201,7 @@ def main():
                 model.fit([input_text, input_decoder], output_text,
                           batch_size=batch_size,
                           epochs=epochs,
-                          shuffle=False)  # validation_split=0.2
+                          shuffle=True)  # validation_split=0.2
                 q = input("continue?")
                 if q == "q":
                     break
@@ -219,7 +219,7 @@ def main():
     # loading saved dictionary
     with open('hier2bin_slovnik.pkl', 'rb') as f:
         dict_chars = pickle.load(f)
-    from model_testing import reconstruct_model, decode_sequence
+    from model_testing import decode_sequence
     sample_1 = "cechatétaitmonanimallepluaimé."
     sample_2 = "lesétats-unisestparfoisoccupéenjanvier,etilestparfoischaudennovembre."
     sample1 = embed_one_sent(sample_1, sent_len, embed_dim, dict_chars)

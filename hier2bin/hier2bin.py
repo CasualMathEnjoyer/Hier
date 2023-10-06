@@ -11,6 +11,8 @@
 
 # create inspection mechanisms
 
+# IDEA - sentences not split necesarilly correctly - resplit them?
+
 print("starting hier2bin")
 import random
 import pickle
@@ -42,7 +44,7 @@ def create_letter_array(final_file, sentence_split_point='\n'):
     slovnikk.append('end_char')
     return slovnikk, sent_len
 
-def vectorise(final_file, input_dim, slovnik, mezera=' '):
+def vectorise(final_file, input_dim, slovnik, mezera=' '): # TODO predelat do vektorove podoby
     (radky, sent_len, embed_dim) = input_dim
     input_text = np.zeros((radky, sent_len, embed_dim))
     for l, line in enumerate(final_file.split('\n')):
@@ -92,13 +94,13 @@ def model_test(sample_1, model_name, input_dims, slovnik):
 def main():
     # OVLADACI PANEL
     train_formating = 1
-    model_new = 0
-    model_load = 1
+    model_new = 1
+    model_load = 0
     train = 1
 
-    instant_save = 1
+    instant_save = 0
 
-    epochs = 4
+    epochs = 100
     num_neurons = 60
     learning_rate = 1e-5
     batch_size = 128
@@ -107,11 +109,14 @@ def main():
     # num_lines = 14
     # sent_len = 90
 
-    input_file_name = "../data/smallervoc_fr_unspaced.txt"
-    final_file_name = "../data/smallervoc_fr.txt"
-    space_file_name = "space_file.npy"
-    model_file_name = '../data/hier2bin1'
+    # input_file_name = "../data/smallervoc_fr_unspaced.txt"
+    # final_file_name = "../data/smallervoc_fr.txt"
+    input_file_name = "../data/src-ctest.txt"
+    final_file_name = "../data/src-sep-ctest.txt"
+    space_file_name = "../data/space_hier.npy"
+    model_file_name = '../data/hier2binH'
     pikle_slovnik_name = 'hier2bin_slovnik.pkl'
+    mezera = '_'
 
     if train_formating:
         input_file = open(input_file_name, "r", encoding="utf-8").read()
@@ -127,12 +132,18 @@ def main():
         print('embed_dim: ', embed_dim)
 
         # creating input text
-        input_text = vectorise(input_file, (num_lines, sent_len, embed_dim), dict_chars)
+        input_text = vectorise(input_file, (num_lines, sent_len, embed_dim), dict_chars, mezera=mezera)
 
         # creating output_text
         binary_data = np.load(space_file_name, allow_pickle=True)
         output_text = binary_data
 
+        # for i in range(14):
+        #     print(input_text[i], len(input_text[i]))
+        #     print(output_text[i], len(output_text[i]))
+        #     print('')
+
+        print('input:', len(input_text), 'output:', len(output_text))
         assert len(input_text) == len(output_text)
 
         print("starting model creation...")
@@ -161,7 +172,7 @@ def main():
                           batch_size=batch_size,
                           epochs=epochs,
                           shuffle=True)
-                if  instant_save != 1:
+                if instant_save != 1:
                     q = input("continue?")
                     if q == "q":
                         break
@@ -189,7 +200,7 @@ def main():
     with open(input_file_name) as f:
         file = f.read()
     file = file.split('\n')
-    for i in range(len(file)):
+    for i in range(3):
         model_test(file[i], model_file_name, (1, sent_len, embed_dim), dict_chars)
 
     # model_test("cechatétaitmonanimallepluaimé.", model_file_name, (1, sent_len, embed_dim), dict_chars)

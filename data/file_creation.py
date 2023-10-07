@@ -64,14 +64,14 @@ def create_binary_file(unspaced_text, spaced_text, output_name, sent_len, spacin
     for i in range(len(spaced_text_char)):
         spaces = 0
         # unspaced_text = unspaced_text.split(' ')
-        list_sent = np.zeros(sent_len)
+        list_sent = np.ones(sent_len)
 
         list_sent[0] = 0
 
         for j in range(1, len(spaced_text_char[i])):
             if j < sent_len + spaces + 1:
                 if spaced_text_char[i][j] != spacing:
-                    pass
+                    list_sent[j - spaces] = 0
                 else:
                     spaces += 1
                     list_sent[j-spaces] = 1
@@ -97,12 +97,12 @@ def main():
     # sep = ''
     # sent_len = 90
 
-    input_file_name = "src-ctest.txt"
-    final_file_name = "src-sep-ctest.txt"
+    input_file_name = "hier_short.txt"
+    final_file_name = "hier_short_sep.txt"
     space_file_name = "space_hier.npy"
     spacing = '_'
     sep = ' '
-    sent_len = 48
+    sent_len = 64
 
     remove_spaces(final_file_name, input_file_name, spacing, sep= '')
 

@@ -33,7 +33,7 @@ a = 1261263827
 set_random_seed(a)
 print("seed fixed! ", a)
 
-def create_letter_array(final_file, sentence_split_point='\n', sep=''):
+def create_letter_array(final_file : str, sentence_split_point='\n', sep=''):
     slovnikk = []
     sent_len = 0
     for line in final_file.split(sentence_split_point):
@@ -49,7 +49,69 @@ def create_letter_array(final_file, sentence_split_point='\n', sep=''):
     slovnikk.append('OOV')
     return slovnikk, sent_len
 
-def vectorise(final_file, input_dim, slovnik, mezera=' ', sep=''): # TODO predelat do vektorove podoby
+def re_windowing_data(input_file : str, binar : np.array, sep):
+    window, core, left, right = 128, 64, 32, 32
+    assert right+left+core == window
+    binar = binar.flatten()
+    input_split = input_file.split(sep)
+    l = len(input_split)
+    re_windowed, re_binar, list_chars = [], [], []
+    i, pos_n = 0, 0
+    while True:
+        pos, skipped = 0, 0
+        line, line_n = [], []
+        # line.append('<bos>')
+        while pos < 128 + skipped:
+            element = input_split[i*window + pos]
+            if element != '':
+                if "\n" in element:
+                    element = element.replace("\n", "")
+                line.append(element)
+                line_n.append(binar[pos_n])
+
+                if element not in list_chars:
+                    list_chars.append(element)
+                pos_n += 1
+            else:
+                skipped += 1
+            pos+=1
+        # line.append('<eos>')
+        re_windowed.append(line)
+        re_binar.append(line_n)
+        i += 1
+        if i*window + pos > l:
+            break
+    dict_chars = {j: i for i, j in enumerate(list_chars)}
+
+    assert len(re_binar) == len(re_windowed)
+    assert len(re_binar[0]) == len(re_windowed[0])
+    re_binar = np.array(re_binar)
+
+    return re_windowed, re_binar, dict_chars
+
+def vectorise_list(file : list, embed_dim, radky, sent_len, slovnik, mezera):
+    assert radky == len(file)
+    assert len(file[0]) == sent_len
+
+    input_text = np.zeros((radky, sent_len, embed_dim))
+    for i, line in enumerate(file):
+        for j, letter in enumerate(line):
+            assert letter != mezera
+            try:
+                input_text[i][j][slovnik[letter]] = 1
+            except KeyError:
+                input_text[i][j][slovnik['OOV']] = 1
+
+    for line in input_text:  # kontrola zda zadny vektor neni nulovy
+        for vector in line:
+            soucet = 0
+            for element in vector:
+                soucet += element
+            assert soucet != 0
+
+    return input_text
+
+def vectorise(final_file, input_dim, slovnik, mezera=' ', sep=''):
     (radky, sent_len, embed_dim) = input_dim
     input_text = np.zeros((radky, sent_len, embed_dim))
     for l, line in enumerate(final_file.split('\n')):
@@ -125,13 +187,16 @@ def main():
     # sep = ''
     # fixed_sent = 90
 
-    input_file_name = "../data/hier_short.txt"
-    final_file_name = "../data/hier_short_sep.txt"
-    space_file_name = "../data/space_hier.npy"
+    # input_file_name = "../data/hier_short.txt"
+    # final_file_name = "../data/hier_short_sep.txt"
+    # space_file_name = "../data/space_hier.npy"
+    input_file_name = "../data/hier.txt"
+    final_file_name = "../data/hier_sep.txt"
+    space_file_name = "../data/space_hier_long.npy"
     model_file_name = '../data/hier2binH'
     mezera = '_'
     sep = ' '
-    fixed_sent = 64
+    fixed_sent = 128
 
     pikle_slovnik_name = 'hier2bin_slovnik.pkl'
 
@@ -139,34 +204,43 @@ def main():
         input_file = open(input_file_name, "r", encoding="utf-8").read()
         final_file = open(final_file_name, "r", encoding="utf-8").read()
 
-        list_chars, sent_len = create_letter_array(final_file, sep=sep)   # has to be from final file cos longer then input
+        # creating output_text
+        binary_data = np.load(space_file_name, allow_pickle=True)
 
+        formated_file, binary_data, dict_chars = re_windowing_data(input_file, binary_data, sep)
         sent_len = fixed_sent
+        assert sent_len == len(binary_data[0])
+        assert sent_len == len(formated_file[0])
 
-        num_lines = len(final_file.split('\n'))
-        dict_chars = {j:i for i,j in enumerate(list_chars)}
+        num_lines = len(formated_file)
         embed_dim = len(dict_chars)
+        print(binary_data[0])
+        assert binary_data.shape[0] == num_lines
+
+        # list_chars, sent_len = create_letter_array(final_file, sep=sep)   # has to be from final file cos longer then input
+        # num_lines = len(final_file.split('\n'))
+        # dict_chars = {j:i for i,j in enumerate(list_chars)}
+        # embed_dim = len(dict_chars)
 
         print('num_lines: ', num_lines)
         print('sent_len: ', sent_len)
         print('embed_dim: ', embed_dim)
 
         # creating input text
-        input_text = vectorise(input_file, (num_lines, sent_len, embed_dim), dict_chars, mezera=mezera, sep=sep)
-
-        # creating output_text
-        binary_data = np.load(space_file_name, allow_pickle=True)
+        # input_text = vectorise(input_file, (num_lines, sent_len, embed_dim), dict_chars, mezera=mezera, sep=sep)
+        input_text = vectorise_list(formated_file, embed_dim, num_lines, sent_len, dict_chars, mezera)
         output_text = binary_data
 
+        for line in input_text:
+            for char in line:
+                assert len(char) == embed_dim
         # for i in range(14):
         #     print(input_text[i], len(input_text[i]))
         #     print(output_text[i], len(output_text[i]))
         #     print('')
 
-        print('input:', len(input_text), 'output:', len(output_text))
-        assert len(input_text) == len(output_text)
-
         print("starting model creation...")
+        print(embed_dim)
 
         # model creation and selection
         if model_new:
@@ -225,3 +299,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# TODO - implement sliding window

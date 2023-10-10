@@ -57,6 +57,7 @@ def create_binary_file(unspaced_text, spaced_text, output_name, sent_len, spacin
     # print(spaced_text_char)
     # print(unspaced_text_char)
 
+    # TODO - check below
     # unspaced_text_char = [s for s in unspaced_text_char if s != []]  # this shouldn't be needed
     # spaced_text_char = [s for s in spaced_text_char if s != []]
 
@@ -69,18 +70,19 @@ def create_binary_file(unspaced_text, spaced_text, output_name, sent_len, spacin
         list_sent[0] = 0
 
         for j in range(1, len(spaced_text_char[i])):
-            if j < sent_len + spaces + 1:
+            if j < sent_len + spaces + 0:
+                assert j - spaces < sent_len
                 if spaced_text_char[i][j] != spacing:
                     list_sent[j - spaces] = 0
                 else:
                     spaces += 1
-                    list_sent[j-spaces] = 1
+                    list_sent[j - spaces] = 1
                     j += 1
             else:
                 pass
 
         print('')
-        print(len(unspaced_text_char[i]))
+        print('i=', i, ' len=', len(unspaced_text_char[i]))
         print(unspaced_text_char[i])
         print(spaced_text_char[i])
         print(list_sent)
@@ -97,9 +99,13 @@ def main():
     # sep = ''
     # sent_len = 90
 
-    input_file_name = "hier_short.txt"
-    final_file_name = "hier_short_sep.txt"
-    space_file_name = "space_hier.npy"
+    input_file_name = "../data/hier.txt"
+    final_file_name = "../data/hier_sep.txt"
+    space_file_name = "../data/space_hier_long.npy"
+
+    # input_file_name = "hier_short.txt"
+    # final_file_name = "hier_short_sep.txt"
+    # space_file_name = "space_hier.npy"
     spacing = '_'
     sep = ' '
     sent_len = 64
@@ -115,3 +121,12 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# QUESTIONS:
+# preskalovat data tak, aby kazda sentence mela stejnou delku
+# ted je neuronka biased smerem k 0 nebo 1 v zavislosti na volbe filler znaku
+# pridavat dvojky jako filler (respektive preskalovat na 0, 0.5 a 1)
+
+# NAPAD
+# slo by jenom vzit hieroglyfy, udelat pro znaky embedding a potom udelat aplikaci
+# ktera by pri psani nabizela jakoby autofil nebo autocorrect

@@ -47,6 +47,7 @@ class AttentionLayer(Layer):
     output_layer = TimeDistributed(Dense(1, activation='sigmoid'))(sent_repres)"""
 
 def model_func(sent_len, embed_dim, num_neurons):
+    print(embed_dim)
     network_inputs = Input(shape=(None, embed_dim))
     network = Bidirectional(LSTM(num_neurons, return_sequences=True, activation='tanh'))
     network_outputs = network(network_inputs)

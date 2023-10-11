@@ -171,6 +171,8 @@ def create_binary_simple(spaced_text : str, spacing, endline, charsplit):
 # print("formatting input and output")
 # formatted_input, formated_binary = df.data_windowing(list_input, list_binary)
 """
+
+# it doesnt use the last elements - need to fix
 def re_windowing_data_nobinar(output_file: str, sep, space):
     window, core, left, right = 128, 64, 32, 32
     assert right + left + core == window
@@ -180,61 +182,102 @@ def re_windowing_data_nobinar(output_file: str, sep, space):
     l = len(output_file)
     print(l)
     re_windowed, re_binar, list_chars = [], [], []
-    i, pos_n = 0, 0
-    counter = 0
-    cs = 0
+    i = 0
 
     while True:
         pos, skipped = 0, 0
         line, line_n = [], []
         # line.append('<bos>')
-        while pos < 128 + skipped:
+        while pos < window + skipped:
             element = output_file[i * window + pos]
             if element != space:
                 if "\n" in element:
                     element = element.replace("\n", "")
-                line.append(element)
-                re_binar.append(0)
-                counter += 1
-
                 if element not in list_chars:
                     list_chars.append(element)
-                pos_n += 1
+                line.append(element)
+                re_binar.append(0)
             else:  # element was a space
                 skipped += 1
-                cs += 1
                 re_binar.pop()
                 re_binar.append(1)
             pos += 1
         # line.append('<eos>')
         re_windowed.append(line)
-        i += 1  # I take a look at the last like without setting pos to 0 and it is too much so it stops
+        # I take a look at the last like without setting pos to 0 and it is too much so it stops
+        i += 1
         if i * window + pos > l:
             break
     list_chars.append('OOV')
     dict_chars = {j: i for i, j in enumerate(list_chars)}
 
-    print(counter, " + ",  cs, " = ", cs+counter)
     num_line = len(re_windowed)
-
     re_binar = np.array(re_binar)
     re_binar = np.reshape(re_binar, (num_line, window))
-
-    print("num_lines = ", len(re_binar))
-    print("num_lines = ", len(re_windowed))
-    print("num_chars = ", len(re_windowed)*window)
-    # for i in range(len(re_windowed)):
-    #     print(len(re_windowed[i]), len(re_binar[i]))
-        # print(re_windowed[i])
-        # print(re_binar[i])
 
     assert len(re_binar) == len(re_windowed)
     assert len(re_binar[0]) == len(re_windowed[0])
 
     return re_windowed, re_binar, dict_chars
 
+def sliding_window(output_file: str, sep, space):
+    window, step = 64, 20
+
+    if sep != '':
+        output_file = output_file.split(sep)
+    l = len(output_file)
+
+    re_windowed, re_binar, list_chars = [], [], []
+    slide = 0
+    while True:
+        pos, skipped = 0, 0
+        line, line_n = [], []
+        # line.append('<bos>')
+        while pos < window + skipped:  # slide
+            element = output_file[slide * step + pos]
+            assert element != ''
+            if element != space:
+                if "\n" in element:
+                    element = element.replace("\n", "")
+                if element not in list_chars:
+                    list_chars.append(element)
+                line.append(element)
+                re_binar.append(0)
+            else:  # element was a space
+                skipped += 1
+                re_binar.pop()
+                re_binar.append(1)
+            pos += 1
+        # line.append('<eos>')
+        re_windowed.append(line)
+        # I take a look at the last like without setting pos to 0 and it is too much so it stops
+        slide += 1
+        if slide * step + pos > l:
+            break
+
+    list_chars.append('OOV')
+    dict_chars = {j: i for i, j in enumerate(list_chars)}
+
+    num_line = len(re_windowed)
+    re_binar = np.array(re_binar)
+    re_binar = np.reshape(re_binar, (num_line, window))
+    # print(len(re_binar))
+    # print(len(re_binar[0]))
+    # for i in range(len(re_windowed)):
+    #     # print(re_windowed[i])
+    #     # print(re_binar[i])
+    #     for j, char in enumerate(re_windowed[i]):
+    #         print(char, end=sep)
+    #         if re_binar[i][j] == 1:
+    #             print(space, end=sep)
+    #     print('')
+
+    assert len(re_binar) == len(re_windowed)
+    assert len(re_binar[0]) == len(re_windowed[0])
+
+    return re_windowed, re_binar, dict_chars
 def vectorise_list(file: list, embed_dim, radky, sent_len, dictionary, mezera):
-    # takes list and creates array with the same dimensions of the emmbeded list
+    # takes list and creates array with the same dimensions of the embedded list
 
     input_text = np.zeros((radky, sent_len, embed_dim))
     for i, line in enumerate(file):

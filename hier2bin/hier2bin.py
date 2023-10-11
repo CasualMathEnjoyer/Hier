@@ -11,7 +11,7 @@
 
 # create inspection mechanisms
 
-# IDEA - sentences not split necesarilly correctly - resplit them?
+# IDEAS:
 
 
 print("starting hier2bin")
@@ -44,16 +44,18 @@ print("seed fixed! ", a)
 def main():
     # OVLADACI PANEL
     train_formating = 1
-    model_new = 1
-    model_load = 0
+    model_new = 0
+    model_load = 1
     train = 1
+    testing = 0
 
-    instant_save = 0
+    instant_save = 1
 
-    epochs = 10
-    num_neurons = 124
+    epochs = 1
+    num_neurons = 256
     learning_rate = 1e-5
     batch_size = 10
+    # TODO - adaptive learning rate
 
     # input_file_name = "../data/smallervoc_fr_unspaced.txt"
     # final_file_name = "../data/smallervoc_fr.txt"
@@ -61,7 +63,6 @@ def main():
     # space_file_name = '../data/space_file.npy'
     # mezera = ' '
     # sep = ''
-    # fixed_sent = 90
 
     # input_file_name = "../data/hier_short.txt"
     # final_file_name = "../data/hier_short_sep.txt"
@@ -72,7 +73,6 @@ def main():
     model_file_name = '../data/hier2binH'
     mezera = '_'
     sep = ' '
-    fixed_sent = 128
 
     pikle_slovnik_name = 'hier2bin_slovnik.pkl'
 
@@ -82,8 +82,9 @@ def main():
         input_file = open(input_file_name, "r", encoding="utf-8").read() # without spaces
         final_file = open(final_file_name, "r", encoding="utf-8").read() # with spaces
 
-        formatted_input, formated_binary, dict_chars = df.re_windowing_data_nobinar(final_file, sep, mezera)
-
+        # formatted_input, formated_binary, dict_chars = df.re_windowing_data_nobinar(final_file, sep, mezera)
+        print("formating")
+        formatted_input, formated_binary, dict_chars = df.sliding_window(final_file, sep, mezera)
         num_lines = len(formatted_input)
         sent_len = len(formatted_input[0])
         embed_dim = len(dict_chars)
@@ -109,7 +110,7 @@ def main():
         #     print('')
 
         print("starting model creation...")
-        assert True == False
+        # assert True == False
 
         # model creation and selection
         if model_new:
@@ -151,6 +152,11 @@ def main():
             print("model saved")
             #weights = model.layers[1].get_weights()
             #print(weights)
+        if testing:
+            # testing
+            from model_testing import model_test
+            sample, _, _ = df.sliding_window(final_file[:1000], sep, mezera)  # TODO - doesnt look up short sequences
+            model_test(sample, model_file_name, len(sample), sent_len, embed_dim, dict_chars, mezera, sep)
 
 if __name__ == '__main__':
     main()

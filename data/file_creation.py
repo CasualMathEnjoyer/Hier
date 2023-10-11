@@ -1,4 +1,4 @@
-def remove_spaces(input_file_name, output_file_name, space, sep= ' '):
+def remove_spaces(input_file_name, output_file_name, space, sep):
     # removes spaces in a file to prepare it for training
     f = open(input_file_name, "r", encoding="utf-8").read()
     sf = open(output_file_name, "w",  encoding="utf-8")
@@ -6,13 +6,7 @@ def remove_spaces(input_file_name, output_file_name, space, sep= ' '):
     if sep == ' ':
         for i, char in enumerate(f):
             if char != space:
-                if char == sep:
-                    if f[i-2] == sep:
-                        pass
-                    else:
-                        sf.write(char)
-                else:
-                    sf.write(char)
+                sf.write(char)
     elif sep == '':
         for char in f:
             if char != space:
@@ -22,6 +16,8 @@ def remove_spaces(input_file_name, output_file_name, space, sep= ' '):
     sf.close()
 
 import numpy as np
+
+
 def create_binary_file(unspaced_text, spaced_text, output_name, sent_len, spacing=' ', endline='\n', charsplit=''):
     output = []
     spaced_text = spaced_text.split(endline)
@@ -91,6 +87,16 @@ def create_binary_file(unspaced_text, spaced_text, output_name, sent_len, spacin
     output = np.asarray(output)
     np.save(output_name, output)
 
+def clean_data(input_file : str):
+    output = ''
+    for i, char in enumerate(input_file):
+        try:
+            if char != ' ' or input_file[i+1] != ' ':
+                output += char
+        except IndexError:
+            pass
+    return output
+
 def main():
     # input_file_name = "smallervoc_fr_unspaced.txt"
     # final_file_name = "smallervoc_fr.txt"
@@ -99,23 +105,28 @@ def main():
     # sep = ''
     # sent_len = 90
 
-    input_file_name = "../data/hier.txt"
-    final_file_name = "../data/hier_sep.txt"
-    space_file_name = "../data/space_hier_long.npy"
+    # input_file_name = "../data/hier.txt"
+    # final_file_name = "../data/hier_sep.txt"
+    # space_file_name = "../data/space_hier_long.npy"
 
-    # input_file_name = "hier_short.txt"
-    # final_file_name = "hier_short_sep.txt"
-    # space_file_name = "space_hier.npy"
+    input_file_name = "hier_short.txt"
+    final_file_name = "hier_short_sep.txt"
+    space_file_name = "space_hier.npy"
     spacing = '_'
     sep = ' '
-    sent_len = 64
 
-    remove_spaces(final_file_name, input_file_name, spacing, sep= '')
+    remove_spaces(final_file_name, input_file_name, spacing, sep)
+
+    input_file = open(input_file_name, "r", encoding="utf-8").read()
+    cleared_data = clean_data(input_file)
+    input_file = open(input_file_name, "w", encoding="utf-8")
+    input_file.write(cleared_data)
+    input_file.close()
 
     input_file = open(input_file_name, "r", encoding="utf-8").read()
     final_file = open(final_file_name, "r", encoding="utf-8").read()
 
-    create_binary_file(input_file, final_file, space_file_name, sent_len, spacing=spacing,  charsplit=sep)  # change sent_len if needed!
+    # create_binary_file(input_file, final_file, space_file_name, sent_len, spacing=spacing,  charsplit=sep)  # change sent_len if needed!
 
     pass
 

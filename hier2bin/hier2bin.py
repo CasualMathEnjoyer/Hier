@@ -20,7 +20,7 @@ import pickle
 
 from keras.optimizers import Adam, SGD
 from keras.losses import BinaryCrossentropy, mean_squared_error
-from keras.metrics import mse
+from keras.metrics import mse, F1Score
 from keras.utils import set_random_seed
 
 
@@ -47,15 +47,16 @@ def main():
     model_new = 0
     model_load = 1
     train = 1
-    testing = 0
+    testing = 1
 
     instant_save = 1
 
-    epochs = 1
-    num_neurons = 256
+    epochs = 2
+    num_neurons = 500
     learning_rate = 1e-5
     batch_size = 10
     # TODO - adaptive learning rate
+    # TODO - transformers
 
     # input_file_name = "../data/smallervoc_fr_unspaced.txt"
     # final_file_name = "../data/smallervoc_fr.txt"
@@ -117,10 +118,13 @@ def main():
             model = model_func(sent_len, embed_dim, num_neurons)
             model.compile(loss=BinaryCrossentropy(from_logits=False),
                           optimizer=Adam(learning_rate=learning_rate),
-                          metrics=['accuracy', mse])
+                          metrics=['accuracy', mse, F1Score])
         elif model_load:
             from keras.models import load_model
             model = load_model(model_file_name)
+            model.compile(loss=BinaryCrossentropy(from_logits=False),
+                          optimizer=Adam(learning_rate=learning_rate),
+                          metrics=['accuracy', mse])
         else:
             raise Exception("No model selected")
         model.summary()
@@ -131,22 +135,28 @@ def main():
 
         # training
         if train:
-            while True:
+            # while True:
+            o_epoch = 10
+            cycles = int(epochs/o_epoch)
+            for i in range(cycles):
                 model.fit(input_text, output_text,
                           batch_size=batch_size,
-                          epochs=epochs,
+                          epochs=o_epoch,
                           shuffle=True)
-                if instant_save != 1:
-                    q = input("continue?")
-                    if q == "q":
-                        break
-                    try:
-                        q = int(q)
-                        epochs = q
-                    except ValueError:
-                        pass
-                else:
-                    break
+                print("saving model ...")
+                model.save(model_file_name)
+                print("model saved")
+                # if instant_save != 1:
+                #     q = input("continue?")
+                #     if q == "q":
+                #         break
+                #     try:
+                #         q = int(q)
+                #         epochs = q
+                #     except ValueError:
+                #         pass
+                # else:
+                #     break
             print("saving model ...")
             model.save(model_file_name)
             print("model saved")

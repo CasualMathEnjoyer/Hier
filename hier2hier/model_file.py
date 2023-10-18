@@ -11,13 +11,13 @@ import tensorflow as tf
 def model_func(sent_len, embed_dim, num_neurons):
     # not bidirectional yet
     encoder_inputs = Input(shape=(None, embed_dim))
-    encoder = LSTM(num_neurons, return_state=True, return_sequences=False, activation='sigmoid')
-    encoder_outputs, state_h, state_c = encoder(encoder_inputs)
-    encoder_states = [state_h, state_c]
+    encoder = Bidirectional(LSTM(num_neurons, return_state=True, return_sequences=False, activation='sigmoid'))
+    encoder_outputs, state_h, state_c, state_h2, statec_c2 = encoder(encoder_inputs)
+    encoder_states = [state_h, state_c, state_h2, statec_c2]
 
     decoder_inputs = Input(shape=(None, embed_dim))  # sent_len tam mozna byt nemusi?
-    decoder = LSTM(num_neurons, return_state=True, return_sequences=True, activation='sigmoid')
-    decoder_outputs, _, _ = decoder(decoder_inputs, initial_state=encoder_states)
+    decoder = Bidirectional(LSTM(num_neurons, return_state=True, return_sequences=True, activation='sigmoid'))
+    decoder_outputs, _, _, _, _ = decoder(decoder_inputs, initial_state=encoder_states)
 
     attention = Attention()([decoder_outputs, encoder_outputs])
     #context_vector = Concatenate(axis=-1)([decoder_outputs, attention])

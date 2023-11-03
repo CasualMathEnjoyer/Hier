@@ -1,6 +1,31 @@
 import numpy as np
 from model_file import model_func
+from keras.models import load_model
+from keras import backend as K
 
+def model_test(sample : list, model_name, n, sent_len, embed_dim, slovnik:dict, mezera, sep):
+    model = load_model(model_name)
+    # TODO DOWN
+    sample_v = tokenize(sample, dict_chars)
+    value = model.predict(sample_v)  # has to be in the shape of the input for it to predict
+
+    assert len(value) == len(sample_v)
+    # print(value)
+    for j in range(n):
+        for num in value[j]:
+            if num[0] > 0.5:
+                print(1, end=mezera)
+            else:
+                print(0, end=sep)
+        print('')
+
+        for i, char in enumerate(sample[j]):
+            print(char, end=sep)
+            if value[j][i][0] > 0.5:
+                print(mezera, end=sep)
+            i+=1
+
+        print('')
 def sliding_window(output_file: str, sep, space):
     window, step = 64, 20
 
@@ -67,6 +92,7 @@ def tokenize(input_list, dict_chars):
     return(out)
 
 final_file_name = "../data/hier_sep.txt"
+model_file_name = "transform2bin"
 sep = ' '
 mezera = '_'
 
@@ -78,9 +104,28 @@ formatted_input, formated_binary, dict_chars = sliding_window(final_file, sep, m
 input_tokens = tokenize(formatted_input, dict_chars)
 output_vals = formated_binary
 
-model = model_func()
+if 0:
+    model = model_func()
+else:
+    from keras.models import load_model
+    model = load_model(model_file_name)
+
+# split_point = int(0.8 * len(input_tokens))
+# x_test = input_tokens[:split_point]
+# x_val = input_tokens[split_point:]
+# y_test = output_vals[:split_point]
+# y_val = output_vals[split_point:]
 
 model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
 history = model.fit(
-    input_tokens, output_vals, batch_size=32, epochs=2)
+    input_tokens, output_vals, batch_size=32, epochs=40, validation_split=0.2)
     # validation_data=(x_val, y_val))
+K.clear_session()
+
+print("saving model ...")
+model.save(model_file_name)
+print("model saved")
+
+sample, _, _ = sliding_window(final_file[:1000], sep, mezera)
+
+model_test(sample, model_file_name, len(sample), 64, 32, dict_chars, mezera, sep)

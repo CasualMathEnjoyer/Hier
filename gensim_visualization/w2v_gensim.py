@@ -5,7 +5,7 @@
 import gensim
 from gensim.models import Word2Vec
 
-egypt = True
+egypt = False
 train = True
 show = True
 letters = False
@@ -13,8 +13,15 @@ letters = False
 create_model = 1
 load_model = 0
 
-file_name = "../data/hier_sep.txt"
-model_name = "word2vecEGYPT.model"
+labels = 1
+
+epochs = 400
+
+# file_name = "../data/hier_sep.txt"
+# model_name = "word2vecEGYPT.model"
+
+file_name = "../data/smallvoc_en.txt"
+model_name = "word2vec.model"
 
 if train:
     print("will train model")
@@ -67,7 +74,7 @@ if train:
         model1 = 0
         Exception("no not really")
 
-    print(model1.train(data, total_examples=len(model1.wv), epochs=40))
+    print(model1.train(data, total_examples=len(model1.wv), epochs=epochs))
     word_vectors = model1.wv
 
     model1.save(model_name)
@@ -100,12 +107,13 @@ if show:
 
     num_v = len(model1.wv)
 
-    colors = np.arange(4572)
+    colors = np.arange(len(model1.wv))
     plt.scatter(result[:num_v, 0], result[:num_v, 1], c=colors, cmap='viridis')
     words = list(model1.wv.key_to_index)[:num_v]
     count = 0
     for i, word in enumerate(words):
-        # plt.annotate(word, xy=(result[i, 0], result[i, 1]), fontsize=15)
+        if labels:
+            plt.annotate(word, xy=(result[i, 0], result[i, 1]), fontsize=15)
         count += 1
     assert count == len(model1.wv)
     plt.show()

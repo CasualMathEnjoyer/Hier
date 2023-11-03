@@ -41,13 +41,16 @@ class TokenAndPositionEmbedding(layers.Layer):
         x = self.token_emb(x)
         return x + positions
 
+
 vocab_size = 20000  # Only consider the top 20k words
 maxlen = 200  # Only consider the first 200 words of each movie review
 (x_train, y_train), (x_val, y_val) = keras.datasets.imdb.load_data(num_words=vocab_size)
-print(len(x_train), "Training sequences")
+print(x_train[1])
+print(len(x_train), "Training sequences")  # IN TOKENS
 print(len(x_val), "Validation sequences")
 x_train = keras.utils.pad_sequences(x_train, maxlen=maxlen)
 x_val = keras.utils.pad_sequences(x_val, maxlen=maxlen)
+print(x_train[1])
 
 embed_dim = 32  # Embedding size for each token
 num_heads = 2  # Number of attention heads
@@ -72,6 +75,3 @@ model.summary()
 # history = model.fit(
 #     x_train, y_train, batch_size=32, epochs=2, validation_data=(x_val, y_val)
 # )
-
-dot_img_file = 'model_1.png'
-tf.keras.utils.plot_model(model, to_file=dot_img_file, show_shapes=True)

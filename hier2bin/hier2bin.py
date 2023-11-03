@@ -22,6 +22,7 @@ from keras.optimizers import Adam, SGD
 from keras.losses import BinaryCrossentropy, mean_squared_error
 from keras.metrics import mse, F1Score
 from keras.utils import set_random_seed
+from keras import backend as K
 
 
 from model_file import model_func
@@ -51,12 +52,15 @@ def main():
 
     instant_save = 1
 
-    epochs = 2
-    num_neurons = 500
+    epochs = 1
+    o_epoch = 1
+
+    num_neurons = 256
     learning_rate = 1e-5
     batch_size = 10
     # TODO - adaptive learning rate
     # TODO - transformers
+    # Try setting your beta_1 to 0.99 in the ADAM optimizer
 
     # input_file_name = "../data/smallervoc_fr_unspaced.txt"
     # final_file_name = "../data/smallervoc_fr.txt"
@@ -80,8 +84,9 @@ def main():
     import data_func as df
 
     if train_formating:
-        input_file = open(input_file_name, "r", encoding="utf-8").read() # without spaces
-        final_file = open(final_file_name, "r", encoding="utf-8").read() # with spaces
+        # input_file = open(input_file_name, "r", encoding="utf-8").read() # without spaces
+        with open(final_file_name, "r", encoding="utf-8") as f: # with spaces
+            final_file = f.read()
 
         # formatted_input, formated_binary, dict_chars = df.re_windowing_data_nobinar(final_file, sep, mezera)
         print("formating")
@@ -136,16 +141,17 @@ def main():
         # training
         if train:
             # while True:
-            o_epoch = 10
             cycles = int(epochs/o_epoch)
             for i in range(cycles):
+                print("cycle num: ", i)
+                K.clear_session()
                 model.fit(input_text, output_text,
                           batch_size=batch_size,
                           epochs=o_epoch,
                           shuffle=True)
-                print("saving model ...")
-                model.save(model_file_name)
-                print("model saved")
+                # print("saving model ...")
+                # model.save(model_file_name)
+                # print("model saved")
                 # if instant_save != 1:
                 #     q = input("continue?")
                 #     if q == "q":

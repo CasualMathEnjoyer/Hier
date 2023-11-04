@@ -1,3 +1,4 @@
+# https://keras.io/examples/nlp/text_classification_with_transformer/
 import numpy as np
 from model_file import model_func
 from keras.models import load_model

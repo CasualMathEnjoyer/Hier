@@ -4,6 +4,14 @@ from model_file import model_func
 from keras.models import load_model
 from keras import backend as K
 
+# about 25% of model are spaces
+# precision = to minimise false alarms
+# precision = true positive/(true positive + false positive)
+# recall = to minimise missed spaces
+# recall = TP/(TP+FN)
+
+# False Positive = false alarm -> wanted to space it but there shouldnt be a space
+# False Negative = missed space -> should be spaced but it didnt
 def model_test(sample : list, model_name, n, sent_len, embed_dim, slovnik:dict, mezera, sep):
     model = load_model(model_name)
     # TODO DOWN
@@ -36,6 +44,8 @@ def sliding_window(output_file: str, sep, space):
 
     re_windowed, re_binar, list_chars = [], [], []
     slide = 0
+    num_space = 0
+    num_nonspaces = 0
     while True:
         pos, skipped = 0, 0
         line, line_n = [], []
@@ -50,16 +60,20 @@ def sliding_window(output_file: str, sep, space):
                     list_chars.append(element)
                 line.append(element)
                 re_binar.append(0)
+                num_nonspaces += 1
             else:  # element was a space
                 skipped += 1
                 re_binar.pop()
                 re_binar.append(1)
+                num_space += 1
             pos += 1
         # line.append('<eos>')
         re_windowed.append(line)
         # I take a look at the last like without setting pos to 0 and it is too much so it stops
         slide += 1
         if slide * step + pos > l:
+            # print ("spaces:", num_space)
+            # print ("non spaces :", num_nonspaces)
             break
 
     list_chars.append('OOV')
@@ -92,20 +106,25 @@ def tokenize(input_list, dict_chars):
         out[i] = l
     return(out)
 
-final_file_name = "../data/hier_sep.txt"
-model_file_name = "transform2bin"
+training_file_name = "../data/src-sep-train.txt"
+validation_file_name = "../data/src-sep-val.txt"
+model_file_name = "transform2bin_3"
 sep = ' '
 mezera = '_'
 
-with open(final_file_name, "r", encoding="utf-8") as f:  # with spaces
+with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
     final_file = f.read()
-
+with open(validation_file_name, "r", encoding="utf-8") as ff:
+    valid_file = ff.read()
 formatted_input, formated_binary, dict_chars = sliding_window(final_file, sep, mezera)
 # print(dict_chars)
+x_val, y_val, dict_val = sliding_window(valid_file, sep, mezera)
+
 input_tokens = tokenize(formatted_input, dict_chars)
+validation_tokens = tokenize(x_val, dict_chars)
 output_vals = formated_binary
 
-if 0:
+if 1:
     model = model_func()
 else:
     from keras.models import load_model
@@ -117,15 +136,16 @@ else:
 # y_test = output_vals[:split_point]
 # y_val = output_vals[split_point:]
 
-model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
-history = model.fit(
-    input_tokens, output_vals, batch_size=32, epochs=40, validation_split=0.2)
-    # validation_data=(x_val, y_val))
-K.clear_session()
+model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy", "Precision", "Recall"])
+for i in range(4):
+    history = model.fit(
+        input_tokens, output_vals, batch_size=32, epochs=4,
+        validation_data=(validation_tokens, y_val))
+    K.clear_session()
 
-print("saving model ...")
-model.save(model_file_name)
-print("model saved")
+    # print("saving model ...")
+    model.save(model_file_name)
+    # print("model saved")
 
 sample, _, _ = sliding_window(final_file[:1000], sep, mezera)
 

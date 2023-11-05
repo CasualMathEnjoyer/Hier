@@ -2,8 +2,10 @@ import tensorflow as tf
 from tensorflow import keras
 from keras import layers
 
+# https://github.com/evidentlyai/evidently
+
 class TransformerBlock(layers.Layer):
-    def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1):
+    def __init__(self, embed_dim, num_heads, ff_dim, drop_rate=0.1):
         super().__init__()
         self.att = layers.MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim)
         self.ffn = keras.Sequential(
@@ -11,8 +13,8 @@ class TransformerBlock(layers.Layer):
         )
         self.layernorm1 = layers.LayerNormalization(epsilon=1e-6)
         self.layernorm2 = layers.LayerNormalization(epsilon=1e-6)
-        self.dropout1 = layers.Dropout(rate)
-        self.dropout2 = layers.Dropout(rate)
+        self.dropout1 = layers.Dropout(drop_rate)
+        self.dropout2 = layers.Dropout(drop_rate)
 
     def call(self, inputs, training):
         attn_output = self.att(inputs, inputs)
@@ -38,9 +40,9 @@ def model_func():
     vocab_size = 600  # TODO - to be adjusted
     maxlen = 64
 
-    embed_dim = 32  # Embedding size for each token
+    embed_dim = 200  # Embedding size for each token
     num_heads = 2  # Number of attention heads
-    ff_dim = 32  # Hidden layer size in feed forward network inside transformer
+    ff_dim = 256  # Hidden layer size in feed forward network inside transformer
 
     inputs = layers.Input(shape=(maxlen,))
     embedding_layer = TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim)

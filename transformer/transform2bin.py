@@ -145,7 +145,7 @@ batch_size = 64
 epochs = 0
 repeat = 1  # full epoch_num=epochs*repeat
 
-# ---------------------- DATA -------------------------
+# -------------------------------- DATA ---------------------------------------------------------------------------
 print("data preparation...")
 with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
     final_file = f.read()
@@ -158,7 +158,7 @@ x_valid, y_valid, dict_val = sliding_window(valid_file, sep, mezera)
 x_train_tokenized = tokenize(x_train, dict_chars)
 x_valid_tokenized = tokenize(x_valid, dict_chars)
 
-# --------------------------- MODEL -----------------------------------------
+# --------------------------------- MODEL ---------------------------------------------------------------------------
 print("model starting...")
 if 0:
     model = model_func(vocab_size, maxlen, embed_dim, num_heads, ff_dim)
@@ -169,7 +169,7 @@ else:
 model.compile(optimizer="adam", loss="binary_crossentropy",
               metrics=["accuracy", "Precision", "Recall", F1_score])
 
-# --------------------------------- TRAINING --------------------------------------
+# --------------------------------- TRAINING ------------------------------------------------------------------------
 for i in range(repeat):
     history = model.fit(
         x_train_tokenized, y_train, batch_size=batch_size, epochs=epochs,
@@ -180,7 +180,7 @@ for i in range(repeat):
     model.save(model_file_name)
     # print("model saved")
 
-# ---------------------------------- TESTING --------------------------------------
+# ---------------------------------- TESTING ------------------------------------------------------------------------
 print("testing...")
 
 sample, _, _ = sliding_window(final_file[:1000], sep, mezera)

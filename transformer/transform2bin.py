@@ -102,7 +102,10 @@ def tokenize(input_list, dict_chars):
     for i, line in enumerate(input_list):
         l = np.zeros((64))
         for j, c in enumerate(line):
-            l[j] = dict_chars[c]
+            try:
+                l[j] = dict_chars[c]
+            except KeyError:
+                l[j] = dict_chars["OOV"]
         out[i] = l
     return(out)
 
@@ -111,6 +114,16 @@ validation_file_name = "../data/src-sep-val.txt"
 model_file_name = "transform2bin_3"
 sep = ' '
 mezera = '_'
+
+vocab_size = 1138  # TODO - to be adjusted
+maxlen = 64
+embed_dim = 32  # Embedding size for each token
+num_heads = 2  # Number of attention heads
+ff_dim = 64  # Hidden layer size in feed forward network inside transformer
+
+batch_size = 64
+epochs = 4
+repeat = 2  # full epoch_num=epochs*repeat
 
 with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
     final_file = f.read()
@@ -125,21 +138,25 @@ validation_tokens = tokenize(x_val, dict_chars)
 output_vals = formated_binary
 
 if 1:
-    model = model_func()
+    model = model_func(vocab_size, maxlen, embed_dim, num_heads, ff_dim)
 else:
     from keras.models import load_model
     model = load_model(model_file_name)
 
-# split_point = int(0.8 * len(input_tokens))
-# x_test = input_tokens[:split_point]
-# x_val = input_tokens[split_point:]
-# y_test = output_vals[:split_point]
-# y_val = output_vals[split_point:]
+def F1_score(y_true, y_pred): #taken from old keras source code
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    precision = true_positives / (predicted_positives + K.epsilon())
+    recall = true_positives / (possible_positives + K.epsilon())
+    f1_val = 2*(precision*recall)/(precision+recall+K.epsilon())
+    return f1_val
 
-model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy", "Precision", "Recall"])
-for i in range(4):
+model.compile(optimizer="adam", loss="binary_crossentropy",
+              metrics=["accuracy", "Precision", "Recall", F1_score])
+for i in range(repeat):
     history = model.fit(
-        input_tokens, output_vals, batch_size=32, epochs=4,
+        input_tokens, output_vals, batch_size=batch_size, epochs=epochs,
         validation_data=(validation_tokens, y_val))
     K.clear_session()
 

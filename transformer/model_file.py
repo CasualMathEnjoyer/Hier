@@ -36,14 +36,7 @@ class TokenAndPositionEmbedding(layers.Layer):
         x = self.token_emb(x)
         return x + positions
 
-def model_func():
-    vocab_size = 600  # TODO - to be adjusted
-    maxlen = 64
-
-    embed_dim = 200  # Embedding size for each token
-    num_heads = 2  # Number of attention heads
-    ff_dim = 256  # Hidden layer size in feed forward network inside transformer
-
+def model_func(vocab_size, maxlen, embed_dim, num_heads, ff_dim):
     inputs = layers.Input(shape=(maxlen,))
     embedding_layer = TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim)
     x = embedding_layer(inputs)

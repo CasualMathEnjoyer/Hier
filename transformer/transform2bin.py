@@ -6,6 +6,8 @@ from keras.models import load_model
 from keras.utils import set_random_seed
 from keras import backend as K
 
+print("starting transform2bin")
+
 a = random.randrange(0, 2**32 - 1)
 # a = 1261263827
 set_random_seed(a)
@@ -106,6 +108,7 @@ def sliding_window(output_file: str, sep, space):
     return re_windowed, re_binar, dict_chars
 def tokenize(input_list, dict_chars):
     out = np.zeros((len(input_list), 64))
+    unk_counter = 0
     for i, line in enumerate(input_list):
         l = np.zeros((64))
         for j, c in enumerate(line):
@@ -113,7 +116,9 @@ def tokenize(input_list, dict_chars):
                 l[j] = dict_chars[c]
             except KeyError:
                 l[j] = dict_chars["OOV"]
+                unk_counter += 1
         out[i] = l
+    print("unknown chars in text: ", unk_counter)
     return(out)
 def F1_score(y_true, y_pred): #taken from old keras source code
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
@@ -141,19 +146,20 @@ epochs = 0
 repeat = 1  # full epoch_num=epochs*repeat
 
 # ---------------------- DATA -------------------------
+print("data preparation...")
 with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
     final_file = f.read()
 with open(validation_file_name, "r", encoding="utf-8") as ff:
     valid_file = ff.read()
-formatted_input, formated_binary, dict_chars = sliding_window(final_file, sep, mezera)
-# print(dict_chars)
-x_val, y_val, dict_val = sliding_window(valid_file, sep, mezera)
 
-input_tokens = tokenize(formatted_input, dict_chars)
-validation_tokens = tokenize(x_val, dict_chars)
-output_vals = formated_binary
+x_train, y_train, dict_chars = sliding_window(final_file, sep, mezera)
+x_valid, y_valid, dict_val = sliding_window(valid_file, sep, mezera)
+
+x_train_tokenized = tokenize(x_train, dict_chars)
+x_valid_tokenized = tokenize(x_valid, dict_chars)
 
 # --------------------------- MODEL -----------------------------------------
+print("model starting...")
 if 0:
     model = model_func(vocab_size, maxlen, embed_dim, num_heads, ff_dim)
 else:
@@ -166,8 +172,8 @@ model.compile(optimizer="adam", loss="binary_crossentropy",
 # --------------------------------- TRAINING --------------------------------------
 for i in range(repeat):
     history = model.fit(
-        input_tokens, output_vals, batch_size=batch_size, epochs=epochs,
-        validation_data=(validation_tokens, y_val))
+        x_train_tokenized, y_train, batch_size=batch_size, epochs=epochs,
+        validation_data=(x_valid_tokenized, y_valid))
     K.clear_session()
 
     # print("saving model ...")

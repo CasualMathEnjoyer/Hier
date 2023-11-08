@@ -1,8 +1,15 @@
 # https://keras.io/examples/nlp/text_classification_with_transformer/
 import numpy as np
+import random
 from model_file import model_func
 from keras.models import load_model
+from keras.utils import set_random_seed
 from keras import backend as K
+
+a = random.randrange(0, 2**32 - 1)
+# a = 1261263827
+set_random_seed(a)
+print("seed = ", a)
 
 # about 25% of model are spaces
 # precision = to minimise false alarms
@@ -13,7 +20,7 @@ from keras import backend as K
 # False Positive = false alarm -> wanted to space it but there shouldnt be a space
 # False Negative = missed space -> should be spaced but it didnt
 def model_test(sample : list, model_name, n, sent_len, embed_dim, slovnik:dict, mezera, sep):
-    model = load_model(model_name)
+    model = load_model(model_name, custom_objects={"F1_score": F1_score})
     # TODO DOWN
     sample_v = tokenize(sample, dict_chars)
     value = model.predict(sample_v)  # has to be in the shape of the input for it to predict
@@ -108,10 +115,18 @@ def tokenize(input_list, dict_chars):
                 l[j] = dict_chars["OOV"]
         out[i] = l
     return(out)
+def F1_score(y_true, y_pred): #taken from old keras source code
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    precision = true_positives / (predicted_positives + K.epsilon())
+    recall = true_positives / (possible_positives + K.epsilon())
+    f1_val = 2*(precision*recall)/(precision+recall+K.epsilon())
+    return f1_val
 
 training_file_name = "../data/src-sep-train.txt"
 validation_file_name = "../data/src-sep-val.txt"
-model_file_name = "transform2bin_3"
+model_file_name = "transform2bin_4"
 sep = ' '
 mezera = '_'
 
@@ -122,9 +137,10 @@ num_heads = 2  # Number of attention heads
 ff_dim = 64  # Hidden layer size in feed forward network inside transformer
 
 batch_size = 64
-epochs = 4
-repeat = 2  # full epoch_num=epochs*repeat
+epochs = 0
+repeat = 1  # full epoch_num=epochs*repeat
 
+# ---------------------- DATA -------------------------
 with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
     final_file = f.read()
 with open(validation_file_name, "r", encoding="utf-8") as ff:
@@ -137,23 +153,17 @@ input_tokens = tokenize(formatted_input, dict_chars)
 validation_tokens = tokenize(x_val, dict_chars)
 output_vals = formated_binary
 
-if 1:
+# --------------------------- MODEL -----------------------------------------
+if 0:
     model = model_func(vocab_size, maxlen, embed_dim, num_heads, ff_dim)
 else:
     from keras.models import load_model
-    model = load_model(model_file_name)
-
-def F1_score(y_true, y_pred): #taken from old keras source code
-    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
-    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
-    precision = true_positives / (predicted_positives + K.epsilon())
-    recall = true_positives / (possible_positives + K.epsilon())
-    f1_val = 2*(precision*recall)/(precision+recall+K.epsilon())
-    return f1_val
+    model = load_model(model_file_name, custom_objects={"F1_score": F1_score})
 
 model.compile(optimizer="adam", loss="binary_crossentropy",
               metrics=["accuracy", "Precision", "Recall", F1_score])
+
+# --------------------------------- TRAINING --------------------------------------
 for i in range(repeat):
     history = model.fit(
         input_tokens, output_vals, batch_size=batch_size, epochs=epochs,
@@ -164,6 +174,8 @@ for i in range(repeat):
     model.save(model_file_name)
     # print("model saved")
 
-sample, _, _ = sliding_window(final_file[:1000], sep, mezera)
+# ---------------------------------- TESTING --------------------------------------
+print("testing...")
 
+sample, _, _ = sliding_window(final_file[:1000], sep, mezera)
 model_test(sample, model_file_name, len(sample), 64, 32, dict_chars, mezera, sep)

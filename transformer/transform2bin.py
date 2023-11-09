@@ -1,4 +1,5 @@
 # https://keras.io/examples/nlp/text_classification_with_transformer/
+# https://netron.app/
 import numpy as np
 import random
 from model_file import model_func
@@ -7,6 +8,8 @@ from keras.utils import set_random_seed
 from keras import backend as K
 
 print("starting transform2bin")
+
+# TODO implement the K cross sections thing thing
 
 a = random.randrange(0, 2**32 - 1)
 # a = 1261263827
@@ -22,39 +25,49 @@ print("seed = ", a)
 # False Positive = false alarm -> wanted to space it but there shouldnt be a space
 # False Negative = missed space -> should be spaced but it didnt
 
-training_file_name = "../data/src-sep-train.txt"
-validation_file_name = "../data/src-sep-val.txt"
-model_file_name = "transform2bin_4"
-sep = ' '
-mezera = '_'
+# v datasetu momentale 203 znaku zastoupeno pouze jednou
 
-batch_size = 64
+model_file_name = "transform2bin_french"
+# training_file_name = "../data/src-sep-train.txt"
+# validation_file_name = "../data/src-sep-val.txt"
+# test_file_name = "../data/src-sep-test.txt"
+# sep = ' '
+# mezera = '_'
+
+training_file_name = "../data/smallvoc_fr.txt"
+validation_file_name = "../data/smallvoc_fr.txt"
+test_file_name = "../data/smallvoc_fr.txt"
+sep = ''
+mezera = ' '
+
+new = 1
+
+batch_size = 128
 epochs = 1
-repeat = 1  # full epoch_num=epochs*repeat
+repeat = 0  # full epoch_num=epochs*repeat
 
 class Data():
     vocab_size = 1138
-    maxlen = 64
+    # maxlen = 64
     embed_dim = 32  # Embedding size for each token
     num_heads = 2  # Number of attention heads
     ff_dim = 64  # Hidden layer size in feed forward network inside transformer
 
-    def __init__(self, final_file, valid_file, sep, mezera, dict_chars=None):
-        super().__init__()
-        if dict_chars is None:
-            dict_chars = {}
-        self.final_file = final_file
-        self.valid_file = valid_file
-        self.sep = sep
-        self.mezera = mezera
-        self.dict_chars = dict_chars
+    final_file, valid_file = '', ''
+    dict_chars = {}
 
+    window, step = 64, 20
+
+    def __init__(self, sep, mezera):
+        super().__init__()
+        self.sep = sep
+        self.space = mezera
     def tokenize(self, input_list):
-        out = np.zeros((len(input_list), 64))
+        out = np.zeros((len(input_list), self.window))
         unk_counter = 0
         # assert self.dict_chars != None
         for i, line in enumerate(input_list):
-            l = np.zeros((64))
+            l = np.zeros((self.window))
             for j, c in enumerate(line):
                 try:
                     l[j] = self.dict_chars[c]
@@ -64,50 +77,50 @@ class Data():
             out[i] = l
         print("unknown chars in text: ", unk_counter)
         return(out)
-    def model_test(self, sample : list, model_name, n, sent_len, embed_dim, slovnik:dict, mezera, sep):
+    def model_test(self, sample:list, valid, model_name, sample_len):
         model = load_model_mine(model_name)
-        # TODO DOWN
+
         sample_v = self.tokenize(sample)
         value = model.predict(sample_v)  # has to be in the shape of the input for it to predict
 
-        assert len(value) == len(sample_v)
-        # print(value)
-        for j in range(n):
-            for num in value[j]:
-                if num[0] > 0.5:
-                    print(1, end=mezera)
-                else:
-                    print(0, end=sep)
-            print('')
+        for j in range(sample_len):
+            # for num in value[j]:
+            #     if num[0] > 0.5:
+            #         print(1, end=self.space)
+            #     else:
+            #         print(0, end=self.sep)
+            # print('')
 
             for i, char in enumerate(sample[j]):
-                print(char, end=sep)
+                print(char, end=self.sep)
                 if value[j][i][0] > 0.5:
-                    print(mezera, end=sep)
+                    print(self.space, end=self.sep)
                 i+=1
-
             print('')
-    def sliding_window(self, output_file: str):
-        window, step = 64, 20
-        sep = self.sep
-        space = self.mezera
 
-        if sep != '':
-            output_file = output_file.split(sep)
+        assert len(valid) == len(value)
+        valid.resize(value.shape)
+        print("F1 score:", F1_score(value, valid.astype('float32')).numpy())
+
+
+    def sliding_window(self, output_file: str):
+        if self.sep != '':
+            output_file = output_file.split(self.sep)
         l = len(output_file)
 
         re_windowed, re_binar, list_chars = [], [], []
+        slide, num_space, num_nonspaces = 0, 0, 0
         list_chars.append('OOV')
+        # list_chars.append('RARE') # token for rare symbols
 
-        slide, num_space, num_nonspaces= 0, 0, 0
         while True:
             pos, skipped = 0, 0
             line, line_n = [], []
             # line.append('<bos>')
-            while pos < window + skipped:  # slide
-                element = output_file[slide * step + pos]
+            while pos < self.window + skipped:  # slide
+                element = output_file[slide * self.step + pos]
                 assert element != ''
-                if element != space:
+                if element != self.space:
                     if "\n" in element:
                         element = element.replace("\n", "")
                     if element not in list_chars:
@@ -125,7 +138,7 @@ class Data():
             re_windowed.append(line)
             # I take a look at the last like without setting pos to 0 and it is too much so it stops
             slide += 1
-            if slide * step + pos > l:
+            if slide * self.step + pos > l:
                 # print ("spaces:", num_space)
                 # print ("non spaces :", num_nonspaces)
                 break
@@ -134,7 +147,7 @@ class Data():
 
         num_line = len(re_windowed)
         re_binar = np.array(re_binar)
-        re_binar = np.reshape(re_binar, (num_line, window))
+        re_binar = np.reshape(re_binar, (num_line, self.window))
 
         assert len(re_binar) == len(re_windowed)
         assert len(re_binar[0]) == len(re_windowed[0])
@@ -142,7 +155,7 @@ class Data():
         if not bool(self.dict_chars):  # empty dicts evaluate as false
             self.dict_chars = dict_chars
 
-        return re_windowed, re_binar, dict_chars
+        return re_windowed, re_binar
 
 def F1_score(y_true, y_pred): #taken from old keras source code
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
@@ -151,29 +164,31 @@ def F1_score(y_true, y_pred): #taken from old keras source code
     precision = true_positives / (predicted_positives + K.epsilon())
     recall = true_positives / (possible_positives + K.epsilon())
     f1_val = 2*(precision*recall)/(precision+recall+K.epsilon())
+    # print("precision:", precision.numpy(), "recall:", recall.numpy())
     return f1_val
 def load_model_mine(model_name):
     return keras.models.load_model(model_name, custom_objects={"F1_score": F1_score})
 
 # -------------------------------- DATA ---------------------------------------------------------------------------
 print("data preparation...")
+d = Data(sep, mezera)
 with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
-    final_file = f.read()
+    d.final_file = f.read()
+    f.close()
 with open(validation_file_name, "r", encoding="utf-8") as ff:
-    valid_file = ff.read()
+    d.valid_file = ff.read()
+    ff.close()
 
-d = Data(final_file, valid_file, sep, mezera)
-
-x_train, y_train, dict_chars = d.sliding_window(final_file)
-x_valid, y_valid, dict_val = d.sliding_window(valid_file)
+x_train, y_train = d.sliding_window(d.final_file)
+x_valid, y_valid = d.sliding_window(d.valid_file)
 
 x_train_tokenized = d.tokenize(x_train)
 x_valid_tokenized = d.tokenize(x_valid)
 
 # --------------------------------- MODEL ---------------------------------------------------------------------------
 print("model starting...")
-if 0:
-    model = model_func(d.vocab_size, d.maxlen, d.embed_dim, d.num_heads, d.ff_dim)
+if new:
+    model = model_func(d.vocab_size, d.window, d.embed_dim, d.num_heads, d.ff_dim)
 else:
     model = load_model_mine(model_file_name)
 
@@ -191,5 +206,9 @@ for i in range(repeat):
 # ---------------------------------- TESTING ------------------------------------------------------------------------
 print("testing...")
 
-sample, _, _ = d.sliding_window(final_file[:1000])
-d.model_test(sample, model_file_name, len(sample), 64, 32, dict_chars, mezera, sep)
+with open(test_file_name, "r", encoding="utf-8") as f:  # with spaces
+    test_file = f.read()
+    f.close()
+
+sample_x, sample_y = d.sliding_window(test_file[:9600])
+d.model_test(sample_x, sample_y, model_file_name, len(sample_x))

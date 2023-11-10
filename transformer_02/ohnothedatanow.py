@@ -1,5 +1,3 @@
-# https://keras.io/examples/nlp/text_classification_with_transformer/
-# https://netron.app/
 import numpy as np
 import random
 from model_file import model_func
@@ -7,41 +5,21 @@ import keras
 from keras.utils import set_random_seed
 from keras import backend as K
 
-print("starting transform2bin")
-
-# TODO implement the K cross sections thing thing
+print("starting transform2seq")
 
 a = random.randrange(0, 2**32 - 1)
 # a = 1261263827
 set_random_seed(a)
 print("seed = ", a)
 
-# about 25% of model are spaces
-# precision = to minimise false alarms
-# precision = true positive/(true positive + false positive)
-# recall = to minimise missed spaces
-# recall = TP/(TP+FN)
 
-# False Positive = false alarm -> wanted to space it but there shouldnt be a space
-# False Negative = missed space -> should be spaced but it didnt
-
-# v datasetu momentale 203 znaku zastoupeno pouze jednou
-
-# celkem skoro 68 tisic slov
-# 47.5 tisic slov jenom jednou
-
-model_file_name = "transform2bin_4"
+model_file_name = "transform2seq_1"
 training_file_name = "../data/src-sep-train.txt"
-validation_file_name = "../data/src-sep-val.txt"
-test_file_name = "../data/src-sep-test.txt"
+# validation_file_name = "../data/src-sep-val.txt"
+# test_file_name = "../data/src-sep-test.txt"
+target_file_name = "../data/tgt-train.txt"
 sep = ' '
 mezera = '_'
-
-# training_file_name = "../data/smallvoc_fr.txt"
-# validation_file_name = "../data/smallvoc_fr.txt"
-# test_file_name = "../data/smallvoc_fr.txt"
-# sep = ''
-# mezera = ' '
 
 new = 1
 
@@ -51,12 +29,12 @@ repeat = 0  # full epoch_num=epochs*repeat
 
 class Data():
     vocab_size = 1138
-    # maxlen = 64
+    maxlen = 0
     embed_dim = 32  # Embedding size for each token
     num_heads = 2  # Number of attention heads
     ff_dim = 64  # Hidden layer size in feed forward network inside transformer
 
-    final_file, valid_file = '', ''
+    final_file, target_file = '', ''
     dict_chars = {}
 
     window, step = 64, 20
@@ -105,6 +83,37 @@ class Data():
         valid.resize(value.shape)
         print("F1 score:", F1_score(value, valid.astype('float32')).numpy())
 
+
+    # go through everythin
+    # get maxlen
+    # add start and end tokens
+    # add owo token
+    # make a list of chars
+
+    def split_n_count(self, file: str):
+        maxlen, complete = 0, 0
+        output = []
+        dict_chars = {"OVV": 0, "<bos>": 1, "<eos>": 2, "_": 3}
+        for line in file.split('\n'):
+            line = ["<bos>"] + line.split(' ') + ["<eos>"]
+            ll = len(line)
+            if ll > maxlen:
+                maxlen = ll
+            complete += ll
+            l = []
+            for c in line:  # leave mezery !!
+                if c != '':
+                    if c not in dict_chars:
+                        dict_chars[c] = len(dict_chars)
+                    l.append(c)
+            output.append(l)
+        print(dict_chars)
+        # for line in output:
+        #     print(line)
+        print("maxlen:", maxlen)
+        print("average:", complete / len(file.split('\n')))
+        # maxlen: 1128
+        # average: 31.42447596485441
 
     def sliding_window(self, output_file: str):
         if self.sep != '':
@@ -157,7 +166,7 @@ class Data():
 
         if not bool(self.dict_chars):  # empty dicts evaluate as false
             self.dict_chars = dict_chars
-        print(self.dict_chars)
+
         return re_windowed, re_binar
 
 def F1_score(y_true, y_pred): #taken from old keras source code
@@ -172,18 +181,17 @@ def F1_score(y_true, y_pred): #taken from old keras source code
 def load_model_mine(model_name):
     return keras.models.load_model(model_name, custom_objects={"F1_score": F1_score})
 
-# -------------------------------- DATA ---------------------------------------------------------------------------
 print("data preparation...")
 d = Data(sep, mezera)
 with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
     d.final_file = f.read()
     f.close()
-with open(validation_file_name, "r", encoding="utf-8") as ff:
-    d.valid_file = ff.read()
+with open(target_file_name, "r", encoding="utf-8") as ff:
+    d.target_file = ff.read()
     ff.close()
 
 x_train, y_train = d.sliding_window(d.final_file)
-x_valid, y_valid = d.sliding_window(d.valid_file)
+x_valid, y_valid = d.sliding_window(d.target_file)
 
 x_train_tokenized = d.tokenize(x_train)
 x_valid_tokenized = d.tokenize(x_valid)

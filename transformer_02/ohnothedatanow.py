@@ -25,17 +25,17 @@ new = 1
 
 batch_size = 128
 epochs = 1
-repeat = 0  # full epoch_num=epochs*repeat
+repeat = 1  # full epoch_num=epochs*repeat
 
 class Data():
-    vocab_size = 1138
-    maxlen = 0
     embed_dim = 32  # Embedding size for each token
     num_heads = 2  # Number of attention heads
     ff_dim = 64  # Hidden layer size in feed forward network inside transformer
 
-    final_file, target_file = '', ''
+    maxlen = 0
+    file = ''
     dict_chars = {}
+    vocab_size = 0
 
     window, step = 64, 20
 
@@ -43,21 +43,6 @@ class Data():
         super().__init__()
         self.sep = sep
         self.space = mezera
-    def tokenize(self, input_list):
-        out = np.zeros((len(input_list), self.window))
-        unk_counter = 0
-        # assert self.dict_chars != None
-        for i, line in enumerate(input_list):
-            l = np.zeros((self.window))
-            for j, c in enumerate(line):
-                try:
-                    l[j] = self.dict_chars[c]
-                except KeyError:
-                    l[j] = self.dict_chars["OOV"]
-                    unk_counter += 1
-            out[i] = l
-        print("unknown chars in text: ", unk_counter)
-        return(out)
     def model_test(self, sample:list, valid, model_name, sample_len):
         model = load_model_mine(model_name)
 
@@ -83,19 +68,12 @@ class Data():
         valid.resize(value.shape)
         print("F1 score:", F1_score(value, valid.astype('float32')).numpy())
 
-
-    # go through everythin
-    # get maxlen
-    # add start and end tokens
-    # add owo token
-    # make a list of chars
-
-    def split_n_count(self, file: str, yes):  # creates a list of lists of TOKENS and a dictionary
+    def split_n_count(self, yes):  # creates a list of lists of TOKENS and a dictionary
         maxlen, complete = 0, 0
         output = []
         len_list = []
-        dict_chars = {"OVV": 0, "<bos>": 1, "<eos>": 2, "_": 3}
-        for line in file.split('\n'):
+        dict_chars = {"OVV": 0, "<bos>": 1, "<eos>": 2, "_": 3, "<pad>": 4}
+        for line in self.file.split('\n'):
             line = ["<bos>"] + line.split(' ') + ["<eos>"]
             ll = len(line)
             len_list.append(len(line))
@@ -115,77 +93,33 @@ class Data():
                         else:
                             l.append(self.dict_chars["OVV"])
             output.append(l)
-        print(dict_chars)
         # for line in output:
         #     print(line)
         print("maxlen:", maxlen)
-        print("average:", complete / len(file.split('\n')))
-        print("median:", sorted(len_list)[int(len(len_list) * 39 / 40)])  # mene nez 2.5% ma sequence delsi, nez 100 znaku
+        print("average:", complete / len(self.file.split('\n')))
+        likelyhood = 39 / 40
+        weird_median = sorted(len_list)[int(len(len_list) * likelyhood)]
+        print('"median" with:', likelyhood,":", weird_median)  # mene nez 2.5% ma sequence delsi, nez 100 znaku
         # maxlen: 1128
         # average: 31.42447596485441
+        self.maxlen = weird_median
+        if yes:
+            self.dict_chars = dict_chars
+            self.vocab_size = len(dict_chars)
+            print("dict chars:", self.dict_chars)
+            print("vocab size:", self.vocab_size)
+        return output
 
-    def padding(self, input_list, maxlen):
-        for line in input_list:
-            if len(line) > maxlen: # shorten
-                pass
-            elif len(line) < maxlen:  # padd
-                pass
+    def padding(self, input_list):
+        input_list_padded = np.zeros((len(input_list), self.maxlen))  # maybe zeros?
+        for i, line in enumerate(input_list):
+            if len(line) > self.maxlen: # shorten
+                input_list_padded[i] = np.array(line[:self.maxlen])
+            elif len(line) < self.maxlen:  # padd, # 4 is the code for padding
+                input_list_padded[i] = np.array(line + [4 for i in range(self.maxlen - len(line))])
             else:
                 pass
-
-    def sliding_window(self, output_file: str):
-        if self.sep != '':
-            output_file = output_file.split(self.sep)
-        l = len(output_file)
-
-        re_windowed, re_binar, list_chars = [], [], []
-        slide, num_space, num_nonspaces = 0, 0, 0
-        list_chars.append('OOV')
-        # list_chars.append('RARE') # token for rare symbols
-
-        while True:
-            pos, skipped = 0, 0
-            line, line_n = [], []
-            # line.append('<bos>')
-            while pos < self.window + skipped:  # slide
-                element = output_file[slide * self.step + pos]
-                assert element != ''
-                if element != self.space:
-                    if "\n" in element:
-                        element = element.replace("\n", "")
-                    if element not in list_chars:
-                        list_chars.append(element)
-                    line.append(element)
-                    re_binar.append(0)
-                    num_nonspaces += 1
-                else:  # element was a space
-                    skipped += 1
-                    re_binar.pop()
-                    re_binar.append(1)
-                    num_space += 1
-                pos += 1
-            # line.append('<eos>')
-            re_windowed.append(line)
-            # I take a look at the last like without setting pos to 0 and it is too much so it stops
-            slide += 1
-            if slide * self.step + pos > l:
-                # print ("spaces:", num_space)
-                # print ("non spaces :", num_nonspaces)
-                break
-
-        dict_chars = {j: i for i, j in enumerate(list_chars)}
-
-        num_line = len(re_windowed)
-        re_binar = np.array(re_binar)
-        re_binar = np.reshape(re_binar, (num_line, self.window))
-
-        assert len(re_binar) == len(re_windowed)
-        assert len(re_binar[0]) == len(re_windowed[0])
-
-        if not bool(self.dict_chars):  # empty dicts evaluate as false
-            self.dict_chars = dict_chars
-
-        return re_windowed, re_binar
+        print(input_list_padded)
 
 def F1_score(y_true, y_pred): #taken from old keras source code
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
@@ -199,25 +133,39 @@ def F1_score(y_true, y_pred): #taken from old keras source code
 def load_model_mine(model_name):
     return keras.models.load_model(model_name, custom_objects={"F1_score": F1_score})
 
+print()
 print("data preparation...")
-d = Data(sep, mezera)
+source = Data(sep, mezera)
+target = Data(sep, mezera)
 with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
-    d.final_file = f.read()
+    source.file = f.read()
     f.close()
 with open(target_file_name, "r", encoding="utf-8") as ff:
-    d.target_file = ff.read()
+    target.file = ff.read()
     ff.close()
 
-x_train, y_train = d.sliding_window(d.final_file)
-x_valid, y_valid = d.sliding_window(d.target_file)
+print("first file:")
+x_train = source.split_n_count(True)
+x_train_pad = source.padding(x_train)
+print()
+print("second file:")
+y_train = target.split_n_count(True)
+y_train_pad = target.padding(y_train)
+print()
 
-x_train_tokenized = d.tokenize(x_train)
-x_valid_tokenized = d.tokenize(x_valid)
+assert type(x_train_pad) == np.array
+assert type(y_train_pad) == np.array
+
+# x_train, y_train = d.sliding_window(d.final_file)
+# x_valid, y_valid = d.sliding_window(d.target_file)
+#
+# x_train_tokenized = d.tokenize(x_train)
+# x_valid_tokenized = d.tokenize(x_valid)
 
 # --------------------------------- MODEL ---------------------------------------------------------------------------
 print("model starting...")
 if new:
-    model = model_func(d.vocab_size, d.window, d.embed_dim, d.num_heads, d.ff_dim)
+    model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen)
 else:
     model = load_model_mine(model_file_name)
 
@@ -227,17 +175,17 @@ model.compile(optimizer="adam", loss="binary_crossentropy",
 # --------------------------------- TRAINING ------------------------------------------------------------------------
 for i in range(repeat):
     history = model.fit(
-        x_train_tokenized, y_train, batch_size=batch_size, epochs=epochs,
-        validation_data=(x_valid_tokenized, y_valid))
+        x_train_pad, y_train_pad, batch_size=batch_size, epochs=epochs)
+        # validation_data=(x_valid_tokenized, y_valid))
     model.save(model_file_name)
     K.clear_session()
 
 # ---------------------------------- TESTING ------------------------------------------------------------------------
-print("testing...")
-
-with open(test_file_name, "r", encoding="utf-8") as f:  # with spaces
-    test_file = f.read()
-    f.close()
-
-sample_x, sample_y = d.sliding_window(test_file[:9600])
-d.model_test(sample_x, sample_y, model_file_name, len(sample_x))
+# print("testing...")
+#
+# with open(test_file_name, "r", encoding="utf-8") as f:  # with spaces
+#     test_file = f.read()
+#     f.close()
+#
+# sample_x, sample_y = d.sliding_window(test_file[:9600])
+# d.model_test(sample_x, sample_y, model_file_name, len(sample_x))

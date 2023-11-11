@@ -90,30 +90,48 @@ class Data():
     # add owo token
     # make a list of chars
 
-    def split_n_count(self, file: str):
+    def split_n_count(self, file: str, yes):  # creates a list of lists of TOKENS and a dictionary
         maxlen, complete = 0, 0
         output = []
+        len_list = []
         dict_chars = {"OVV": 0, "<bos>": 1, "<eos>": 2, "_": 3}
         for line in file.split('\n'):
             line = ["<bos>"] + line.split(' ') + ["<eos>"]
             ll = len(line)
+            len_list.append(len(line))
             if ll > maxlen:
                 maxlen = ll
             complete += ll
             l = []
             for c in line:  # leave mezery !!
                 if c != '':
-                    if c not in dict_chars:
-                        dict_chars[c] = len(dict_chars)
-                    l.append(c)
+                    if yes:
+                        if c not in dict_chars:
+                            dict_chars[c] = len(dict_chars)
+                        l.append(dict_chars[c])
+                    else:
+                        if c in self.dict_chars:
+                            l.append(self.dict_chars[c])
+                        else:
+                            l.append(self.dict_chars["OVV"])
             output.append(l)
         print(dict_chars)
         # for line in output:
         #     print(line)
         print("maxlen:", maxlen)
         print("average:", complete / len(file.split('\n')))
+        print("median:", sorted(len_list)[int(len(len_list) * 39 / 40)])  # mene nez 2.5% ma sequence delsi, nez 100 znaku
         # maxlen: 1128
         # average: 31.42447596485441
+
+    def padding(self, input_list, maxlen):
+        for line in input_list:
+            if len(line) > maxlen: # shorten
+                pass
+            elif len(line) < maxlen:  # padd
+                pass
+            else:
+                pass
 
     def sliding_window(self, output_file: str):
         if self.sep != '':

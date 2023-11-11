@@ -30,18 +30,18 @@ print("seed = ", a)
 # celkem skoro 68 tisic slov
 # 47.5 tisic slov jenom jednou
 
-model_file_name = "transform2bin_4"
-training_file_name = "../data/src-sep-train.txt"
-validation_file_name = "../data/src-sep-val.txt"
-test_file_name = "../data/src-sep-test.txt"
-sep = ' '
-mezera = '_'
+model_file_name = "transform2bin_french"
+# training_file_name = "../data/src-sep-train.txt"
+# validation_file_name = "../data/src-sep-val.txt"
+# test_file_name = "../data/src-sep-test.txt"
+# sep = ' '
+# mezera = '_'
 
-# training_file_name = "../data/smallvoc_fr.txt"
-# validation_file_name = "../data/smallvoc_fr.txt"
-# test_file_name = "../data/smallvoc_fr.txt"
-# sep = ''
-# mezera = ' '
+training_file_name = "../data/smallvoc_fr.txt"
+validation_file_name = "../data/smallvoc_fr.txt"
+test_file_name = "../data/smallvoc_fr.txt"
+sep = ''
+mezera = ' '
 
 new = 1
 
@@ -157,7 +157,7 @@ class Data():
 
         if not bool(self.dict_chars):  # empty dicts evaluate as false
             self.dict_chars = dict_chars
-        print(self.dict_chars)
+        # print(self.dict_chars)
         return re_windowed, re_binar
 
 def F1_score(y_true, y_pred): #taken from old keras source code

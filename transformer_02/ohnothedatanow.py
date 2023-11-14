@@ -120,6 +120,19 @@ class Data():
             else:
                 pass
         print(input_list_padded)
+        return input_list_padded
+
+    def padding_shift(self, input_list):
+        input_list_padded = np.zeros((len(input_list), self.maxlen))  # maybe zeros?
+        for i, line in enumerate(input_list):
+            if len(line) > self.maxlen: # shorten
+                input_list_padded[i] = np.array(line[1 : self.maxlen + 1])
+            elif len(line) < self.maxlen:  # padd, # 4 is the code for padding
+                input_list_padded[i] = np.array(line[1:] + [4 for i in range(self.maxlen - len(line) + 1)])
+            else:
+                pass
+        print(input_list_padded)
+        return input_list_padded
 
 def F1_score(y_true, y_pred): #taken from old keras source code
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
@@ -151,10 +164,12 @@ print()
 print("second file:")
 y_train = target.split_n_count(True)
 y_train_pad = target.padding(y_train)
+y_train_pad_shift = target.padding_shift(y_train)
 print()
 
-assert type(x_train_pad) == np.array
-assert type(y_train_pad) == np.array
+print(x_train_pad.shape)
+print(y_train_pad.shape)
+print(y_train_pad_shift.shape)
 
 # x_train, y_train = d.sliding_window(d.final_file)
 # x_valid, y_valid = d.sliding_window(d.target_file)

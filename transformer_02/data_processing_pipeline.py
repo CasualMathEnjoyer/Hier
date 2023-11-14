@@ -7,6 +7,7 @@ from keras.utils import to_categorical
 from keras import backend as K
 
 # TODO - check for lines of all zeros in tokens
+# TODO - cropping sentences might be a problem!
 
 from sklearn.metrics import f1_score
 
@@ -30,16 +31,16 @@ print("seed = ", a)
 # end_line = '\n'
 
 model_file_name = "transform2seq_fr-eng_1"
-training_file_name = "../data/smallvoc_fr.txt"
-target_file_name = "../data/smallvoc_en.txt"
+training_file_name = "../data/smallvoc_fr_.txt"
+target_file_name = "../data/smallvoc_en_.txt"
 # validation_file_name = "../data/src-sep-val.txt"
-ti_file_name = "../data/smallervoc_fr.txt"  # test input file
-tt_file_name = "../data/smallervoc_en.txt"  # test target
-sep = ''
-mezera = ' '
+ti_file_name = "../data/smallervoc_fr_.txt"  # test input file
+tt_file_name = "../data/smallervoc_en_.txt"  # test target
+sep = ' '
+mezera = '_'
 end_line = '\n'
 
-new = 0
+new = 1
 
 batch_size = 128
 epochs = 2
@@ -109,7 +110,7 @@ class Data():
         len_list = []
         dict_chars = {"OVV": 0, "<bos>": 1, "<eos>": 2, "_": 3, "<pad>": 4}
         for line in self.file.split(self.end_line):
-            line = ["<bos>"] + line.split(' ') + ["<eos>"]
+            line = ["<bos>"] + line.split(self.sep) + ["<eos>"]
             ll = len(line)
             len_list.append(len(line))
             if ll > maxlen:

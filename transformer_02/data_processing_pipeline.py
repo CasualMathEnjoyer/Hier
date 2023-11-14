@@ -55,22 +55,25 @@ class Data():
     def create_reverse_dict(self, dictionary):
         reverse_dict = {}
         for key, value in dictionary.items():
-            reverse_dict.setdefault(value, set()).add(key)
+            reverse_dict.setdefault(value, key)  # assuming values and keys unique
         return reverse_dict
     def model_test(self, sample, valid_shift, valid, model_name, sample_len):  # input = padded array of tokens
         model = load_model_mine(model_name)
         rev_dict = self.create_reverse_dict(self.dict_chars)
         value = model.predict((sample, valid_shift))  # has to be in the shape of the input for it to predict
         # TODO - do we put just the validated stuff in it or do we want to unpack the encoder?
-
+        value_one = np.zeros_like(value)
         for i in range(sample_len):
             for j in range(len(value[i])):
-                print(rev_dict[self.array_to_token(value[i][j])], end=' ')
+                token = self.array_to_token(value[i][j])
+                value_one[i][j][token] = 1
+                print(rev_dict[token], end=' ')
             print()
 
         assert len(valid) == len(value)
         # valid.resize(value.shape)
         print("F1 score:", F1_score(value, valid.astype('float32')).numpy())
+        print("F1 score value_one:", F1_score(value_one, valid.astype('float32')).numpy())
     def split_n_count(self, create_dic):  # creates a list of lists of TOKENS and a dictionary
         maxlen, complete = 0, 0
         output = []
@@ -226,10 +229,11 @@ print("target: ", target.dict_chars)
 y_test = test_y.split_n_count(False)[:10]
 y_test_pad = test_y.padding(y_test, target.maxlen)
 y_test_pad_shift = test_y.padding(y_test, target.maxlen)
+y_test_pad_one = to_categorical(y_test_pad)
 
 lengh = len(x_test)
 print(len(x_test))
 print(len(y_test))
 assert len(x_test) == len(y_test)
 
-test_y.model_test(x_test_pad, y_test_pad_shift, y_test_pad, model_file_name, lengh)
+test_y.model_test(x_test_pad, y_test_pad_shift, y_test_pad_one, model_file_name, lengh)

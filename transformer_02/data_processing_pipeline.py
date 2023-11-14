@@ -43,22 +43,30 @@ class Data():
         self.sep = sep
         self.space = mezera
 
-    def array_to_onehot(self, input_array):
+    def array_to_token(self, input_array):
         if input_array.size == 0:
             # Handle empty array case
             return np.array([])
         max_index = np.argmax(input_array)
-        result_array = np.zeros_like(input_array)  # so it is the same shape
-        result_array[max_index] = 1
-        return result_array
+        # result_array = np.zeros_like(input_array)  # so it is the same shape
+        # result_array[max_index] = 1
+        return max_index
+
+    def create_reverse_dict(self, dictionary):
+        reverse_dict = {}
+        for key, value in dictionary.items():
+            reverse_dict.setdefault(value, set()).add(key)
+        return reverse_dict
     def model_test(self, sample, valid_shift, valid, model_name, sample_len):  # input = padded array of tokens
         model = load_model_mine(model_name)
-
+        rev_dict = self.create_reverse_dict(self.dict_chars)
         value = model.predict((sample, valid_shift))  # has to be in the shape of the input for it to predict
         # TODO - do we put just the validated stuff in it or do we want to unpack the encoder?
 
-        for j in range(sample_len):
-            print(value[j])
+        for i in range(sample_len):
+            for j in range(len(value[i])):
+                print(rev_dict[self.array_to_token(value[i][j])], end=' ')
+            print()
 
         assert len(valid) == len(value)
         # valid.resize(value.shape)
@@ -207,18 +215,21 @@ with open(tt_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_y.file = f.read()
     f.close()
 
+samples = 10
 test_x.dict_chars = source.dict_chars  # mohla bych prepsat file v source a jen znova rozbehnout funkci
-x_test = test_x.split_n_count(False)   # ale tohle je lepsi
-x_test_pad = test_x.padding(x_train, source.maxlen)
+print("source: ", source.dict_chars)
+x_test = test_x.split_n_count(False)[:10]  # ale tohle je lepsi
+x_test_pad = test_x.padding(x_test, source.maxlen)
 
 test_y.dict_chars = target.dict_chars
-y_test = test_y.split_n_count(False)
-y_test_pad = test_y.padding(y_train, target.maxlen)
-y_test_pad_shift = test_y.padding(y_train, target.maxlen)
+print("target: ", target.dict_chars)
+y_test = test_y.split_n_count(False)[:10]
+y_test_pad = test_y.padding(y_test, target.maxlen)
+y_test_pad_shift = test_y.padding(y_test, target.maxlen)
 
 lengh = len(x_test)
 print(len(x_test))
 print(len(y_test))
 assert len(x_test) == len(y_test)
 
-test_x.model_test(x_test_pad, y_test_pad_shift, y_test_pad, model_file_name, lengh)
+test_y.model_test(x_test_pad, y_test_pad_shift, y_test_pad, model_file_name, lengh)

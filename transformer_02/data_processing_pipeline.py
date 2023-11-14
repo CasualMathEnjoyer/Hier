@@ -14,20 +14,31 @@ set_random_seed(a)
 print("seed = ", a)
 
 
-model_file_name = "transform2seq_1"
-training_file_name = "../data/src-sep-train.txt"
-target_file_name = "../data/tgt-train.txt"
+# model_file_name = "transform2seq_1"
+# training_file_name = "../data/src-sep-train.txt"
+# target_file_name = "../data/tgt-train.txt"
+# # validation_file_name = "../data/src-sep-val.txt"
+# ti_file_name = "../data/src-sep-test.txt"  # test input file
+# tt_file_name = "../data/tgt-test.txt"  # test target
+# sep = ' '
+# mezera = '_'
+# end_line = '\n'
+
+model_file_name = "transform2seq_fr-eng_1"
+training_file_name = "../data/smallvoc_fr.txt"
+target_file_name = "../data/smallvoc_en.txt"
 # validation_file_name = "../data/src-sep-val.txt"
-ti_file_name = "../data/src-sep-test.txt"  # test input file
-tt_file_name = "../data/tgt-test.txt"  # test target
-sep = ' '
-mezera = '_'
+ti_file_name = "../data/smallervoc_fr.txt"  # test input file
+tt_file_name = "../data/smallervoc_en.txt"  # test target
+sep = ''
+mezera = ' '
+end_line = '\n'
 
 new = 0
 
 batch_size = 128
-epochs = 1
-repeat = 0  # full epoch_num=epochs*repeat
+epochs = 2
+repeat = 2  # full epoch_num=epochs*repeat
 
 class Data():
     embed_dim = 32  # Embedding size for each token
@@ -38,10 +49,11 @@ class Data():
     dict_chars = {}
     vocab_size = 0
 
-    def __init__(self, sep, mezera):
+    def __init__(self, sep, mezera, end_line):
         super().__init__()
         self.sep = sep
         self.space = mezera
+        self.end_line = end_line
 
     def array_to_token(self, input_array):
         if input_array.size == 0:
@@ -51,7 +63,6 @@ class Data():
         # result_array = np.zeros_like(input_array)  # so it is the same shape
         # result_array[max_index] = 1
         return max_index
-
     def create_reverse_dict(self, dictionary):
         reverse_dict = {}
         for key, value in dictionary.items():
@@ -62,24 +73,37 @@ class Data():
         rev_dict = self.create_reverse_dict(self.dict_chars)
         value = model.predict((sample, valid_shift))  # has to be in the shape of the input for it to predict
         # TODO - do we put just the validated stuff in it or do we want to unpack the encoder?
+        print("value.shape=", value.shape)
+        print("valid.shape=", valid.shape)
+        # valid jsou tokeny -> one hot
+
+
+        assert sample_len == len(valid)
+        dim = len(valid[0])
+        print ("dim:", dim)
         value_one = np.zeros_like(value)
+        valid_one = np.zeros_like(value)
         for i in range(sample_len):
             for j in range(len(value[i])):
-                token = self.array_to_token(value[i][j])
-                value_one[i][j][token] = 1
-                print(rev_dict[token], end=' ')
+                # input one-hot-ization
+                token1 = int(valid[i][j])
+                valid_one[i][j][token1] = 1
+                # output tokenization
+                token2 = self.array_to_token(value[i][j])
+                value_one[i][j][token2] = 1
+                print(rev_dict[token2], end=' ')
             print()
 
         assert len(valid) == len(value)
         # valid.resize(value.shape)
-        print("F1 score:", F1_score(value, valid.astype('float32')).numpy())
-        print("F1 score value_one:", F1_score(value_one, valid.astype('float32')).numpy())
+        print("F1 score:", F1_score(value, valid_one.astype('float32')).numpy())
+        print("F1 score value_one:", F1_score(value_one, valid_one.astype('float32')).numpy())
     def split_n_count(self, create_dic):  # creates a list of lists of TOKENS and a dictionary
         maxlen, complete = 0, 0
         output = []
         len_list = []
         dict_chars = {"OVV": 0, "<bos>": 1, "<eos>": 2, "_": 3, "<pad>": 4}
-        for line in self.file.split('\n'):
+        for line in self.file.split(self.end_line):
             line = ["<bos>"] + line.split(' ') + ["<eos>"]
             ll = len(line)
             len_list.append(len(line))
@@ -157,8 +181,8 @@ def load_model_mine(model_name):
 
 print()
 print("data preparation...")
-source = Data(sep, mezera)
-target = Data(sep, mezera)
+source = Data(sep, mezera, end_line)
+target = Data(sep, mezera, end_line)
 with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
     source.file = f.read()
     f.close()
@@ -209,11 +233,11 @@ for i in range(repeat):
 
 # ---------------------------------- TESTING ------------------------------------------------------------------------
 print("testing...")
-test_x = Data(sep, mezera)
+test_x = Data(sep, mezera, end_line)
 with open(ti_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_x.file = f.read()
     f.close()
-test_y = Data(sep, mezera)
+test_y = Data(sep, mezera, end_line)
 with open(tt_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_y.file = f.read()
     f.close()
@@ -229,11 +253,10 @@ print("target: ", target.dict_chars)
 y_test = test_y.split_n_count(False)[:10]
 y_test_pad = test_y.padding(y_test, target.maxlen)
 y_test_pad_shift = test_y.padding(y_test, target.maxlen)
-y_test_pad_one = to_categorical(y_test_pad)
 
 lengh = len(x_test)
 print(len(x_test))
 print(len(y_test))
 assert len(x_test) == len(y_test)
 
-test_y.model_test(x_test_pad, y_test_pad_shift, y_test_pad_one, model_file_name, lengh)
+test_y.model_test(x_test_pad, y_test_pad_shift, y_test_pad, model_file_name, lengh)

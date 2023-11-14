@@ -190,7 +190,7 @@ model.compile(optimizer="adam", loss="binary_crossentropy",
 # --------------------------------- TRAINING ------------------------------------------------------------------------
 for i in range(repeat):
     history = model.fit(
-        x_train_pad, y_train_pad, batch_size=batch_size, epochs=epochs)
+        (x_train_pad, y_train_pad_shift), y_train_pad, batch_size=batch_size, epochs=epochs)
         # validation_data=(x_valid_tokenized, y_valid))
     model.save(model_file_name)
     K.clear_session()

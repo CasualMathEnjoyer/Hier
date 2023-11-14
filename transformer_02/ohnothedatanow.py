@@ -18,6 +18,8 @@ model_file_name = "transform2seq_1"
 training_file_name = "../data/src-sep-train.txt"
 # validation_file_name = "../data/src-sep-val.txt"
 # test_file_name = "../data/src-sep-test.txt"
+ti_file_name = ""  # test input file
+tt_file_name = ""  # test target
 target_file_name = "../data/tgt-train.txt"
 sep = ' '
 mezera = '_'
@@ -26,12 +28,11 @@ new = 0
 
 batch_size = 128
 epochs = 1
-repeat = 1  # full epoch_num=epochs*repeat
+repeat = 4  # full epoch_num=epochs*repeat
 
 class Data():
     embed_dim = 32  # Embedding size for each token
     num_heads = 2  # Number of attention heads
-    ff_dim = 64  # Hidden layer size in feed forward network inside transformer
 
     maxlen = 0
     file = ''
@@ -107,18 +108,17 @@ class Data():
             print("dict chars:", self.dict_chars)
             print("vocab size:", self.vocab_size)
         return output
-    def padding(self, input_list):
-        input_list_padded = np.zeros((len(input_list), self.maxlen))  # maybe zeros?
+    def padding(self, input_list, lengh):
+        input_list_padded = np.zeros((len(input_list), lengh))  # maybe zeros?
         for i, line in enumerate(input_list):
-            if len(line) > self.maxlen: # shorten
-                input_list_padded[i] = np.array(line[:self.maxlen])
-            elif len(line) < self.maxlen:  # padd, # 4 is the code for padding
-                input_list_padded[i] = np.array(line + [4 for i in range(self.maxlen - len(line))])
+            if len(line) > lengh: # shorten
+                input_list_padded[i] = np.array(line[:lengh])
+            elif len(line) < lengh:  # padd, # 4 is the code for padding
+                input_list_padded[i] = np.array(line + [4 for i in range(lengh - len(line))])
             else:
                 pass
         print(input_list_padded)
         return input_list_padded
-
     def padding_shift(self, input_list):
         input_list_padded = np.zeros((len(input_list), self.maxlen))  # maybe zeros?
         for i, line in enumerate(input_list):
@@ -161,11 +161,11 @@ with open(target_file_name, "r", encoding="utf-8") as ff:
 
 print("first file:")
 x_train = source.split_n_count(True)
-x_train_pad = source.padding(x_train)
+x_train_pad = source.padding(x_train, source.maxlen)
 print()
 print("second file:")
 y_train = target.split_n_count(True)
-y_train_pad = target.padding(y_train)
+y_train_pad = target.padding(y_train, target.maxlen)
 y_train_pad_one = to_categorical(y_train_pad)
 y_train_pad_shift = target.padding_shift(y_train)
 print(y_train_pad_one)
@@ -189,7 +189,7 @@ if new:
 else:
     model = load_model_mine(model_file_name)
 
-model.compile(optimizer="adam", loss="mse",
+model.compile(optimizer="adam", loss="mse",  # TODO  Cross-Entropy
               metrics=["accuracy", "Precision", "Recall", F1_score])
 
 # --------------------------------- TRAINING ------------------------------------------------------------------------
@@ -201,11 +201,21 @@ for i in range(repeat):
     K.clear_session()
 
 # ---------------------------------- TESTING ------------------------------------------------------------------------
-# print("testing...")
-#
-# with open(test_file_name, "r", encoding="utf-8") as f:  # with spaces
-#     test_file = f.read()
-#     f.close()
-#
-# sample_x, sample_y = d.sliding_window(test_file[:9600])
-# d.model_test(sample_x, sample_y, model_file_name, len(sample_x))
+print("testing...")
+test_x = Data(sep, mezera)
+with open(ti_file_name, "r", encoding="utf-8") as f:  # with spaces
+    test_x.file = f.read()
+    f.close()
+test_y = Data(sep, mezera)
+with open(tt_file_name, "r", encoding="utf-8") as f:  # with spaces
+    test_y.file = f.read()
+    f.close()
+
+x_test = test_x.split_n_count(False)
+x_test_pad = test_x.padding(x_train, source.maxlen)
+
+y_test = test_y.split_n_count(False)
+y_test_pad = test_y.padding(y_train, target.maxlen)
+y_test_pad_shift = test_y.padding(y_train, target.maxlen)
+
+test_x.model_test(x_test_pad, y_test_pad, model_file_name, len(sample_x))

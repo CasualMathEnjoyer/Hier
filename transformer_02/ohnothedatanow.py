@@ -22,7 +22,7 @@ target_file_name = "../data/tgt-train.txt"
 sep = ' '
 mezera = '_'
 
-new = 1
+new = 0
 
 batch_size = 128
 epochs = 1
@@ -141,7 +141,12 @@ def F1_score(y_true, y_pred): #taken from old keras source code
     # print("precision:", precision.numpy(), "recall:", recall.numpy())
     return f1_val
 def load_model_mine(model_name):
-    return keras.models.load_model(model_name, custom_objects={"F1_score": F1_score})
+    from model_file import PositionalEmbedding, TransformerEncoder, TransformerDecoder
+    return keras.models.load_model(model_name, custom_objects={"F1_score": F1_score,
+                                                               'PositionalEmbedding': PositionalEmbedding,
+                                                               'TransformerEncoder': TransformerEncoder,
+                                                               'TransformerDecoder': TransformerDecoder
+    })
 
 print()
 print("data preparation...")

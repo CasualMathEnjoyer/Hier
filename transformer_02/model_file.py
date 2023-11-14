@@ -127,7 +127,7 @@ class TransformerDecoder(layers.Layer):
 
 def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
     embed_dim = 32
-    latent_dim = 225
+    latent_dim = 32
     num_heads = 2
     # in_seq_len = 40
     # out_seq_len = 40  # can they be different ?

@@ -16,11 +16,10 @@ print("seed = ", a)
 
 model_file_name = "transform2seq_1"
 training_file_name = "../data/src-sep-train.txt"
-# validation_file_name = "../data/src-sep-val.txt"
-# test_file_name = "../data/src-sep-test.txt"
-ti_file_name = ""  # test input file
-tt_file_name = ""  # test target
 target_file_name = "../data/tgt-train.txt"
+# validation_file_name = "../data/src-sep-val.txt"
+ti_file_name = "../data/src-sep-test.txt"  # test input file
+tt_file_name = "../data/tgt-test.txt"  # test target
 sep = ' '
 mezera = '_'
 
@@ -28,7 +27,7 @@ new = 0
 
 batch_size = 128
 epochs = 1
-repeat = 4  # full epoch_num=epochs*repeat
+repeat = 0  # full epoch_num=epochs*repeat
 
 class Data():
     embed_dim = 32  # Embedding size for each token
@@ -43,31 +42,28 @@ class Data():
         super().__init__()
         self.sep = sep
         self.space = mezera
-    def model_test(self, sample:list, valid, model_name, sample_len):
+
+    def array_to_onehot(self, input_array):
+        if input_array.size == 0:
+            # Handle empty array case
+            return np.array([])
+        max_index = np.argmax(input_array)
+        result_array = np.zeros_like(input_array)  # so it is the same shape
+        result_array[max_index] = 1
+        return result_array
+    def model_test(self, sample, valid_shift, valid, model_name, sample_len):  # input = padded array of tokens
         model = load_model_mine(model_name)
 
-        sample_v = self.tokenize(sample)
-        value = model.predict(sample_v)  # has to be in the shape of the input for it to predict
+        value = model.predict((sample, valid_shift))  # has to be in the shape of the input for it to predict
+        # TODO - do we put just the validated stuff in it or do we want to unpack the encoder?
 
         for j in range(sample_len):
-            # for num in value[j]:
-            #     if num[0] > 0.5:
-            #         print(1, end=self.space)
-            #     else:
-            #         print(0, end=self.sep)
-            # print('')
-
-            for i, char in enumerate(sample[j]):
-                print(char, end=self.sep)
-                if value[j][i][0] > 0.5:
-                    print(self.space, end=self.sep)
-                i+=1
-            print('')
+            print(value[j])
 
         assert len(valid) == len(value)
-        valid.resize(value.shape)
+        # valid.resize(value.shape)
         print("F1 score:", F1_score(value, valid.astype('float32')).numpy())
-    def split_n_count(self, yes):  # creates a list of lists of TOKENS and a dictionary
+    def split_n_count(self, create_dic):  # creates a list of lists of TOKENS and a dictionary
         maxlen, complete = 0, 0
         output = []
         len_list = []
@@ -82,7 +78,7 @@ class Data():
             l = []
             for c in line:  # leave mezery !!
                 if c != '':
-                    if yes:
+                    if create_dic:
                         if c not in dict_chars:
                             dict_chars[c] = len(dict_chars)
                         l.append(dict_chars[c])
@@ -102,7 +98,7 @@ class Data():
         # maxlen: 1128
         # average: 31.42447596485441
         self.maxlen = weird_median
-        if yes:
+        if create_dic:
             self.dict_chars = dict_chars
             self.vocab_size = len(dict_chars)
             print("dict chars:", self.dict_chars)
@@ -211,11 +207,18 @@ with open(tt_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_y.file = f.read()
     f.close()
 
-x_test = test_x.split_n_count(False)
+test_x.dict_chars = source.dict_chars  # mohla bych prepsat file v source a jen znova rozbehnout funkci
+x_test = test_x.split_n_count(False)   # ale tohle je lepsi
 x_test_pad = test_x.padding(x_train, source.maxlen)
 
+test_y.dict_chars = target.dict_chars
 y_test = test_y.split_n_count(False)
 y_test_pad = test_y.padding(y_train, target.maxlen)
 y_test_pad_shift = test_y.padding(y_train, target.maxlen)
 
-test_x.model_test(x_test_pad, y_test_pad, model_file_name, len(sample_x))
+lengh = len(x_test)
+print(len(x_test))
+print(len(y_test))
+assert len(x_test) == len(y_test)
+
+test_x.model_test(x_test_pad, y_test_pad_shift, y_test_pad, model_file_name, lengh)

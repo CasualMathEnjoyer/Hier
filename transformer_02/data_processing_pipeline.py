@@ -6,6 +6,11 @@ from keras.utils import set_random_seed
 from keras.utils import to_categorical
 from keras import backend as K
 
+# TODO - check for lines of all zeros in tokens
+
+from sklearn.metrics import f1_score
+
+
 print("starting transform2seq")
 
 a = random.randrange(0, 2**32 - 1)
@@ -162,7 +167,22 @@ class Data():
         print(input_list_padded)
         return input_list_padded
 
-def F1_score(y_true, y_pred): #taken from old keras source code
+# TODO - better F1
+# def F1_score(y_true, y_pred):
+#     num_classes = target.vocab_size
+#     y_true = K.one_hot(K.cast(y_true, 'int32'), num_classes)
+#     y_pred = K.one_hot(K.argmax(y_pred), num_classes)
+#
+#     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+#     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+#     predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+#
+#     precision = true_positives / (predicted_positives + K.epsilon())
+#     recall = true_positives / (possible_positives + K.epsilon())
+#
+#     f1_val = 2 * (precision * recall) / (precision + recall + K.epsilon())
+#     return f1_val
+def F1_score(y_true, y_pred): #taken from old keras source code  # TODO transform
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
     predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
@@ -171,6 +191,8 @@ def F1_score(y_true, y_pred): #taken from old keras source code
     f1_val = 2*(precision*recall)/(precision+recall+K.epsilon())
     # print("precision:", precision.numpy(), "recall:", recall.numpy())
     return f1_val
+
+    # return f1_score(y_true, y_pred, average=None)
 def load_model_mine(model_name):
     from model_file import PositionalEmbedding, TransformerEncoder, TransformerDecoder
     return keras.models.load_model(model_name, custom_objects={"F1_score": F1_score,
@@ -220,7 +242,7 @@ if new:
 else:
     model = load_model_mine(model_file_name)
 
-model.compile(optimizer="adam", loss="mse",  # TODO  Cross-Entropy
+model.compile(optimizer="adam", loss="categorical_crossentropy",
               metrics=["accuracy", "Precision", "Recall", F1_score])
 
 # --------------------------------- TRAINING ------------------------------------------------------------------------

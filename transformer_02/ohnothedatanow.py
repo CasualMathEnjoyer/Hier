@@ -3,6 +3,7 @@ import random
 from model_file import model_func
 import keras
 from keras.utils import set_random_seed
+from keras.utils import to_categorical
 from keras import backend as K
 
 print("starting transform2seq")
@@ -37,8 +38,6 @@ class Data():
     dict_chars = {}
     vocab_size = 0
 
-    window, step = 64, 20
-
     def __init__(self, sep, mezera):
         super().__init__()
         self.sep = sep
@@ -67,7 +66,6 @@ class Data():
         assert len(valid) == len(value)
         valid.resize(value.shape)
         print("F1 score:", F1_score(value, valid.astype('float32')).numpy())
-
     def split_n_count(self, yes):  # creates a list of lists of TOKENS and a dictionary
         maxlen, complete = 0, 0
         output = []
@@ -109,7 +107,6 @@ class Data():
             print("dict chars:", self.dict_chars)
             print("vocab size:", self.vocab_size)
         return output
-
     def padding(self, input_list):
         input_list_padded = np.zeros((len(input_list), self.maxlen))  # maybe zeros?
         for i, line in enumerate(input_list):
@@ -164,12 +161,15 @@ print()
 print("second file:")
 y_train = target.split_n_count(True)
 y_train_pad = target.padding(y_train)
+y_train_pad_one = to_categorical(y_train_pad)
 y_train_pad_shift = target.padding_shift(y_train)
+print(y_train_pad_one)
 print()
 
 print(x_train_pad.shape)
 print(y_train_pad.shape)
 print(y_train_pad_shift.shape)
+print(y_train_pad_one.shape)
 
 # x_train, y_train = d.sliding_window(d.final_file)
 # x_valid, y_valid = d.sliding_window(d.target_file)
@@ -184,13 +184,13 @@ if new:
 else:
     model = load_model_mine(model_file_name)
 
-model.compile(optimizer="adam", loss="binary_crossentropy",
+model.compile(optimizer="adam", loss="mse",
               metrics=["accuracy", "Precision", "Recall", F1_score])
 
 # --------------------------------- TRAINING ------------------------------------------------------------------------
 for i in range(repeat):
     history = model.fit(
-        (x_train_pad, y_train_pad_shift), y_train_pad, batch_size=batch_size, epochs=epochs)
+        (x_train_pad, y_train_pad_shift), y_train_pad_one, batch_size=batch_size, epochs=epochs)
         # validation_data=(x_valid_tokenized, y_valid))
     model.save(model_file_name)
     K.clear_session()

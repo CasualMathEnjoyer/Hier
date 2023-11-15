@@ -1,2 +1,2 @@
 # Hier
-Bachelo's thesis - machine learning translation of hieroglyphs
+Machine learning translation of hieroglyphs

@@ -56,13 +56,13 @@ new = 0  # whether it creates a model (1) or loads a model (0)
 
 batch_size = 128
 epochs = 2
-repeat = 4  # full epoch_num=epochs*repeat
+repeat = 0  # full epoch_num=epochs*repeat
 
 class Data():
     vocab_size = 1138
-    embed_dim = 32  # Embedding size for each token
-    num_heads = 2  # Number of attention heads
-    ff_dim = 64  # Hidden layer size in feed forward network inside transformer
+    embed_dim = 32      # Embedding size for each token
+    num_heads = 2       # Number of attention heads
+    ff_dim = 64         # Hidden layer size in feed forward network inside transformer
 
     final_file, valid_file = '', ''
     dict_chars = {}

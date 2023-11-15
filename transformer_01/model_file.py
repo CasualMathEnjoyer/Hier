@@ -2,8 +2,6 @@ import tensorflow as tf
 from tensorflow import keras
 from keras import layers
 
-# https://github.com/evidentlyai/evidently
-
 class TransformerBlock(layers.Layer):
     def __init__(self, embed_dim, num_heads, ff_dim, drop_rate=0.1):
         super().__init__()
@@ -42,12 +40,7 @@ def model_func(vocab_size, maxlen, embed_dim, num_heads, ff_dim):
     x = embedding_layer(inputs)
     transformer_block = TransformerBlock(embed_dim, num_heads, ff_dim)
     x = transformer_block(x)
-    # x = layers.GlobalAveragePooling1D()(x)
-    # x = layers.Dropout(0.1)(x)
-    # x = layers.Dense(20, activation="relu")(x)
-    # x = layers.Dropout(0.1)(x)
 
-    # outputs = layers.Dense(2, activation="softmax")(x)
     network_timestep = layers.TimeDistributed(layers.Dense(1, activation='sigmoid'))
     outputs = network_timestep(x)
 

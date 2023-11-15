@@ -1,5 +1,6 @@
 # https://keras.io/examples/nlp/text_classification_with_transformer/
 # https://netron.app/
+
 import numpy as np
 import random
 from model_file import model_func
@@ -9,12 +10,18 @@ from keras import backend as K
 
 print("starting transform2bin")
 
-# TODO implement the K cross sections thing thing
+# TODO implement the K cross sections thing thing for data processing
+# TODO fix data at the end of file - flip around?
+# TODO - save class specs into json so you dont have to process the data all the time
+
+# check this library: https://github.com/evidentlyai/evidently
 
 a = random.randrange(0, 2**32 - 1)
 # a = 1261263827
 set_random_seed(a)
 print("seed = ", a)
+
+# I use the file with spaces to generate both the string without spaces and an array with 0 and 1
 
 # about 25% of model are spaces
 # precision = to minimise false alarms
@@ -27,31 +34,32 @@ print("seed = ", a)
 
 # v datasetu momentale 203 znaku zastoupeno pouze jednou
 
-# celkem skoro 68 tisic slov
-# 47.5 tisic slov jenom jednou
+model_file_name = "transform2bin_4"
+training_file_name = "../data/src-sep-train.txt"
+validation_file_name = "../data/src-sep-val.txt"
+test_file_name = "../data/src-sep-test.txt"
+sep = ' '
+mezera = '_'
 
-model_file_name = "transform2bin_french"
-# training_file_name = "../data/src-sep-train.txt"
-# validation_file_name = "../data/src-sep-val.txt"
-# test_file_name = "../data/src-sep-test.txt"
-# sep = ' '
-# mezera = '_'
+# model_file_name = "transform2bin_french"
+# training_file_name = "../data/smallvoc_fr.txt"
+# validation_file_name = "../data/smallvoc_fr.txt"
+# test_file_name = "../data/smallvoc_fr.txt"
+# model_file_name = "transform2bin_eng"
+# training_file_name = "../data/smallvoc_en.txt"
+# validation_file_name = "../data/smallvoc_en.txt"
+# test_file_name = "../data/smallvoc_en.txt"
+# sep = ''
+# mezera = ' '
 
-training_file_name = "../data/smallvoc_fr.txt"
-validation_file_name = "../data/smallvoc_fr.txt"
-test_file_name = "../data/smallvoc_fr.txt"
-sep = ''
-mezera = ' '
-
-new = 1
+new = 0  # whether it creates a model (1) or loads a model (0)
 
 batch_size = 128
-epochs = 1
-repeat = 0  # full epoch_num=epochs*repeat
+epochs = 2
+repeat = 4  # full epoch_num=epochs*repeat
 
 class Data():
     vocab_size = 1138
-    # maxlen = 64
     embed_dim = 32  # Embedding size for each token
     num_heads = 2  # Number of attention heads
     ff_dim = 64  # Hidden layer size in feed forward network inside transformer
@@ -87,13 +95,6 @@ class Data():
         value = model.predict(sample_v)  # has to be in the shape of the input for it to predict
 
         for j in range(sample_len):
-            # for num in value[j]:
-            #     if num[0] > 0.5:
-            #         print(1, end=self.space)
-            #     else:
-            #         print(0, end=self.sep)
-            # print('')
-
             for i, char in enumerate(sample[j]):
                 print(char, end=self.sep)
                 if value[j][i][0] > 0.5:
@@ -105,8 +106,7 @@ class Data():
         valid.resize(value.shape)
         print("F1 score:", F1_score(value, valid.astype('float32')).numpy())
 
-
-    def sliding_window(self, output_file: str):
+    def sliding_window(self, output_file: str):  # chunks the data into chunks
         if self.sep != '':
             output_file = output_file.split(self.sep)
         l = len(output_file)
@@ -114,7 +114,6 @@ class Data():
         re_windowed, re_binar, list_chars = [], [], []
         slide, num_space, num_nonspaces = 0, 0, 0
         list_chars.append('OOV')
-        # list_chars.append('RARE') # token for rare symbols
 
         while True:
             pos, skipped = 0, 0
@@ -160,7 +159,7 @@ class Data():
         # print(self.dict_chars)
         return re_windowed, re_binar
 
-def F1_score(y_true, y_pred): #taken from old keras source code
+def F1_score(y_true, y_pred):  # taken from old keras source code
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
     predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))

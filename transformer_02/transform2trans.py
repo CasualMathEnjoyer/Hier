@@ -24,6 +24,8 @@ print("seed = ", a)
 # distribution in attention), which ensures no gradient gets propagated
 # from the "non-existing" padding positions.
 
+# celkem skoro 68 tisic slov
+# 47.5 tisic slov jenom jednou
 
 # model_file_name = "transform2seq_1"
 # training_file_name = "../data/src-sep-train.txt"

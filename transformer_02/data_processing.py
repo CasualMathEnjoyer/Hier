@@ -19,6 +19,11 @@ a = random.randrange(0, 2**32 - 1)
 set_random_seed(a)
 print("seed = ", a)
 
+#todo : When you use padding, you should always do masking on the output
+# and other places where it is relevant (i.e., when computing the attention
+# distribution in attention), which ensures no gradient gets propagated
+# from the "non-existing" padding positions.
+
 
 # model_file_name = "transform2seq_1"
 # training_file_name = "../data/src-sep-train.txt"

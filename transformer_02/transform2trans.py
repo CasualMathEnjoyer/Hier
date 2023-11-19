@@ -59,7 +59,7 @@ new = 0
 
 batch_size = 128
 epochs = 2
-repeat = 2  # full epoch_num=epochs*repeat
+repeat = 0  # full epoch_num=epochs*repeat
 
 class Data():
     embed_dim = 32  # Embedding size for each token
@@ -89,6 +89,13 @@ class Data():
         for key, value in dictionary.items():
             reverse_dict.setdefault(value, key)  # assuming values and keys unique
         return reverse_dict
+
+    def one_hot_to_token(self, vec):
+        tokens = []
+        for line in vec:
+            for char in line:
+                tokens.append(np.argmax(char))
+        return tokens
     def model_test(self, sample, valid_shift, valid, model_name, sample_len):  # input = padded array of tokens
         model = load_model_mine(model_name)
         rev_dict = self.create_reverse_dict(self.dict_chars)
@@ -113,8 +120,8 @@ class Data():
                 # output tokenization
                 token2 = self.array_to_token(value[i][j])
                 value_one[i][j][token2] = 1
-                # print(rev_dict[token1], "/",  rev_dict[token2], end=' ')
-                print(rev_dict[token2], end=' ')
+                print(rev_dict[token1], "/",  rev_dict[token2], end=' ')
+                #print(rev_dict[token2], end=' ')
             print()
 
         assert len(valid) == len(value)
@@ -122,12 +129,12 @@ class Data():
         l = len(value[0])
         kk = len(value[0][0])
         for i in range(len(value)):
-            # print("prediction:", value[i])
-            # print("true value:", valid_one[i])
+            print("prediction:", self.one_hot_to_token([value[i]]))
+            print("true value:", self.one_hot_to_token([valid_one[i]]))
             val = 0
-            for j in range(l):
+            for j in range(1, l):
                 for k in range(0, kk):
-                    val += abs(value_one[i][j][k] - valid_one[i][j][k])
+                    val += abs(value_one[i][j-1][k] - valid_one[i][j][k])
             print("difference:", val)
         # print("F1 score:", F1_score(value, valid_one.astype('float32')).numpy())
         # print("F1 score value_one:", F1_score(value_one, valid_one.astype('float32')).numpy())
@@ -273,6 +280,7 @@ else:
 
 model.compile(optimizer="adam", loss="categorical_crossentropy",
               metrics=["accuracy", "Precision", "Recall", F1_score])
+model.summary()
 
 # --------------------------------- TRAINING ------------------------------------------------------------------------
 for i in range(repeat):

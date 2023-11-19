@@ -34,23 +34,23 @@ print("seed = ", a)
 
 # v datasetu momentale 203 znaku zastoupeno pouze jednou
 
-model_file_name = "transform2bin_4"
-training_file_name = "../data/src-sep-train.txt"
-validation_file_name = "../data/src-sep-val.txt"
-test_file_name = "../data/src-sep-test.txt"
-sep = ' '
-mezera = '_'
+# model_file_name = "transform2bin_4"
+# training_file_name = "../data/src-sep-train.txt"
+# validation_file_name = "../data/src-sep-val.txt"
+# test_file_name = "../data/src-sep-test.txt"
+# sep = ' '
+# mezera = '_'
 
 # model_file_name = "transform2bin_french"
 # training_file_name = "../data/smallvoc_fr.txt"
 # validation_file_name = "../data/smallvoc_fr.txt"
 # test_file_name = "../data/smallvoc_fr.txt"
-# model_file_name = "transform2bin_eng"
-# training_file_name = "../data/smallvoc_en.txt"
-# validation_file_name = "../data/smallvoc_en.txt"
-# test_file_name = "../data/smallvoc_en.txt"
-# sep = ''
-# mezera = ' '
+model_file_name = "transform2bin_eng"
+training_file_name = "../data/smallvoc_en.txt"
+validation_file_name = "../data/smallvoc_en.txt"
+test_file_name = "../data/smallvoc_en.txt"
+sep = ''
+mezera = ' '
 
 new = 0  # whether it creates a model (1) or loads a model (0)
 

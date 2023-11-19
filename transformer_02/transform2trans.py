@@ -137,8 +137,8 @@ class Data():
                     val += abs(value_one[i][j][k] - valid_one[i][j][k])
             # print("difference:", val, "accuracy:", 1-(val/sent_len))
             val_all += val
-        print("accuracy all:  ", 1-(val_all/(sent_len*num_sent)))
-        print("f1 multi score:", multiclass_f1_score(value_one, valid_one))
+        print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
+        print("f1 prec rec :", f1_precision_recall(value_one, valid_one))
         # print("F1 score:", F1_score(value, valid_one.astype('float32')).numpy())
         # print("F1 score value_one:", F1_score(value_one, valid_one.astype('float32')).numpy())
     def split_n_count(self, create_dic):  # creates a list of lists of TOKENS and a dictionary
@@ -168,7 +168,7 @@ class Data():
             output.append(l)
         # for line in output:
         #     print(line)
-        print("average:     ", complete / len(self.file.split('\n')))
+        print("average:     ", round(complete / len(self.file.split('\n')), 2))
         print("maxlen:      ", maxlen)
         likelyhood = 39 / 40
         weird_median = sorted(len_list)[int(len(len_list) * likelyhood)]
@@ -205,21 +205,10 @@ class Data():
         # print(input_list_padded)
         return input_list_padded
 
-# TODO - better F1
-# def F1_score(y_true, y_pred):
-#     num_classes = target.vocab_size
-#     y_true = K.one_hot(K.cast(y_true, 'int32'), num_classes)
-#     y_pred = K.one_hot(K.argmax(y_pred), num_classes)
-#
-#     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-#     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
-#     predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
-#
-#     precision = true_positives / (predicted_positives + K.epsilon())
-#     recall = true_positives / (possible_positives + K.epsilon())
-#
-#     f1_val = 2 * (precision * recall) / (precision + recall + K.epsilon())
-#     return f1_val
+# precision = to minimise false alarms
+# precision = TP/(TP + FP)
+# recall = to minimise missed spaces
+# recall = TP/(TP+FN)
 
 def calculate_precision_recall_f1(y_true, y_pred, label):
     true_positive = np.sum((y_true == label) & (y_pred == label))
@@ -232,11 +221,12 @@ def calculate_precision_recall_f1(y_true, y_pred, label):
     f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
 
     return precision, recall, f1
-def multiclass_f1_score(y_true, y_pred):
+def f1_precision_recall(y_true, y_pred):
     dict = target.dict_chars
     y_true = np.array(target.one_hot_to_token(y_true))
     y_pred = np.array(target.one_hot_to_token(y_pred))
-    unique_labels = np.unique(np.concatenate((y_true, y_pred)))
+    # unique_labels = np.unique(np.concatenate((y_true, y_pred)))
+    unique_labels = np.array(list(dict.values()))
     # print("labels:", unique_labels)
     # print("d labs:", np.array(list(dict.values())))
     total_precision = 0
@@ -252,7 +242,9 @@ def multiclass_f1_score(y_true, y_pred):
 
     macro_f1 = 2 * (macro_precision * macro_recall) / (macro_precision + macro_recall) if (macro_precision + macro_recall) > 0 else 0
 
-    return macro_f1
+    # return f1, precision and recall formated na dve desetinna mista
+    # return float(f'{macro_f1:.2f}'), float(f'{macro_precision:.2f}'), float(f'{macro_recall:.2f}')
+    return round(macro_f1, 2), round(macro_precision, 2), round(macro_recall, 2)
 
     # # Example usage:
     # # Assume y_true and y_pred are your true and predicted labels, respectively.
@@ -324,7 +316,7 @@ else:
     model = load_model_mine(model_file_name)
 
 model.compile(optimizer="adam", loss="categorical_crossentropy",
-              metrics=["accuracy", "Precision", "Recall", F1_score])
+              metrics=["accuracy", F1_score])
 model.summary()
 print()
 # --------------------------------- TRAINING ------------------------------------------------------------------------

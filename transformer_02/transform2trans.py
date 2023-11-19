@@ -24,6 +24,12 @@ print("seed = ", a)
 # distribution in attention), which ensures no gradient gets propagated
 # from the "non-existing" padding positions.
 
+# TODO : plan
+# check if data is processed correctly
+# 1 implement masking for lstm
+# 2 make easily switchable lstm here
+# see if it work
+
 # celkem skoro 68 tisic slov
 # 47.5 tisic slov jenom jednou
 
@@ -47,11 +53,11 @@ sep = ' '
 mezera = '_'
 end_line = '\n'
 
-new = 1
+new = 0
 
 batch_size = 128
 epochs = 2
-repeat = 2  # full epoch_num=epochs*repeat
+repeat = 0  # full epoch_num=epochs*repeat
 
 class Data():
     embed_dim = 32  # Embedding size for each token
@@ -115,7 +121,7 @@ class Data():
         maxlen, complete = 0, 0
         output = []
         len_list = []
-        dict_chars = {"OVV": 0, "<bos>": 1, "<eos>": 2, "_": 3, "<pad>": 4}
+        dict_chars = {"<pad>": 0, "<bos>": 1, "<eos>": 2, "_": 3, "OVV": 4}
         for line in self.file.split(self.end_line):
             line = ["<bos>"] + line.split(self.sep) + ["<eos>"]
             ll = len(line)

@@ -45,7 +45,7 @@ print("seed = ", a)
 
 from model_file_LSTM import model_func
 
-model_file_name = "transform2seq_fr-eng_2LSTM"
+model_file_name = "transform2seq_fr-eng_3LSTM"
 training_file_name = "../data/smallvoc_fr_.txt"
 target_file_name = "../data/smallvoc_en_.txt"
 # validation_file_name = "../data/src-sep-val.txt"
@@ -55,7 +55,7 @@ sep = ' '
 mezera = '_'
 end_line = '\n'
 
-new = 1
+new = 0
 
 batch_size = 128
 epochs = 2
@@ -92,7 +92,8 @@ class Data():
     def model_test(self, sample, valid_shift, valid, model_name, sample_len):  # input = padded array of tokens
         model = load_model_mine(model_name)
         rev_dict = self.create_reverse_dict(self.dict_chars)
-        value = model.predict((sample, valid_shift))  # has to be in the shape of the input for it to predict
+        # TODO -putting the correct ones there - not a good idea
+        value = model.predict((sample, valid))  # has to be in the shape of the input for it to predict
         # TODO - do we put just the validated stuff in it or do we want to unpack the encoder?
         print("value.shape=", value.shape)
         print("valid.shape=", valid.shape)
@@ -103,7 +104,7 @@ class Data():
         dim = len(valid[0])
         print ("dim:", dim)
         value_one = np.zeros_like(value)
-        valid_one = np.zeros_like(value)
+        valid_one = np.zeros_like(value)  # has to be value
         for i in range(sample_len):
             for j in range(len(value[i])):
                 # input one-hot-ization
@@ -112,13 +113,24 @@ class Data():
                 # output tokenization
                 token2 = self.array_to_token(value[i][j])
                 value_one[i][j][token2] = 1
+                # print(rev_dict[token1], "/",  rev_dict[token2], end=' ')
                 print(rev_dict[token2], end=' ')
             print()
 
         assert len(valid) == len(value)
         # valid.resize(value.shape)
-        print("F1 score:", F1_score(value, valid_one.astype('float32')).numpy())
-        print("F1 score value_one:", F1_score(value_one, valid_one.astype('float32')).numpy())
+        l = len(value[0])
+        kk = len(value[0][0])
+        for i in range(len(value)):
+            # print("prediction:", value[i])
+            # print("true value:", valid_one[i])
+            val = 0
+            for j in range(l):
+                for k in range(0, kk):
+                    val += abs(value_one[i][j][k] - valid_one[i][j][k])
+            print("difference:", val)
+        # print("F1 score:", F1_score(value, valid_one.astype('float32')).numpy())
+        # print("F1 score value_one:", F1_score(value_one, valid_one.astype('float32')).numpy())
     def split_n_count(self, create_dic):  # creates a list of lists of TOKENS and a dictionary
         maxlen, complete = 0, 0
         output = []
@@ -165,8 +177,8 @@ class Data():
         for i, line in enumerate(input_list):
             if len(line) > lengh: # shorten
                 input_list_padded[i] = np.array(line[:lengh])
-            elif len(line) < lengh:  # padd, # 4 is the code for padding
-                input_list_padded[i] = np.array(line + [4 for i in range(lengh - len(line))])
+            elif len(line) < lengh:  # padd, # 0 is the code for padding
+                input_list_padded[i] = np.array(line + [0 for i in range(lengh - len(line))])
             else:
                 pass
         print(input_list_padded)
@@ -176,8 +188,8 @@ class Data():
         for i, line in enumerate(input_list):
             if len(line) > self.maxlen: # shorten
                 input_list_padded[i] = np.array(line[1 : self.maxlen + 1])
-            elif len(line) < self.maxlen:  # padd, # 4 is the code for padding
-                input_list_padded[i] = np.array(line[1:] + [4 for i in range(self.maxlen - len(line) + 1)])
+            elif len(line) < self.maxlen:  # padd, # 0 is the code for padding
+                input_list_padded[i] = np.array(line[1:] + [0 for i in range(self.maxlen - len(line) + 1)])
             else:
                 pass
         print(input_list_padded)
@@ -237,6 +249,7 @@ y_train = target.split_n_count(True)
 y_train_pad = target.padding(y_train, target.maxlen)
 y_train_pad_one = to_categorical(y_train_pad)
 y_train_pad_shift = target.padding_shift(y_train)
+y_train_pad_shift_one = to_categorical(y_train_pad_shift)
 print(y_train_pad_one)
 print()
 
@@ -264,7 +277,7 @@ model.compile(optimizer="adam", loss="categorical_crossentropy",
 # --------------------------------- TRAINING ------------------------------------------------------------------------
 for i in range(repeat):
     history = model.fit(
-        (x_train_pad, y_train_pad_shift), y_train_pad_one, batch_size=batch_size, epochs=epochs)
+        (x_train_pad, y_train_pad), y_train_pad_shift_one, batch_size=batch_size, epochs=epochs)
         # validation_data=(x_valid_tokenized, y_valid))
     model.save(model_file_name)
     K.clear_session()
@@ -296,5 +309,9 @@ lengh = len(x_test)
 print(len(x_test))
 print(len(y_test))
 assert len(x_test) == len(y_test)
+
+print(y_test[0])
+print(y_train_pad_shift[0])
+print(y_train_pad[0])
 
 test_y.model_test(x_test_pad, y_test_pad_shift, y_test_pad, model_file_name, lengh)

@@ -93,8 +93,10 @@ class Data():
     def one_hot_to_token(self, vec):
         tokens = []
         for line in vec:
+            ll = []
             for char in line:
-                tokens.append(np.argmax(char))
+                ll.append(np.argmax(char))
+            tokens.append(ll)
         return tokens
     def model_test(self, sample, valid_shift, valid, model_name, sample_len):  # input = padded array of tokens
         model = load_model_mine(model_name)
@@ -103,19 +105,19 @@ class Data():
         value = model.predict((sample, valid))  # has to be in the shape of the input for it to predict
         # TODO - do we put just the validated stuff in it or do we want to unpack the encoder?
         print("value.shape=", value.shape)
-        print("valid.shape=", valid.shape)
+        print("valid.shape=", valid_shift.shape)
         # valid jsou tokeny -> one hot
 
 
-        assert sample_len == len(valid)
-        dim = len(valid[0])
+        assert sample_len == len(valid_shift)
+        dim = len(valid_shift[0])
         print ("dim:", dim)
         value_one = np.zeros_like(value)
         valid_one = np.zeros_like(value)  # has to be value
         for i in range(sample_len):
             for j in range(len(value[i])):
                 # input one-hot-ization
-                token1 = int(valid[i][j])
+                token1 = int(valid_shift[i][j])
                 valid_one[i][j][token1] = 1
                 # output tokenization
                 token2 = self.array_to_token(value[i][j])
@@ -124,7 +126,7 @@ class Data():
                 #print(rev_dict[token2], end=' ')
             print()
 
-        assert len(valid) == len(value)
+        assert len(valid_shift) == len(value)
         # valid.resize(value.shape)
         l = len(value[0])
         kk = len(value[0][0])
@@ -132,10 +134,11 @@ class Data():
             print("prediction:", self.one_hot_to_token([value[i]]))
             print("true value:", self.one_hot_to_token([valid_one[i]]))
             val = 0
-            for j in range(1, l):
-                for k in range(0, kk):
-                    val += abs(value_one[i][j-1][k] - valid_one[i][j][k])
+            for j in range(l):
+                for k in range(kk):
+                    val += abs(value_one[i][j][k] - valid_one[i][j][k])
             print("difference:", val)
+        print(multiclass_f1_score(value_one, valid_one))
         # print("F1 score:", F1_score(value, valid_one.astype('float32')).numpy())
         # print("F1 score value_one:", F1_score(value_one, valid_one.astype('float32')).numpy())
     def split_n_count(self, create_dic):  # creates a list of lists of TOKENS and a dictionary
@@ -217,6 +220,53 @@ class Data():
 #
 #     f1_val = 2 * (precision * recall) / (precision + recall + K.epsilon())
 #     return f1_val
+
+def calculate_precision_recall_f1(y_true, y_pred, label):
+    true_positive = np.sum((y_true == label) & (y_pred == label))
+    false_positive = np.sum((y_true != label) & (y_pred == label))
+    false_negative = np.sum((y_true == label) & (y_pred != label))
+
+    precision = true_positive / (true_positive + false_positive) if (true_positive + false_positive) > 0 else 0
+    recall = true_positive / (true_positive + false_negative) if (true_positive + false_negative) > 0 else 0
+
+    f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+
+    return precision, recall, f1
+def multiclass_f1_score(y_true, y_pred):
+    dict = target.dict_chars
+    y_true = np.array(target.one_hot_to_token(y_true))
+    y_pred = np.array(target.one_hot_to_token(y_pred))
+    unique_labels = np.unique(np.concatenate((y_true, y_pred)))
+    print("labels:", unique_labels)
+    print("d labs:", np.array(list(dict.values())))
+    total_precision = 0
+    total_recall = 0
+
+    for label in unique_labels:
+        precision, recall, _ = calculate_precision_recall_f1(y_true, y_pred, label)
+        total_precision += precision
+        total_recall += recall
+
+    macro_precision = total_precision / len(unique_labels) if len(unique_labels) > 0 else 0
+    macro_recall = total_recall / len(unique_labels) if len(unique_labels) > 0 else 0
+
+    macro_f1 = 2 * (macro_precision * macro_recall) / (macro_precision + macro_recall) if (macro_precision + macro_recall) > 0 else 0
+
+    return macro_f1
+
+    # # Example usage:
+    # # Assume y_true and y_pred are your true and predicted labels, respectively.
+    #
+    # # Generating example labels for demonstration
+    # np.random.seed(42)
+    # y_true = np.random.randint(0, 3, size=100)  # 3 classes
+    # y_pred = np.random.randint(0, 3, size=100)
+    #
+    # # Calculate multiclass F1 score
+    # f1 = multiclass_f1_score(y_true, y_pred)
+    #
+    # print(f'Multiclass F1 Score: {f1}')`
+
 def F1_score(y_true, y_pred): #taken from old keras source code  # TODO transform
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
@@ -311,7 +361,7 @@ test_y.dict_chars = target.dict_chars
 print("target: ", target.dict_chars)
 y_test = test_y.split_n_count(False)[:10]
 y_test_pad = test_y.padding(y_test, target.maxlen)
-y_test_pad_shift = test_y.padding(y_test, target.maxlen)
+y_test_pad_shift = test_y.padding_shift(y_test)
 
 lengh = len(x_test)
 print(len(x_test))

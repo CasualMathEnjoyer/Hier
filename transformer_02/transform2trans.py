@@ -66,6 +66,7 @@ class Data():
     maxlen = 0
     file = ''
     dict_chars = {}
+    reverse_dict = {}
     vocab_size = 0
 
     def __init__(self, sep, mezera, end_line):
@@ -94,6 +95,7 @@ class Data():
         reverse_dict = {}
         for key, value in dictionary.items():
             reverse_dict.setdefault(value, key)  # assuming values and keys unique
+        self.reverse_dict = reverse_dict
         return reverse_dict
     def model_test(self, sample, valid_shift, valid, model_name, sample_len):  # input = padded array of tokens
         model = load_model_mine(model_name)
@@ -236,6 +238,8 @@ def f1_precision_recall(y_true, y_pred):
         precision, recall, _ = calculate_precision_recall_f1(y_true, y_pred, label)
         total_precision += precision
         total_recall += recall
+        target.create_reverse_dict(target.dict_chars)
+        print("char:", target.reverse_dict[label], "- f1:", round(2*precision*recall/(precision+recall), 5) if (precision+recall) > 0 else "zero")
 
     macro_precision = total_precision / len(unique_labels) if len(unique_labels) > 0 else 0
     macro_recall = total_recall / len(unique_labels) if len(unique_labels) > 0 else 0

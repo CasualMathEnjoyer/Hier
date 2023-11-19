@@ -8,8 +8,6 @@ from keras import backend as K
 # TODO - check for lines of all zeros in tokens
 # TODO - cropping sentences might be a problem!
 
-from sklearn.metrics import f1_score
-
 
 print("starting transform2seq")
 
@@ -76,7 +74,7 @@ class Data():
         self.space = mezera
         self.end_line = end_line
 
-    def array_to_token(self, input_array):
+    def array_to_token(self, input_array): # takes array returns the max index
         if input_array.size == 0:
             # Handle empty array case
             return np.array([])
@@ -84,13 +82,7 @@ class Data():
         # result_array = np.zeros_like(input_array)  # so it is the same shape
         # result_array[max_index] = 1
         return max_index
-    def create_reverse_dict(self, dictionary):
-        reverse_dict = {}
-        for key, value in dictionary.items():
-            reverse_dict.setdefault(value, key)  # assuming values and keys unique
-        return reverse_dict
-
-    def one_hot_to_token(self, vec):
+    def one_hot_to_token(self, vec): # takes one hot array returns list of tokens
         tokens = []
         for line in vec:
             ll = []
@@ -98,20 +90,25 @@ class Data():
                 ll.append(np.argmax(char))
             tokens.append(ll)
         return tokens
+    def create_reverse_dict(self, dictionary):
+        reverse_dict = {}
+        for key, value in dictionary.items():
+            reverse_dict.setdefault(value, key)  # assuming values and keys unique
+        return reverse_dict
     def model_test(self, sample, valid_shift, valid, model_name, sample_len):  # input = padded array of tokens
         model = load_model_mine(model_name)
         rev_dict = self.create_reverse_dict(self.dict_chars)
-        # TODO -putting the correct ones there - not a good idea
         value = model.predict((sample, valid))  # has to be in the shape of the input for it to predict
+        # TODO -putting the correct ones there - not a good idea
         # TODO - do we put just the validated stuff in it or do we want to unpack the encoder?
-        print("value.shape=", value.shape)
-        print("valid.shape=", valid_shift.shape)
+        # print("value.shape=", value.shape)
+        # print("valid.shape=", valid_shift.shape)
         # valid jsou tokeny -> one hot
 
 
         assert sample_len == len(valid_shift)
         dim = len(valid_shift[0])
-        print ("dim:", dim)
+        # print ("dim:", dim)
         value_one = np.zeros_like(value)
         valid_one = np.zeros_like(value)  # has to be value
         for i in range(sample_len):
@@ -122,23 +119,26 @@ class Data():
                 # output tokenization
                 token2 = self.array_to_token(value[i][j])
                 value_one[i][j][token2] = 1
-                print(rev_dict[token1], "/",  rev_dict[token2], end=' ')
-                #print(rev_dict[token2], end=' ')
+                # print(rev_dict[token1], "/",  rev_dict[token2], end=' ')
+                print(rev_dict[token2], end=' ')  # the translation part
             print()
 
-        assert len(valid_shift) == len(value)
-        # valid.resize(value.shape)
-        l = len(value[0])
-        kk = len(value[0][0])
-        for i in range(len(value)):
-            print("prediction:", self.one_hot_to_token([value[i]]))
-            print("true value:", self.one_hot_to_token([valid_one[i]]))
+        # SOME STATISTICS
+        num_sent = len(value)
+        sent_len = len(value[0])
+        embed = len(value[0][0])
+        val_all = 0
+        for i in range(num_sent):
+            # print("prediction:", self.one_hot_to_token([value[i]]))
+            # print("true value:", self.one_hot_to_token([valid_one[i]]))
             val = 0
-            for j in range(l):
-                for k in range(kk):
+            for j in range(sent_len):
+                for k in range(embed):
                     val += abs(value_one[i][j][k] - valid_one[i][j][k])
-            print("difference:", val)
-        print(multiclass_f1_score(value_one, valid_one))
+            # print("difference:", val, "accuracy:", 1-(val/sent_len))
+            val_all += val
+        print("accuracy all:  ", 1-(val_all/(sent_len*num_sent)))
+        print("f1 multi score:", multiclass_f1_score(value_one, valid_one))
         # print("F1 score:", F1_score(value, valid_one.astype('float32')).numpy())
         # print("F1 score value_one:", F1_score(value_one, valid_one.astype('float32')).numpy())
     def split_n_count(self, create_dic):  # creates a list of lists of TOKENS and a dictionary
@@ -168,11 +168,11 @@ class Data():
             output.append(l)
         # for line in output:
         #     print(line)
-        print("maxlen:", maxlen)
-        print("average:", complete / len(self.file.split('\n')))
+        print("average:     ", complete / len(self.file.split('\n')))
+        print("maxlen:      ", maxlen)
         likelyhood = 39 / 40
         weird_median = sorted(len_list)[int(len(len_list) * likelyhood)]
-        print('"median" with:', likelyhood,":", weird_median)  # mene nez 2.5% ma sequence delsi, nez 100 znaku
+        print('with:', likelyhood,":", weird_median)  # mene nez 2.5% ma sequence delsi, nez 100 znaku
         # maxlen: 1128
         # average: 31.42447596485441
         self.maxlen = weird_median
@@ -191,7 +191,7 @@ class Data():
                 input_list_padded[i] = np.array(line + [0 for i in range(lengh - len(line))])
             else:
                 pass
-        print(input_list_padded)
+        # print(input_list_padded)
         return input_list_padded
     def padding_shift(self, input_list):
         input_list_padded = np.zeros((len(input_list), self.maxlen))  # maybe zeros?
@@ -202,7 +202,7 @@ class Data():
                 input_list_padded[i] = np.array(line[1:] + [0 for i in range(self.maxlen - len(line) + 1)])
             else:
                 pass
-        print(input_list_padded)
+        # print(input_list_padded)
         return input_list_padded
 
 # TODO - better F1
@@ -237,8 +237,8 @@ def multiclass_f1_score(y_true, y_pred):
     y_true = np.array(target.one_hot_to_token(y_true))
     y_pred = np.array(target.one_hot_to_token(y_pred))
     unique_labels = np.unique(np.concatenate((y_true, y_pred)))
-    print("labels:", unique_labels)
-    print("d labs:", np.array(list(dict.values())))
+    # print("labels:", unique_labels)
+    # print("d labs:", np.array(list(dict.values())))
     total_precision = 0
     total_recall = 0
 
@@ -307,19 +307,14 @@ y_train_pad = target.padding(y_train, target.maxlen)
 y_train_pad_one = to_categorical(y_train_pad)
 y_train_pad_shift = target.padding_shift(y_train)
 y_train_pad_shift_one = to_categorical(y_train_pad_shift)
-print(y_train_pad_one)
 print()
 
-print(x_train_pad.shape)
-print(y_train_pad.shape)
-print(y_train_pad_shift.shape)
-print(y_train_pad_one.shape)
-
-# x_train, y_train = d.sliding_window(d.final_file)
-# x_valid, y_valid = d.sliding_window(d.target_file)
-#
-# x_train_tokenized = d.tokenize(x_train)
-# x_valid_tokenized = d.tokenize(x_valid)
+# print(y_train_pad_one)
+# print()
+# print(x_train_pad.shape)
+# print(y_train_pad.shape)
+# print(y_train_pad_shift.shape)
+# print(y_train_pad_one.shape)
 
 # --------------------------------- MODEL ---------------------------------------------------------------------------
 print("model starting...")
@@ -331,7 +326,7 @@ else:
 model.compile(optimizer="adam", loss="categorical_crossentropy",
               metrics=["accuracy", "Precision", "Recall", F1_score])
 model.summary()
-
+print()
 # --------------------------------- TRAINING ------------------------------------------------------------------------
 for i in range(repeat):
     history = model.fit(
@@ -339,7 +334,7 @@ for i in range(repeat):
         # validation_data=(x_valid_tokenized, y_valid))
     model.save(model_file_name)
     K.clear_session()
-
+print()
 # ---------------------------------- TESTING ------------------------------------------------------------------------
 print("testing...")
 test_x = Data(sep, mezera, end_line)
@@ -353,23 +348,17 @@ with open(tt_file_name, "r", encoding="utf-8") as f:  # with spaces
 
 samples = 10
 test_x.dict_chars = source.dict_chars  # mohla bych prepsat file v source a jen znova rozbehnout funkci
-print("source: ", source.dict_chars)
+print("source dict len: ", len(source.dict_chars))
 x_test = test_x.split_n_count(False)[:10]  # ale tohle je lepsi
 x_test_pad = test_x.padding(x_test, source.maxlen)
 
 test_y.dict_chars = target.dict_chars
-print("target: ", target.dict_chars)
+print("target dict len: ", len(target.dict_chars))
 y_test = test_y.split_n_count(False)[:10]
 y_test_pad = test_y.padding(y_test, target.maxlen)
 y_test_pad_shift = test_y.padding_shift(y_test)
 
-lengh = len(x_test)
-print(len(x_test))
-print(len(y_test))
 assert len(x_test) == len(y_test)
 
-print(y_test[0])
-print(y_train_pad_shift[0])
-print(y_train_pad[0])
-
+lengh = len(x_test)
 test_y.model_test(x_test_pad, y_test_pad_shift, y_test_pad, model_file_name, lengh)

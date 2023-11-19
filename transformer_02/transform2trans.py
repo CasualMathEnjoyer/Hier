@@ -1,6 +1,5 @@
 import numpy as np
 import random
-from model_file import model_func
 import keras
 from keras.utils import set_random_seed
 from keras.utils import to_categorical
@@ -29,6 +28,7 @@ print("seed = ", a)
 # 1 implement masking for lstm
 # 2 make easily switchable lstm here
 # see if it work
+# fix precission
 
 # celkem skoro 68 tisic slov
 # 47.5 tisic slov jenom jednou
@@ -43,7 +43,9 @@ print("seed = ", a)
 # mezera = '_'
 # end_line = '\n'
 
-model_file_name = "transform2seq_fr-eng_1"
+from model_file_LSTM import model_func
+
+model_file_name = "transform2seq_fr-eng_2LSTM"
 training_file_name = "../data/smallvoc_fr_.txt"
 target_file_name = "../data/smallvoc_en_.txt"
 # validation_file_name = "../data/src-sep-val.txt"
@@ -53,11 +55,11 @@ sep = ' '
 mezera = '_'
 end_line = '\n'
 
-new = 0
+new = 1
 
 batch_size = 128
 epochs = 2
-repeat = 0  # full epoch_num=epochs*repeat
+repeat = 2  # full epoch_num=epochs*repeat
 
 class Data():
     embed_dim = 32  # Embedding size for each token

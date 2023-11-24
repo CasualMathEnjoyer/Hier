@@ -31,6 +31,9 @@ print("seed = ", a)
 # celkem skoro 68 tisic slov
 # 47.5 tisic slov jenom jednou
 
+# from model_file import model_func
+from model_file_LSTM import model_func
+
 # model_file_name = "transform2seq_1"
 # training_file_name = "../data/src-sep-train.txt"
 # target_file_name = "../data/tgt-train.txt"
@@ -40,8 +43,6 @@ print("seed = ", a)
 # sep = ' '
 # mezera = '_'
 # end_line = '\n'
-
-from model_file_LSTM import model_func
 
 model_file_name = "transform2seq_fr-eng_3LSTM"
 training_file_name = "../data/smallvoc_fr_.txt"
@@ -240,6 +241,7 @@ def f1_precision_recall(y_true, y_pred):
         total_recall += recall
         target.create_reverse_dict(target.dict_chars)
         print("char:", target.reverse_dict[label], "- f1:", round(2*precision*recall/(precision+recall), 5) if (precision+recall) > 0 else "zero")
+        # TODO  zero
 
     macro_precision = total_precision / len(unique_labels) if len(unique_labels) > 0 else 0
     macro_recall = total_recall / len(unique_labels) if len(unique_labels) > 0 else 0
@@ -324,6 +326,7 @@ model.compile(optimizer="adam", loss="categorical_crossentropy",
 model.summary()
 print()
 # --------------------------------- TRAINING ------------------------------------------------------------------------
+# TODO shuffle ?
 for i in range(repeat):
     history = model.fit(
         (x_train_pad, y_train_pad), y_train_pad_shift_one, batch_size=batch_size, epochs=epochs)

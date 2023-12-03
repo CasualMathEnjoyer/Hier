@@ -298,13 +298,16 @@ with open(target_file_name, "r", encoding="utf-8") as ff:
 print("first file:")
 x_train = source.split_n_count(True)
 x_train_pad = source.padding(x_train, source.maxlen)
+del x_train
 print()
 print("second file:")
 y_train = target.split_n_count(True)
 y_train_pad = target.padding(y_train, target.maxlen)
-y_train_pad_one = to_categorical(y_train_pad)
+# y_train_pad_one = to_categorical(y_train_pad)
 y_train_pad_shift = target.padding_shift(y_train)
+del y_train
 y_train_pad_shift_one = to_categorical(y_train_pad_shift)
+del y_train_pad_shift
 print()
 
 # print(y_train_pad_one)

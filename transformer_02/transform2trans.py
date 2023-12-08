@@ -58,7 +58,7 @@ new = 0
 
 batch_size = 128
 epochs = 2
-repeat = 2  # full epoch_num=epochs*repeat
+repeat = 0  # full epoch_num=epochs*repeat
 
 class Data():
     embed_dim = 32  # Embedding size for each token

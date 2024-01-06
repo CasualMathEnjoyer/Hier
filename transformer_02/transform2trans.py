@@ -132,22 +132,23 @@ class Data():
                 print(rev_dict[token2], end=' ')  # the translation part
             print()
 
-        # SOME STATISTICS
-        num_sent = len(value)
-        sent_len = len(value[0])
-        embed = len(value[0][0])
-        val_all = 0
-        for i in range(num_sent):
-            # print("prediction:", self.one_hot_to_token([value[i]]))
-            # print("true value:", self.one_hot_to_token([valid_one[i]]))
-            val = 0
-            for j in range(sent_len):
-                for k in range(embed):
-                    val += abs(value_one[i][j][k] - valid_one[i][j][k])
-            # print("difference:", val, "accuracy:", 1-(val/sent_len))
-            val_all += val
-        print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
-        print("f1 prec rec :", f1_precision_recall(value_one, valid_one))
+        # # SOME STATISTICS
+        # num_sent = len(value)
+        # sent_len = len(value[0])
+        # embed = len(value[0][0])
+        # val_all = 0
+        # for i in range(num_sent):
+        #     # print("prediction:", self.one_hot_to_token([value[i]]))
+        #     # print("true value:", self.one_hot_to_token([valid_one[i]]))
+        #     val = 0
+        #     for j in range(sent_len):
+        #         for k in range(embed):
+        #             val += abs(value_one[i][j][k] - valid_one[i][j][k])
+        #     # print("difference:", val, "accuracy:", 1-(val/sent_len))
+        #     val_all += val
+        # print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
+        # print("f1 prec rec :", f1_precision_recall(value_one, valid_one))
+
         # print("F1 score:", F1_score(value, valid_one.astype('float32')).numpy())
         # print("F1 score value_one:", F1_score(value_one, valid_one.astype('float32')).numpy())
     def split_n_count(self, create_dic):  # creates a list of lists of TOKENS and a dictionary
@@ -175,24 +176,24 @@ class Data():
                         else:
                             l.append(self.dict_chars["OVV"])
             output.append(l)
-        # for line in output:
-        #     print(line)
-        print("average:     ", round(complete / len(self.file.split('\n')), 2))
-        print("maxlen:      ", maxlen)
+
+        # print("average:     ", round(complete / len(self.file.split('\n')), 2))
+        # print("maxlen:      ", maxlen)
+
         likelyhood = 39 / 40
         weird_median = sorted(len_list)[int(len(len_list) * likelyhood)]
-        print('with:', likelyhood,":", weird_median)  # mene nez 2.5% ma sequence delsi, nez 100 znaku
+        # print('with:', likelyhood,":", weird_median)  # mene nez 2.5% ma sequence delsi, nez 100 znaku
         # maxlen: 1128
         # average: 31.42447596485441
         self.maxlen = weird_median
         if create_dic:
             self.dict_chars = dict_chars
             self.vocab_size = len(dict_chars)
-            print("dict chars:", self.dict_chars)
-            print("vocab size:", self.vocab_size)
+            # print("dict chars:", self.dict_chars)
+            # print("vocab size:", self.vocab_size)
         return output
     def padding(self, input_list, lengh):
-        input_list_padded = np.zeros((len(input_list), lengh))  # maybe zeros?
+        input_list_padded = np.zeros((len(input_list), lengh))
         for i, line in enumerate(input_list):
             if len(line) > lengh: # shorten
                 input_list_padded[i] = np.array(line[:lengh])
@@ -380,30 +381,58 @@ encoder_output = encoder.predict(x_test_pad)
 # print(encoder_output)
 print(len(encoder_output), len(encoder_output[0]))
 
-# DECODER
-decoder_output = decoder.predict([y_test_pad] + encoder_output)
-# print(encoder_output)
-print(len(decoder_output), len(decoder_output[0]))
-
-# SOME STUFF AS IN CLASS
-value = decoder_output[0]
-valid_shift = y_test_pad
-sample_len = len(valid_shift)
+bos = np.zeros_like(y_test_pad)
+print("y_test_pad_shape", y_test_pad.shape)
+bos[0][1] = 1
 rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
 
+# DECODER
+decoder_output_word = decoder.predict([bos] + encoder_output)[0]  # to take just the array which is in list
+decoder_output_word = decoder_output_word[0][0]  # prvni veta prvni znak
+print("decoder_output_word")
+print(decoder_output_word.shape)
+print("delka decoder for bos:", len(decoder_output_word))
+print("delka slovniku:", len(test_y.dict_chars))
+assert len(decoder_output_word) == len(test_y.dict_chars)
+token2 = test_y.array_to_token(decoder_output_word)
+print(token2)
+decoder_output = []
+decoder_output.append(int(token2))
+
+sentence = np.zeros_like(y_test_pad)
+sentence[0][0] = 1  # <bos>
+sentence[0][1] = token2
+#    [veta][pozice] = pismeno
+
+for i in range(2, 9):
+    decoder_output_word = decoder.predict([sentence] + encoder_output)  # add putputs from decoder!!! TODO
+    decoder_output_word = decoder_output_word[0][0][0]
+    token2 = test_y.array_to_token(decoder_output_word)
+    print(token2)
+    decoder_output.append(int(token2))
+    sentence[0][i] = token2
+print("decoder output")
+print(decoder_output)
+print(len(decoder_output))
+
+# SOME STUFF AS IN CLASS
+value = [decoder_output]  # change here TODO when more sentences
+valid_shift = y_test_pad
+sample_len = len(valid_shift)
+
 # SAME CODE FROM CLASS
-value_one = np.zeros_like(value)
-valid_one = np.zeros_like(value)  # has to be value
-for i in range(sample_len):
+# value_one = np.zeros_like(value)
+# valid_one = np.zeros_like(value)  # has to be value
+for i in range(len(value)):
     for j in range(len(value[i])):
-        # input one-hot-ization
-        token1 = int(valid_shift[i][j])
-        valid_one[i][j][token1] = 1
-        # output tokenization
-        token2 = test_y.array_to_token(value[i][j])
-        value_one[i][j][token2] = 1
-        # print(rev_dict[token1], "/",  rev_dict[token2], end=' ')
-        print(rev_dict[token2], end=' ')  # the translation part
+        # # input one-hot-ization
+        # token1 = int(valid_shift[i][j])
+        # valid_one[i][j][token1] = 1
+        # # output tokenization
+        # token2 = test_y.array_to_token(value[i][j])
+        # value_one[i][j][token2] = 1
+        # # print(rev_dict[token1], "/",  rev_dict[token2], end=' ')
+        print(rev_dict[value[i][j]], end=' ')  # the translation part
     print()
 
 # SOME STATISTICS

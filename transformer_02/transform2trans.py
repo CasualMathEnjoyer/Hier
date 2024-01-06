@@ -57,8 +57,8 @@ end_line = '\n'
 new = 0
 
 batch_size = 128
-epochs = 2
-repeat = 0  # full epoch_num=epochs*repeat
+epochs = 1
+repeat = 1  # full epoch_num=epochs*repeat
 
 class Data():
     embed_dim = 32  # Embedding size for each token
@@ -283,8 +283,7 @@ def F1_score(y_true, y_pred): #taken from old keras source code  # TODO transfor
     # return f1_score(y_true, y_pred, average=None)
 def load_model_mine(model_name):
     from model_file import PositionalEmbedding, TransformerEncoder, TransformerDecoder
-    return keras.models.load_model(model_name, custom_objects={"F1_score": F1_score,
-                                                               'PositionalEmbedding': PositionalEmbedding,
+    return keras.models.load_model(model_name, custom_objects={'PositionalEmbedding': PositionalEmbedding,
                                                                'TransformerEncoder': TransformerEncoder,
                                                                'TransformerDecoder': TransformerDecoder
     })
@@ -330,7 +329,7 @@ else:
     model = load_model_mine(model_file_name)
 
 model.compile(optimizer="adam", loss="categorical_crossentropy",
-              metrics=["accuracy", F1_score])
+              metrics=["accuracy"])
 model.summary()
 print()
 # --------------------------------- TRAINING ------------------------------------------------------------------------

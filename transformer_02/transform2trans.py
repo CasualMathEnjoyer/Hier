@@ -387,7 +387,9 @@ bos[0][1] = 1
 rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
 
 # DECODER
-decoder_output_word = decoder.predict([bos] + encoder_output)[0]  # to take just the array which is in list
+decoder_output_word = decoder.predict([bos] + encoder_output)
+decoder_output_throughts = decoder_output_word[1:]
+decoder_output_word = decoder_output_word[0]
 decoder_output_word = decoder_output_word[0][0]  # prvni veta prvni znak
 print("decoder_output_word")
 print(decoder_output_word.shape)
@@ -404,13 +406,15 @@ sentence[0][0] = 1  # <bos>
 sentence[0][1] = token2
 #    [veta][pozice] = pismeno
 
-for i in range(2, 9):
-    decoder_output_word = decoder.predict([sentence] + encoder_output)  # add putputs from decoder!!! TODO
+for i in range(2, len(y_test_pad[0])):
+    decoder_output_word = decoder.predict([sentence] + decoder_output_throughts)  # add put outs from decoder!!! TODO
+    decoder_output_throughts = decoder_output_word[1:]
     decoder_output_word = decoder_output_word[0][0][0]
     token2 = test_y.array_to_token(decoder_output_word)
     print(token2)
     decoder_output.append(int(token2))
     sentence[0][i] = token2
+    print(sentence)
 print("decoder output")
 print(decoder_output)
 print(len(decoder_output))

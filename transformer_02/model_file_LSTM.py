@@ -64,7 +64,7 @@ def load_and_split_model(model_folder_path):
     encoder_model = Model(inputs=encoder_inputs, outputs=encoder_states)
 
     # Extract the decoder layers from the full model
-    decoder_inputs = full_model.input[1]
+    decoder_inputs = Input(shape=(None, ), dtype="int64", name="decoder_input")
     decoder_state_input_h = Input(shape=(latent_dim,))
     decoder_state_input_c = Input(shape=(latent_dim,))
     decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
@@ -84,4 +84,3 @@ def load_and_split_model(model_folder_path):
 # Example usage:
 model_folder_path = 'transform2seq_fr-eng_3LSTM'
 encoder_model, decoder_model = load_and_split_model(model_folder_path)
-

@@ -32,7 +32,7 @@ print("seed = ", a)
 # 47.5 tisic slov jenom jednou
 
 # from model_file import model_func
-from model_file_LSTM import model_func
+from model_file_LSTM import model_func, load_and_split_model
 
 # model_file_name = "transform2seq_1"
 # training_file_name = "../data/src-sep-train.txt"
@@ -55,10 +55,11 @@ mezera = '_'
 end_line = '\n'
 
 new = 0
+prepare_testing_data = 0
 
 batch_size = 128
 epochs = 1
-repeat = 1  # full epoch_num=epochs*repeat
+repeat = 0  # full epoch_num=epochs*repeat
 
 class Data():
     embed_dim = 32  # Embedding size for each token
@@ -289,6 +290,7 @@ def load_model_mine(model_name):
     })
 
 print()
+
 print("data preparation...")
 source = Data(sep, mezera, end_line)
 target = Data(sep, mezera, end_line)
@@ -339,6 +341,7 @@ for i in range(repeat):
         (x_train_pad, y_train_pad), y_train_pad_shift_one, batch_size=batch_size, epochs=epochs)
         # validation_data=(x_valid_tokenized, y_valid))
     model.save(model_file_name)
+    model.save_weights("model.h5")
     K.clear_session()
 print()
 # ---------------------------------- TESTING ------------------------------------------------------------------------
@@ -368,3 +371,54 @@ assert len(x_test) == len(y_test)
 
 lengh = len(x_test)
 test_y.model_test(x_test_pad, y_test_pad_shift, y_test_pad, model_file_name, lengh)
+
+# GET ENCODER AND DECODER
+encoder, decoder = load_and_split_model(model_file_name)
+
+# ENCODER
+encoder_output = encoder.predict(x_test_pad)
+# print(encoder_output)
+print(len(encoder_output), len(encoder_output[0]))
+
+# DECODER
+decoder_output = decoder.predict([y_test_pad] + encoder_output)
+# print(encoder_output)
+print(len(decoder_output), len(decoder_output[0]))
+
+# SOME STUFF AS IN CLASS
+value = decoder_output[0]
+valid_shift = y_test_pad
+sample_len = len(valid_shift)
+rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
+
+# SAME CODE FROM CLASS
+value_one = np.zeros_like(value)
+valid_one = np.zeros_like(value)  # has to be value
+for i in range(sample_len):
+    for j in range(len(value[i])):
+        # input one-hot-ization
+        token1 = int(valid_shift[i][j])
+        valid_one[i][j][token1] = 1
+        # output tokenization
+        token2 = test_y.array_to_token(value[i][j])
+        value_one[i][j][token2] = 1
+        # print(rev_dict[token1], "/",  rev_dict[token2], end=' ')
+        print(rev_dict[token2], end=' ')  # the translation part
+    print()
+
+# SOME STATISTICS
+# num_sent = len(value)
+# sent_len = len(value[0])
+# embed = len(value[0][0])
+# val_all = 0
+# for i in range(num_sent):
+#     # print("prediction:", self.one_hot_to_token([value[i]]))
+#     # print("true value:", self.one_hot_to_token([valid_one[i]]))
+#     val = 0
+#     for j in range(sent_len):
+#         for k in range(embed):
+#             val += abs(value_one[i][j][k] - valid_one[i][j][k])
+#     # print("difference:", val, "accuracy:", 1-(val/sent_len))
+#     val_all += val
+# print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
+# print("f1 prec rec :", f1_precision_recall(value_one, valid_one))

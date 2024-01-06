@@ -100,7 +100,12 @@ class Data():
         return reverse_dict
     def model_test(self, sample, valid_shift, valid, model_name, sample_len):  # input = padded array of tokens
         model = load_model_mine(model_name)
-        rev_dict = self.create_reverse_dict(self.dict_chars)
+
+        # unpack model
+        # get encoder output
+        # iterate it through decoder starting <bos>
+
+
         value = model.predict((sample, valid))  # has to be in the shape of the input for it to predict
         # TODO -putting the correct ones there - not a good idea
         # TODO - do we put just the validated stuff in it or do we want to unpack the encoder?
@@ -108,7 +113,7 @@ class Data():
         # print("valid.shape=", valid_shift.shape)
         # valid jsou tokeny -> one hot
 
-
+        rev_dict = self.create_reverse_dict(self.dict_chars)
         assert sample_len == len(valid_shift)
         dim = len(valid_shift[0])
         # print ("dim:", dim)

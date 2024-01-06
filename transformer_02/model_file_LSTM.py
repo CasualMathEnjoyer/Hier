@@ -56,10 +56,16 @@ def load_and_split_model(model_folder_path):
 
     print(len(full_model.layers))
 
+    # TODO ADD MISSING LAYERS
     # Extract the encoder layers from the full model
     encoder_inputs = full_model.input[0]
-    # encoder_embedding_layer = full_model.layers[4]
-    encoder_outputs, state_h, state_c = full_model.layers[6].output  # Assuming the LSTM layer is at index 4
+    encoder_mask = full_model.layers[2]
+    encoder_embedding_layer = full_model.layers[4]
+    encoder_LSTM = full_model.layers[6]
+
+    encoder_mask = encoder_mask(encoder_inputs)
+    encoder_embedding_layer = encoder_embedding_layer(encoder_mask)
+    encoder_outputs, state_h, state_c = encoder_LSTM(encoder_embedding_layer)
     encoder_states = [state_h, state_c]
     encoder_model = Model(inputs=encoder_inputs, outputs=encoder_states)
 
@@ -69,11 +75,13 @@ def load_and_split_model(model_folder_path):
     decoder_state_input_c = Input(shape=(latent_dim,))
     decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
 
+    decoder_mask = full_model.layers[3]
     decoder_embedding_layer = full_model.layers[5]  # Assuming the Embedding layer is at index 5
     decoder_lstm = full_model.layers[7]  # Assuming the LSTM layer is at index 6
     decoder_dense = full_model.layers[8]  # Assuming the Dense layer is at index 7
 
-    embed_masked_decoder = decoder_embedding_layer(decoder_inputs)
+    masked_input = decoder_mask(decoder_inputs)
+    embed_masked_decoder = decoder_embedding_layer(masked_input)
     decoder_outputs, state_h, state_c = decoder_lstm(embed_masked_decoder, initial_state=decoder_states_inputs)
     decoder_states = [state_h, state_c]
     decoder_outputs = decoder_dense(decoder_outputs)

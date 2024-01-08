@@ -391,6 +391,7 @@ x_test_pad = x_test_pad.reshape(samples, 1, 98)  # todo fixed 98
 y_test_pad = y_test_pad.reshape(samples, 1, dim)
 print("y_test_pad_shape trans", y_test_pad.shape)
 bos = bos.reshape(1, dim)
+bos = np.array([[1]])  # should be shape (1,1)
 print("bos.shape", bos.shape)
 
 for x in range(len(y_test_pad)):  # for veta in test data len(y_test_pad)
@@ -414,16 +415,18 @@ for x in range(len(y_test_pad)):  # for veta in test data len(y_test_pad)
 
     sentence = np.zeros_like(y_test_pad[x])  # it has dim like (1, dim) i think
     # sentence[0][0] = 1  # <bos>
-    sentence[0][1] = token1
-    #    [veta][pozice] = pismeno
+    # sentence[0][1] = token1
+    leter = np.array([[token1]])
+    print("LOOP")
 
     for i in range(2, len(y_test_pad[x][0])):  # x-ta veta ma shape (1, neco), proto [0]
-        decoder_output_word = decoder.predict([sentence] + decoder_output_throughts)
+        decoder_output_word = decoder.predict([leter] + decoder_output_throughts)
         decoder_output_throughts = decoder_output_word[1:]
         decoder_output_word = decoder_output_word[0][0][0]
         token2 = test_y.array_to_token(decoder_output_word)
         decoder_output.append(int(token2))
-        sentence[0][i] = token2  # sentence je vzdy jedna ta veta, pokazde se nuluje
+        # sentence[0][i] = token2  # sentence je vzdy jedna ta veta, pokazde se nuluje
+        leter = np.array([[token2]])
     decoder_output_all.append(decoder_output)
 
 print("decoder output sent, num:", len(decoder_output_all))

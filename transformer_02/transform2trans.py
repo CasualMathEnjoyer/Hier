@@ -1,6 +1,10 @@
 import numpy as np
 import random
 import keras
+
+import sys
+import os
+
 from keras.utils import set_random_seed
 from keras.utils import to_categorical
 from keras import backend as K
@@ -356,7 +360,7 @@ with open(tt_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_y.file = f.read()
     f.close()
 
-samples = 3
+samples = 10
 test_x.dict_chars = source.dict_chars  # mohla bych prepsat file v source a jen znova rozbehnout funkci
 print("source dict len: ", len(source.dict_chars))
 x_test = test_x.split_n_count(False)[:samples]  # ale tohle je lepsi
@@ -386,84 +390,75 @@ bos[0] = 1
 rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
 decoder_output_all = []
 
-dim = 90  # todo fixed dim
-x_test_pad = x_test_pad.reshape(samples, 1, 98)  # todo fixed 98
+dim = 90                                                      # todo fixed dim
+x_test_pad = x_test_pad.reshape(samples, 1, 98)               # todo fixed 98
 y_test_pad = y_test_pad.reshape(samples, 1, dim)
 print("y_test_pad_shape trans", y_test_pad.shape)
-bos = bos.reshape(1, dim)
+# bos = bos.reshape(1, dim)
 bos = np.array([[1]])  # should be shape (1,1)
 print("bos.shape", bos.shape)
 
+# stop printing
+old_stdout = sys.stdout # backup current stdout
+sys.stdout = open(os.devnull, "w")
+
 for x in range(len(y_test_pad)):  # for veta in test data len(y_test_pad)
     # ENCODER
-    encoder_output = encoder.predict(x_test_pad[x])
-    print("encoder dims:", len(encoder_output), len(encoder_output[0]))
+    encoder_output = encoder.predict(x_test_pad[x])  # get encoding for first sentence
+    # print("encoder dims:", len(encoder_output), len(encoder_output[0]))
 
     # DECODER
-    decoder_output_word = decoder.predict([bos] + encoder_output)
-    decoder_output_throughts = decoder_output_word[1:]
-    decoder_output_word = decoder_output_word[0]
-    decoder_output_word = decoder_output_word[0][0]  # prvni veta prvni znak
-
-    assert len(decoder_output_word) == len(test_y.dict_chars)
-
-    token1 = test_y.array_to_token(decoder_output_word)
-
     decoder_output = []
-    decoder_output.append(1) # token for <bos>
-    decoder_output.append(int(token1))
+    letter = np.array([[1]])  # the <bos> token, should be shape (1,1)
+    decoder_output_throughts = encoder_output
 
-    sentence = np.zeros_like(y_test_pad[x])  # it has dim like (1, dim) i think
-    # sentence[0][0] = 1  # <bos>
-    # sentence[0][1] = token1
-    leter = np.array([[token1]])
-    print("LOOP")
+    for i in range(len(y_test_pad[x][0])):  # x-ta veta ma shape (1, neco), proto [0]
+        decoder_output_word = decoder.predict([letter] + decoder_output_throughts)
 
-    for i in range(2, len(y_test_pad[x][0])):  # x-ta veta ma shape (1, neco), proto [0]
-        decoder_output_word = decoder.predict([leter] + decoder_output_throughts)
         decoder_output_throughts = decoder_output_word[1:]
-        decoder_output_word = decoder_output_word[0][0][0]
-        token2 = test_y.array_to_token(decoder_output_word)
-        decoder_output.append(int(token2))
-        # sentence[0][i] = token2  # sentence je vzdy jedna ta veta, pokazde se nuluje
-        leter = np.array([[token2]])
+        decoder_output_word = decoder_output_word[0]  # select just the content
+        decoder_output_word = decoder_output_word[0][0]  # first sentence first word
+
+        token = test_y.array_to_token(decoder_output_word)
+
+        letter = np.array([[token]])
+        decoder_output.append(int(token))
+
     decoder_output_all.append(decoder_output)
+
+# start printing
+sys.stdout = old_stdout # reset old stdout
 
 print("decoder output sent, num:", len(decoder_output_all))
 
 # SOME STUFF AS IN CLASS
-value = decoder_output_all
-valid_shift = y_test_pad
-sample_len = len(valid_shift)
+valid = y_test_pad  # = y_test_pad_shape trans (1, 1, 90)
+print("valid.shape", valid.shape)
+predicted = decoder_output_all
+predicted = np.array(predicted)
+print("predicted.shape", predicted.shape)
 
-# SAME CODE FROM CLASS
-# value_one = np.zeros_like(value)
-# valid_one = np.zeros_like(value)  # has to be value
-for i in range(len(value)):
-    for j in range(len(value[i])):
-        # # input one-hot-ization
-        # token1 = int(valid_shift[i][j])
-        # valid_one[i][j][token1] = 1
-        # # output tokenization
-        # token2 = test_y.array_to_token(value[i][j])
-        # value_one[i][j][token2] = 1
-        # # print(rev_dict[token1], "/",  rev_dict[token2], end=' ')
-        print(rev_dict[value[i][j]], end=' ')  # the translation part
+# EDITED CODE FROM THE DATA CLASS
+for i in range(samples):
+    for j in range(dim):
+        print(rev_dict[predicted[i][j]], end=' ')  # the translation part
     print()
 
-# SOME STATISTICS
-# num_sent = len(value)
-# sent_len = len(value[0])
-# embed = len(value[0][0])
-# val_all = 0
-# for i in range(num_sent):
-#     # print("prediction:", self.one_hot_to_token([value[i]]))
-#     # print("true value:", self.one_hot_to_token([valid_one[i]]))
-#     val = 0
-#     for j in range(sent_len):
-#         for k in range(embed):
-#             val += abs(value_one[i][j][k] - valid_one[i][j][k])
-#     # print("difference:", val, "accuracy:", 1-(val/sent_len))
-#     val_all += val
-# print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
+# SOME STATISTICS - accuracy
+# it is not the best - implement cosine distance instead?                               TODO
+# todo it be quite slow
+
+num_sent = samples
+sent_len = dim
+val_all = 0
+for i in range(num_sent):
+    # print("prediction:", self.one_hot_to_token([value[i]]))
+    # print("true value:", self.one_hot_to_token([valid_one[i]]))
+    val = 0
+    for j in range(sent_len):
+        if predicted[i][j] != valid[i][0][j]:
+            val += 1
+    print("difference:", val, "accuracy:", 1-(val/sent_len))
+    val_all += val
+print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
 # print("f1 prec rec :", f1_precision_recall(value_one, valid_one))

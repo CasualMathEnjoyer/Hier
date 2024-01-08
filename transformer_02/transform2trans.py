@@ -356,15 +356,15 @@ with open(tt_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_y.file = f.read()
     f.close()
 
-samples = 10
+samples = 1
 test_x.dict_chars = source.dict_chars  # mohla bych prepsat file v source a jen znova rozbehnout funkci
 print("source dict len: ", len(source.dict_chars))
-x_test = test_x.split_n_count(False)[:10]  # ale tohle je lepsi
+x_test = test_x.split_n_count(False)[:samples]  # ale tohle je lepsi
 x_test_pad = test_x.padding(x_test, source.maxlen)
 
 test_y.dict_chars = target.dict_chars
 print("target dict len: ", len(target.dict_chars))
-y_test = test_y.split_n_count(False)[:10]
+y_test = test_y.split_n_count(False)[:samples]
 y_test_pad = test_y.padding(y_test, target.maxlen)
 y_test_pad_shift = test_y.padding_shift(y_test)
 
@@ -376,51 +376,57 @@ test_y.model_test(x_test_pad, y_test_pad_shift, y_test_pad, model_file_name, len
 # GET ENCODER AND DECODER
 encoder, decoder = load_and_split_model(model_file_name)
 
-# ENCODER
-encoder_output = encoder.predict(x_test_pad)
-# print(encoder_output)
-print(len(encoder_output), len(encoder_output[0]))
-
-bos = np.zeros_like(y_test_pad)
+# SETTING THE SCENE
+bos = np.zeros_like(y_test_pad)  # vsechny vety
 print("y_test_pad_shape", y_test_pad.shape)
-bos[0][1] = 1
+bos[0][0] = 1
+#bos = np.zeros_like(y_test_pad[0])  # jedna veta
+# print("y_test_pad_shape", y_test_pad.shape)
+# bos[0] = 1
 rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
+decoder_output_all = []
+print(x_test_pad.shape)
+print(x_test_pad[0].shape)
+x_test_pad = x_test_pad.reshape(samples, 1, 98)  # todo fixed 98
+print(x_test_pad[0].shape)
 
-# DECODER
-decoder_output_word = decoder.predict([bos] + encoder_output)
-decoder_output_throughts = decoder_output_word[1:]
-decoder_output_word = decoder_output_word[0]
-decoder_output_word = decoder_output_word[0][0]  # prvni veta prvni znak
-print("decoder_output_word")
-print(decoder_output_word.shape)
-print("delka decoder for bos:", len(decoder_output_word))
-print("delka slovniku:", len(test_y.dict_chars))
-assert len(decoder_output_word) == len(test_y.dict_chars)
-token2 = test_y.array_to_token(decoder_output_word)
-print(token2)
-decoder_output = []
-decoder_output.append(int(token2))
+for x in range(len(y_test_pad)):  # for veta in test data len(y_test_pad)
+    # ENCODER
+    encoder_output = encoder.predict(x_test_pad[x])
+    print("encoder dims:", len(encoder_output), len(encoder_output[0]))
 
-sentence = np.zeros_like(y_test_pad)
-sentence[0][0] = 1  # <bos>
-sentence[0][1] = token2
-#    [veta][pozice] = pismeno
-
-for i in range(2, len(y_test_pad[0])):
-    decoder_output_word = decoder.predict([sentence] + decoder_output_throughts)  # add put outs from decoder!!! TODO
+    # DECODER
+    decoder_output_word = decoder.predict([bos] + encoder_output)
     decoder_output_throughts = decoder_output_word[1:]
-    decoder_output_word = decoder_output_word[0][0][0]
-    token2 = test_y.array_to_token(decoder_output_word)
-    print(token2)
-    decoder_output.append(int(token2))
-    sentence[0][i] = token2
-    print(sentence)
-print("decoder output")
-print(decoder_output)
-print(len(decoder_output))
+    decoder_output_word = decoder_output_word[0]
+    decoder_output_word = decoder_output_word[0][0]  # prvni veta prvni znak
+    # print("decoder_output_word dims:", decoder_output_word.shape)
+    # print("delka decoder for bos:", len(decoder_output_word))
+    # print("delka slovniku:", len(test_y.dict_chars))
+    assert len(decoder_output_word) == len(test_y.dict_chars)
+
+    token1 = test_y.array_to_token(decoder_output_word)
+    decoder_output = []
+    decoder_output.append(1) # token for <bos>
+    decoder_output.append(int(token1))
+
+    sentence = np.zeros_like(y_test_pad)
+    sentence[x][0] = 1  # <bos>
+    sentence[x][1] = token1
+    #    [veta][pozice] = pismeno
+
+    for i in range(2, len(y_test_pad[0])):
+        decoder_output_word = decoder.predict([sentence] + decoder_output_throughts)  # add put outs from decoder!!! TODO
+        decoder_output_throughts = decoder_output_word[1:]
+        decoder_output_word = decoder_output_word[0][0][0]
+        token2 = test_y.array_to_token(decoder_output_word)
+        decoder_output.append(int(token2))
+        sentence[x][i] = token2
+    decoder_output_all.append(decoder_output)
+print("decoder output sent, num:", len(decoder_output_all))
 
 # SOME STUFF AS IN CLASS
-value = [decoder_output]  # change here TODO when more sentences
+value = decoder_output_all
 valid_shift = y_test_pad
 sample_len = len(valid_shift)
 

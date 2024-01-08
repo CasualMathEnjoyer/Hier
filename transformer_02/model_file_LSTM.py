@@ -89,6 +89,6 @@ def load_and_split_model(model_folder_path):
 
     return encoder_model, decoder_model
 
-# Example usage:
-model_folder_path = 'transform2seq_fr-eng_3LSTM'
-encoder_model, decoder_model = load_and_split_model(model_folder_path)
+# # Example usage:
+# model_folder_path = 'transform2seq_fr-eng_3LSTM'
+# encoder_model, decoder_model = load_and_split_model(model_folder_path)

@@ -26,11 +26,16 @@ print("seed = ", a)
 # from the "non-existing" padding positions.
 
 # TODO : plan
-# check if data is processed correctly
-# 1 implement masking for lstm
-# 2 make easily switchable lstm here
-# see if it work
-# fix precission
+# check if data is processed correctly   IT IS
+# 1 implement masking for lstm           DONE
+# 2 make easily switchable lstm here     DONE
+# see if it work                         DONE
+# fix precission                         TODO ?
+# fix testing                            DONE
+# save info into json or sth             TODO
+# consider rewritting the class system   TODO
+# split into more files?                 TODO
+# metriky? cosine similarity?            TODO
 
 # celkem skoro 68 tisic slov
 # 47.5 tisic slov jenom jednou
@@ -112,8 +117,6 @@ class Data():
 
 
         value = model.predict((sample, valid))  # has to be in the shape of the input for it to predict
-        # TODO -putting the correct ones there - not a good idea
-        # TODO - do we put just the validated stuff in it or do we want to unpack the encoder?
         # print("value.shape=", value.shape)
         # print("valid.shape=", valid_shift.shape)
         # valid jsou tokeny -> one hot
@@ -275,8 +278,7 @@ def f1_precision_recall(y_true, y_pred):
     # f1 = multiclass_f1_score(y_true, y_pred)
     #
     # print(f'Multiclass F1 Score: {f1}')`
-
-def F1_score(y_true, y_pred): #taken from old keras source code  # TODO transform
+def F1_score(y_true, y_pred): #taken from old keras source code                            # TODO transform
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
     predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
@@ -340,7 +342,6 @@ model.compile(optimizer="adam", loss="categorical_crossentropy",
 model.summary()
 print()
 # --------------------------------- TRAINING ------------------------------------------------------------------------
-# TODO shuffle ?
 for i in range(repeat):
     history = model.fit(
         (x_train_pad, y_train_pad), y_train_pad_shift_one, batch_size=batch_size, epochs=epochs)
@@ -390,8 +391,8 @@ bos[0] = 1
 rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
 decoder_output_all = []
 
-dim = 90                                                      # todo fixed dim
-x_test_pad = x_test_pad.reshape(samples, 1, 98)               # todo fixed 98
+dim = 90                                                                           # todo fixed dim
+x_test_pad = x_test_pad.reshape(samples, 1, 98)                                    # todo fixed 98
 y_test_pad = y_test_pad.reshape(samples, 1, dim)
 print("y_test_pad_shape trans", y_test_pad.shape)
 # bos = bos.reshape(1, dim)
@@ -445,8 +446,8 @@ for i in range(samples):
     print()
 
 # SOME STATISTICS - accuracy
-# it is not the best - implement cosine distance instead?                               TODO
-# todo it be quite slow
+# it is not the best - implement cosine distance instead?                     TODO different then accuracy
+#                                                                               todo it be quite slow
 
 num_sent = samples
 sent_len = dim

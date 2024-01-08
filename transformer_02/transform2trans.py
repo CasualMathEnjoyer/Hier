@@ -413,7 +413,7 @@ for x in range(len(y_test_pad)):  # for veta in test data len(y_test_pad)
     decoder_output.append(int(token1))
 
     sentence = np.zeros_like(y_test_pad[x])  # it has dim like (1, dim) i think
-    sentence[0][0] = 1  # <bos>
+    # sentence[0][0] = 1  # <bos>
     sentence[0][1] = token1
     #    [veta][pozice] = pismeno
 

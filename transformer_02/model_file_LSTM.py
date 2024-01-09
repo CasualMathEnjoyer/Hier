@@ -53,10 +53,9 @@ def load_and_split_model(model_folder_path):
 
     # Load the entire model
     full_model = load_model_mine(model_folder_path)
+    # print(len(full_model.layers))
 
-    print(len(full_model.layers))
-
-    # TODO ADD MISSING LAYERS
+    # TODO layer dims do not match
     # Extract the encoder layers from the full model
     encoder_inputs = full_model.input[0]
     encoder_mask = full_model.layers[2]
@@ -76,9 +75,9 @@ def load_and_split_model(model_folder_path):
     decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
 
     decoder_mask = full_model.layers[3]
-    decoder_embedding_layer = full_model.layers[5]  # Assuming the Embedding layer is at index 5
-    decoder_lstm = full_model.layers[7]  # Assuming the LSTM layer is at index 6
-    decoder_dense = full_model.layers[8]  # Assuming the Dense layer is at index 7
+    decoder_embedding_layer = full_model.layers[5]
+    decoder_lstm = full_model.layers[7]
+    decoder_dense = full_model.layers[8]
 
     masked_input = decoder_mask(decoder_inputs)
     embed_masked_decoder = decoder_embedding_layer(masked_input)

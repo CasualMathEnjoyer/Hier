@@ -108,56 +108,6 @@ class Data():
             reverse_dict.setdefault(value, key)  # assuming values and keys unique
         self.reverse_dict = reverse_dict
         return reverse_dict
-    def model_test(self, sample, valid_shift, valid, model_name, sample_len):  # input = padded array of tokens
-        model = load_model_mine(model_name)
-
-        # unpack model
-        # get encoder output
-        # iterate it through decoder starting <bos>
-
-
-        value = model.predict((sample, valid))  # has to be in the shape of the input for it to predict
-        # print("value.shape=", value.shape)
-        # print("valid.shape=", valid_shift.shape)
-        # valid jsou tokeny -> one hot
-
-        rev_dict = self.create_reverse_dict(self.dict_chars)
-        assert sample_len == len(valid_shift)
-        dim = len(valid_shift[0])
-        # print ("dim:", dim)
-        value_one = np.zeros_like(value)
-        valid_one = np.zeros_like(value)  # has to be value
-        for i in range(sample_len):
-            for j in range(len(value[i])):
-                # input one-hot-ization
-                token1 = int(valid_shift[i][j])
-                valid_one[i][j][token1] = 1
-                # output tokenization
-                token2 = self.array_to_token(value[i][j])
-                value_one[i][j][token2] = 1
-                # print(rev_dict[token1], "/",  rev_dict[token2], end=' ')
-                print(rev_dict[token2], end=' ')  # the translation part
-            print()
-
-        # # SOME STATISTICS
-        # num_sent = len(value)
-        # sent_len = len(value[0])
-        # embed = len(value[0][0])
-        # val_all = 0
-        # for i in range(num_sent):
-        #     # print("prediction:", self.one_hot_to_token([value[i]]))
-        #     # print("true value:", self.one_hot_to_token([valid_one[i]]))
-        #     val = 0
-        #     for j in range(sent_len):
-        #         for k in range(embed):
-        #             val += abs(value_one[i][j][k] - valid_one[i][j][k])
-        #     # print("difference:", val, "accuracy:", 1-(val/sent_len))
-        #     val_all += val
-        # print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
-        # print("f1 prec rec :", f1_precision_recall(value_one, valid_one))
-
-        # print("F1 score:", F1_score(value, valid_one.astype('float32')).numpy())
-        # print("F1 score value_one:", F1_score(value_one, valid_one.astype('float32')).numpy())
     def split_n_count(self, create_dic):  # creates a list of lists of TOKENS and a dictionary
         maxlen, complete = 0, 0
         output = []
@@ -227,6 +177,18 @@ class Data():
 # recall = to minimise missed spaces
 # recall = TP/(TP+FN)
 
+def calc_accuracy(predicted, valid, num_sent, sent_len):
+    val_all = 0
+    for i in range(num_sent):
+        # print("prediction:", self.one_hot_to_token([value[i]]))
+        # print("true value:", self.one_hot_to_token([valid_one[i]]))
+        val = 0
+        for j in range(sent_len):
+            if predicted[i][j] != valid[i][0][j]:  # because valid has weird shape with dim 1 in the middle
+                val += 1
+        # print("difference:", val, "accuracy:", 1-(val/sent_len))
+        val_all += val
+    print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
 def calculate_precision_recall_f1(y_true, y_pred, label):
     true_positive = np.sum((y_true == label) & (y_pred == label))
     false_positive = np.sum((y_true != label) & (y_pred == label))
@@ -240,9 +202,9 @@ def calculate_precision_recall_f1(y_true, y_pred, label):
     return precision, recall, f1
 def f1_precision_recall(y_true, y_pred):
     dict = target.dict_chars
-    y_true = np.array(target.one_hot_to_token(y_true))
-    y_pred = np.array(target.one_hot_to_token(y_pred))
-    # unique_labels = np.unique(np.concatenate((y_true, y_pred)))
+    # if input one hot, use below:
+    # y_true = np.array(target.one_hot_to_token(y_true))
+    # y_pred = np.array(target.one_hot_to_token(y_pred))
     unique_labels = np.array(list(dict.values()))
     # print("labels:", unique_labels)
     # print("d labs:", np.array(list(dict.values())))
@@ -254,7 +216,7 @@ def f1_precision_recall(y_true, y_pred):
         total_precision += precision
         total_recall += recall
         target.create_reverse_dict(target.dict_chars)
-        print("char:", target.reverse_dict[label], "- f1:", round(2*precision*recall/(precision+recall), 5) if (precision+recall) > 0 else "zero")
+        # print("char:", target.reverse_dict[label], "- f1:", round(2*precision*recall/(precision+recall), 5) if (precision+recall) > 0 else "zero")
         # TODO  zero
 
     macro_precision = total_precision / len(unique_labels) if len(unique_labels) > 0 else 0
@@ -265,30 +227,6 @@ def f1_precision_recall(y_true, y_pred):
     # return f1, precision and recall formated na dve desetinna mista
     # return float(f'{macro_f1:.2f}'), float(f'{macro_precision:.2f}'), float(f'{macro_recall:.2f}')
     return round(macro_f1, 2), round(macro_precision, 2), round(macro_recall, 2)
-
-    # # Example usage:
-    # # Assume y_true and y_pred are your true and predicted labels, respectively.
-    #
-    # # Generating example labels for demonstration
-    # np.random.seed(42)
-    # y_true = np.random.randint(0, 3, size=100)  # 3 classes
-    # y_pred = np.random.randint(0, 3, size=100)
-    #
-    # # Calculate multiclass F1 score
-    # f1 = multiclass_f1_score(y_true, y_pred)
-    #
-    # print(f'Multiclass F1 Score: {f1}')`
-def F1_score(y_true, y_pred): #taken from old keras source code                            # TODO transform
-    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
-    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
-    precision = true_positives / (predicted_positives + K.epsilon())
-    recall = true_positives / (possible_positives + K.epsilon())
-    f1_val = 2*(precision*recall)/(precision+recall+K.epsilon())
-    # print("precision:", precision.numpy(), "recall:", recall.numpy())
-    return f1_val
-
-    # return f1_score(y_true, y_pred, average=None)
 def load_model_mine(model_name):
     from model_file import PositionalEmbedding, TransformerEncoder, TransformerDecoder
     return keras.models.load_model(model_name, custom_objects={'PositionalEmbedding': PositionalEmbedding,
@@ -297,7 +235,6 @@ def load_model_mine(model_name):
     })
 
 print()
-
 print("data preparation...")
 source = Data(sep, mezera, end_line)
 target = Data(sep, mezera, end_line)
@@ -351,7 +288,110 @@ for i in range(repeat):
     K.clear_session()
 print()
 # ---------------------------------- TESTING ------------------------------------------------------------------------
+def model_test_old(self, sample, valid_shift, valid, model_name):  # input = padded array of tokens
+    model = load_model_mine(model_name)
+    sample_len = len(sample)
+    value = model.predict((sample, valid))  # has to be in the shape of the input for it to predict
+
+    dict_chars = self.dict_chars
+    rev_dict = self.create_reverse_dict(dict_chars)
+    assert sample_len == len(valid_shift)
+
+    value_one = np.zeros_like(value)
+    valid_one = np.zeros_like(value)  # has to be value
+    for i in range(sample_len):
+        for j in range(len(value[i])):
+            # input one-hot-ization
+            token1 = int(valid_shift[i][j])
+            valid_one[i][j][token1] = 1
+            # output tokenization
+            token2 = self.array_to_token(value[i][j])
+            value_one[i][j][token2] = 1
+            # print(rev_dict[token1], "/",  rev_dict[token2], end=' ')
+            print(rev_dict[token2], end=' ')  # the translation part
+        print()
+
+    # # SOME STATISTICS
+    # num_sent = len(value)
+    # sent_len = len(value[0])
+    # embed = len(value[0][0])
+    # val_all = 0
+    # for i in range(num_sent):
+    #     # print("prediction:", self.one_hot_to_token([value[i]]))
+    #     # print("true value:", self.one_hot_to_token([valid_one[i]]))
+    #     val = 0
+    #     for j in range(sent_len):
+    #         for k in range(embed):
+    #             val += abs(value_one[i][j][k] - valid_one[i][j][k])
+    #     # print("difference:", val, "accuracy:", 1-(val/sent_len))
+    #     val_all += val
+    # print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
+    # print("f1 prec rec :", f1_precision_recall(value_one, valid_one))
+
+    # print("F1 score:", F1_score(value, valid_one.astype('float32')).numpy())
+    # print("F1 score value_one:", F1_score(value_one, valid_one.astype('float32')).numpy())
+def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict):
+    decoder_output_all = []
+
+    x_sent_len = x_test_pad[0].size
+    y_sent_len = y_test_pad[0].size
+    x_test_pad = x_test_pad.reshape(samples, 1, x_sent_len)  # reshape so encoder takes just one sentence
+    y_test_pad = y_test_pad.reshape(samples, 1, y_sent_len)  # and is not angry about dimensions
+    # print("y_test_pad_shape trans", y_test_pad.shape)
+
+    # ------ stop printing --------
+    old_stdout = sys.stdout
+    sys.stdout = open(os.devnull, "w")
+
+    for x in range(len(y_test_pad)):  # for veta in test data len(y_test_pad)
+        # ENCODER
+        encoder_output = encoder.predict(x_test_pad[x])  # get encoding for first sentence
+        # print("encoder dims:", len(encoder_output), len(encoder_output[0]))
+
+        # DECODER
+        decoder_output = []
+        letter = np.array([[1]])  # the <bos> token, should be shape (1,1)
+        decoder_output_throughts = encoder_output
+
+        for i in range(len(y_test_pad[x][0])):  # x-ta veta ma shape (1, neco), proto [0]
+            decoder_output_word = decoder.predict([letter] + decoder_output_throughts)
+
+            decoder_output_throughts = decoder_output_word[1:]
+            decoder_output_word = decoder_output_word[0]  # select just the content
+            decoder_output_word = decoder_output_word[0][0]  # first sentence first word
+
+            token = test_y.array_to_token(decoder_output_word)
+
+            letter = np.array([[token]])
+            decoder_output.append(int(token))
+
+        decoder_output_all.append(decoder_output)
+
+    # -------- start printing ----------
+    sys.stdout = old_stdout
+
+    # SOME STUFF AS IN CLASS
+    valid = y_test_pad  # = y_test_pad_shape trans (1, 1, 90)
+    predicted = decoder_output_all
+    predicted = np.array(predicted)
+
+    # print("decoder output sent, num:", len(decoder_output_all))
+    # print("valid.shape", valid.shape)
+    # print("predicted.shape", predicted.shape)
+
+    # EDITED CODE FROM THE DATA CLASS
+    for i in range(samples):
+        for j in range(y_sent_len):
+            print(rev_dict[predicted[i][j]], end=' ')  # the translation part
+        print()
+
+    # it is not the best - implement cosine distance instead?                 TODO different then accuracy
+    #                                                                         todo it be quite slow
+    calc_accuracy(predicted, valid, samples, y_sent_len)
+    print("f1 prec rec :", f1_precision_recall(predicted, valid))
+
 print("testing...")
+print("testing data preparation")
 test_x = Data(sep, mezera, end_line)
 with open(ti_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_x.file = f.read()
@@ -362,104 +402,25 @@ with open(tt_file_name, "r", encoding="utf-8") as f:  # with spaces
     f.close()
 
 samples = 10
-test_x.dict_chars = source.dict_chars  # mohla bych prepsat file v source a jen znova rozbehnout funkci
-print("source dict len: ", len(source.dict_chars))
-x_test = test_x.split_n_count(False)[:samples]  # ale tohle je lepsi
+test_x.dict_chars = source.dict_chars
+x_test = test_x.split_n_count(False)[:samples]
 x_test_pad = test_x.padding(x_test, source.maxlen)
 
 test_y.dict_chars = target.dict_chars
-print("target dict len: ", len(target.dict_chars))
 y_test = test_y.split_n_count(False)[:samples]
 y_test_pad = test_y.padding(y_test, target.maxlen)
 y_test_pad_shift = test_y.padding_shift(y_test)
 
 assert len(x_test) == len(y_test)
 
-lengh = len(x_test)
-test_y.model_test(x_test_pad, y_test_pad_shift, y_test_pad, model_file_name, lengh)
+#  OLD TESTING
+print("old testing")
+model_test_old(test_y, x_test_pad, y_test_pad_shift, y_test_pad, model_file_name)
 
+#  BETTER TESTING
+print("new testing")
 # GET ENCODER AND DECODER
 encoder, decoder = load_and_split_model(model_file_name)
-
-# SETTING THE SCENE
-# bos = np.zeros_like(y_test_pad)  # vsechny vety
-# print("y_test_pad_shape", y_test_pad.shape)
-# bos[0][0] = 1
-bos = np.zeros_like(y_test_pad[0])  # jedna veta
-print("y_test_pad_shape", y_test_pad.shape)
-bos[0] = 1
 rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
-decoder_output_all = []
 
-dim = 90                                                                           # todo fixed dim
-x_test_pad = x_test_pad.reshape(samples, 1, 98)                                    # todo fixed 98
-y_test_pad = y_test_pad.reshape(samples, 1, dim)
-print("y_test_pad_shape trans", y_test_pad.shape)
-# bos = bos.reshape(1, dim)
-bos = np.array([[1]])  # should be shape (1,1)
-print("bos.shape", bos.shape)
-
-# stop printing
-old_stdout = sys.stdout # backup current stdout
-sys.stdout = open(os.devnull, "w")
-
-for x in range(len(y_test_pad)):  # for veta in test data len(y_test_pad)
-    # ENCODER
-    encoder_output = encoder.predict(x_test_pad[x])  # get encoding for first sentence
-    # print("encoder dims:", len(encoder_output), len(encoder_output[0]))
-
-    # DECODER
-    decoder_output = []
-    letter = np.array([[1]])  # the <bos> token, should be shape (1,1)
-    decoder_output_throughts = encoder_output
-
-    for i in range(len(y_test_pad[x][0])):  # x-ta veta ma shape (1, neco), proto [0]
-        decoder_output_word = decoder.predict([letter] + decoder_output_throughts)
-
-        decoder_output_throughts = decoder_output_word[1:]
-        decoder_output_word = decoder_output_word[0]  # select just the content
-        decoder_output_word = decoder_output_word[0][0]  # first sentence first word
-
-        token = test_y.array_to_token(decoder_output_word)
-
-        letter = np.array([[token]])
-        decoder_output.append(int(token))
-
-    decoder_output_all.append(decoder_output)
-
-# start printing
-sys.stdout = old_stdout # reset old stdout
-
-print("decoder output sent, num:", len(decoder_output_all))
-
-# SOME STUFF AS IN CLASS
-valid = y_test_pad  # = y_test_pad_shape trans (1, 1, 90)
-print("valid.shape", valid.shape)
-predicted = decoder_output_all
-predicted = np.array(predicted)
-print("predicted.shape", predicted.shape)
-
-# EDITED CODE FROM THE DATA CLASS
-for i in range(samples):
-    for j in range(dim):
-        print(rev_dict[predicted[i][j]], end=' ')  # the translation part
-    print()
-
-# SOME STATISTICS - accuracy
-# it is not the best - implement cosine distance instead?                     TODO different then accuracy
-#                                                                               todo it be quite slow
-
-num_sent = samples
-sent_len = dim
-val_all = 0
-for i in range(num_sent):
-    # print("prediction:", self.one_hot_to_token([value[i]]))
-    # print("true value:", self.one_hot_to_token([valid_one[i]]))
-    val = 0
-    for j in range(sent_len):
-        if predicted[i][j] != valid[i][0][j]:
-            val += 1
-    print("difference:", val, "accuracy:", 1-(val/sent_len))
-    val_all += val
-print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
-# print("f1 prec rec :", f1_precision_recall(value_one, valid_one))
+model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict)

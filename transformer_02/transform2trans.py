@@ -338,7 +338,7 @@ def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict):
     x_test_pad = x_test_pad.reshape(samples, 1, x_sent_len)  # reshape so encoder takes just one sentence
     y_test_pad = y_test_pad.reshape(samples, 1, y_sent_len)  # and is not angry about dimensions
     # print("y_test_pad_shape trans", y_test_pad.shape)
-
+    print("printing stopped")
     # ------ stop printing --------
     old_stdout = sys.stdout
     sys.stdout = open(os.devnull, "w")
@@ -420,7 +420,8 @@ model_test_old(test_y, x_test_pad, y_test_pad_shift, y_test_pad, model_file_name
 #  BETTER TESTING
 print("new testing")
 # GET ENCODER AND DECODER
-encoder, decoder = load_and_split_model(model_file_name)
+# inputs should be the same as in training data
+encoder, decoder = load_and_split_model(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, model_file_name)
 rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
 
 model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict)

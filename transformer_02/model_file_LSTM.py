@@ -6,41 +6,40 @@ from keras.layers import Masking, Embedding
 
 # 0.3734
 
+def Encoder(input_vocab_size, input_seq_len, embed_dim, latent_dim):
+    encoder_inputs = Input(shape=(None,), dtype="int64", name="encoder_input")
+    masked_encoder = Masking(mask_value=0, name="encoder_mask")(encoder_inputs)
+    embed_masked_encoder = Embedding(input_vocab_size, embed_dim, input_length=input_seq_len, name="encoder_embed")(
+        masked_encoder)
+    encoder_lstm = LSTM(latent_dim, return_state=True, return_sequences=False, activation='sigmoid', name="encoder_LSTM")
+    encoder_outputs, state_h, state_c = encoder_lstm(embed_masked_encoder)
+    encoder_states = [state_h, state_c]
+    return encoder_inputs, encoder_states
+
+def Decoder(output_vocab_size, output_seq_len, embed_dim, latent_dim, initial_state):
+    decoder_inputs = Input(shape=(None,), dtype="int64", name="decoder_input")  # sent_len tam mozna byt nemusi?
+    masked_decoder = Masking(mask_value=0, name="decoder_mask")(decoder_inputs)
+    embed_masked_decoder = Embedding(output_vocab_size, embed_dim, input_length=output_seq_len, name="decoder_embed")(
+        masked_decoder)
+    decoder = LSTM(latent_dim, return_state=True, return_sequences=True, activation='sigmoid', name="decoder_LSTM")
+    decoder_outputs, state_h, state_c = decoder(embed_masked_decoder, initial_state=initial_state)
+    decoder_states = [state_h, state_c]
+    # attention = Attention()([decoder_outputs, encoder_outputs])
+    # context_vector = Concatenate(axis=-1)([decoder_outputs, attention])
+    decoder_dense = Dense(output_vocab_size, activation="softmax", name="decoder_dense")
+    decoder_outputs = decoder_dense(decoder_outputs)
+    return decoder_inputs, decoder_outputs, decoder_states
+
 def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
     embed_dim = 32
     latent_dim = 32
 
     # not bidirectional yet
-    encoder_inputs = Input(shape=(None, ), dtype="int64", name="encoder_input")
-    masked_encoder = Masking(mask_value=0, name="encoder_mask")(encoder_inputs)
-    embed_masked_encoder = Embedding(in_vocab_size, embed_dim, input_length=in_seq_len, name="encoder_embed")(masked_encoder)
-
-    encoder = LSTM(latent_dim, return_state=True, return_sequences=False, activation='sigmoid', name="encoder_LSTM")
-    encoder_outputs, state_h, state_c = encoder(embed_masked_encoder)
-    encoder_states = [state_h, state_c]
-
-    decoder_inputs = Input(shape=(None, ), dtype="int64", name="decoder_input")  # sent_len tam mozna byt nemusi?
-    masked_decoder = Masking(mask_value=0, name="decoder_mask")(decoder_inputs)
-    embed_masked_decoder = Embedding(out_vocab_size, embed_dim, input_length=out_seq_len, name="decoder_embed")(masked_decoder)
-    decoder = LSTM(latent_dim, return_state=True, return_sequences=True, activation='sigmoid', name="decoder_LSTM")
-    decoder_outputs, _, _ = decoder(embed_masked_decoder, initial_state=encoder_states)
-
-    # attention = Attention()([decoder_outputs, encoder_outputs])
-    #context_vector = Concatenate(axis=-1)([decoder_outputs, attention])
-
-    decoder_dense = Dense(out_vocab_size, activation="softmax", name="decoder_dense")
-    decoder_outputs = decoder_dense(decoder_outputs)
+    encoder_inputs, encoder_states = Encoder(in_vocab_size, in_seq_len, embed_dim, latent_dim)
+    decoder_inputs, decoder_outputs, _ = Decoder(out_vocab_size, out_seq_len, embed_dim, latent_dim, encoder_states)
 
     model = Model(inputs=[encoder_inputs, decoder_inputs], outputs=decoder_outputs)
     return model
-
-print("model starting...")
-model = model_func(30, 60, 100, 120)
-
-model.compile(optimizer="adam", loss="categorical_crossentropy",
-              metrics=["accuracy"])
-model.summary()
-print()
 
 def load_model_mine(model_name):
     from model_file import PositionalEmbedding, TransformerEncoder, TransformerDecoder
@@ -48,14 +47,28 @@ def load_model_mine(model_name):
                                                                'TransformerEncoder': TransformerEncoder,
                                                                'TransformerDecoder': TransformerDecoder
     })
-def load_and_split_model(model_folder_path):
+def load_and_split_model(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len, model_folder_path):
     latent_dim = 32
+    embed_dim = 32
+
+    # # CREATE THE MODEL
+    # encoder_inputs, encoder_states = Encoder(in_vocab_size, in_seq_len, embed_dim, latent_dim)
+    # encoder_model = Model(inputs=encoder_inputs, outputs=encoder_states)
+    # encoder_model.summary()
+    #
+    # decoder_state_input_h = Input(shape=(latent_dim,))
+    # decoder_state_input_c = Input(shape=(latent_dim,))
+    # decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
+    # decoder_inputs, decoder_outputs, decoder_states = Decoder(out_vocab_size, out_seq_len, embed_dim, latent_dim,
+    #                                                           decoder_states_inputs)  # protoze ted hned neznam encoder states
+    # decoder_model = Model(inputs=[decoder_inputs] + decoder_states_inputs, outputs=[decoder_outputs] + decoder_states)
+    # decoder_model.summary()
+    # # TODO - its a new model - I need to set the weights
 
     # Load the entire model
     full_model = load_model_mine(model_folder_path)
     # print(len(full_model.layers))
 
-    # TODO layer dims do not match
     # Extract the encoder layers from the full model
     encoder_inputs = full_model.input[0]
     encoder_mask = full_model.layers[2]

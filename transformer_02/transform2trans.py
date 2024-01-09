@@ -64,7 +64,6 @@ mezera = '_'
 end_line = '\n'
 
 new = 0
-prepare_testing_data = 0
 
 batch_size = 128
 epochs = 1
@@ -160,13 +159,13 @@ class Data():
                 pass
         # print(input_list_padded)
         return input_list_padded
-    def padding_shift(self, input_list):
-        input_list_padded = np.zeros((len(input_list), self.maxlen))  # maybe zeros?
+    def padding_shift(self, input_list, lengh):
+        input_list_padded = np.zeros((len(input_list), lengh))  # maybe zeros?
         for i, line in enumerate(input_list):
-            if len(line) > self.maxlen: # shorten
-                input_list_padded[i] = np.array(line[1 : self.maxlen + 1])
-            elif len(line) < self.maxlen:  # padd, # 0 is the code for padding
-                input_list_padded[i] = np.array(line[1:] + [0 for i in range(self.maxlen - len(line) + 1)])
+            if len(line) > lengh: # shorten
+                input_list_padded[i] = np.array(line[1 : lengh + 1])
+            elif len(line) < lengh:  # padd, # 0 is the code for padding
+                input_list_padded[i] = np.array(line[1:] + [0 for i in range(lengh - len(line) + 1)])
             else:
                 pass
         # print(input_list_padded)
@@ -193,6 +192,7 @@ def calculate_precision_recall_f1(y_true, y_pred, label):
     true_positive = np.sum((y_true == label) & (y_pred == label))
     false_positive = np.sum((y_true != label) & (y_pred == label))
     false_negative = np.sum((y_true == label) & (y_pred != label))
+    print(" TP:", true_positive, " FP:", false_positive, " FN:", false_negative)
 
     precision = true_positive / (true_positive + false_positive) if (true_positive + false_positive) > 0 else 0
     recall = true_positive / (true_positive + false_negative) if (true_positive + false_negative) > 0 else 0
@@ -211,11 +211,12 @@ def f1_precision_recall(y_true, y_pred):
     total_precision = 0
     total_recall = 0
 
+    target.create_reverse_dict(target.dict_chars)
     for label in unique_labels:
+        print(target.reverse_dict[label], end=":")
         precision, recall, _ = calculate_precision_recall_f1(y_true, y_pred, label)
         total_precision += precision
         total_recall += recall
-        target.create_reverse_dict(target.dict_chars)
         # print("char:", target.reverse_dict[label], "- f1:", round(2*precision*recall/(precision+recall), 5) if (precision+recall) > 0 else "zero")
         # TODO  zero
 
@@ -249,16 +250,14 @@ print("first file:")
 x_train = source.split_n_count(True)
 x_train_pad = source.padding(x_train, source.maxlen)
 del x_train
-print()
 print("second file:")
 y_train = target.split_n_count(True)
 y_train_pad = target.padding(y_train, target.maxlen)
 # y_train_pad_one = to_categorical(y_train_pad)
-y_train_pad_shift = target.padding_shift(y_train)
+y_train_pad_shift = target.padding_shift(y_train, target.maxlen)
 del y_train
 y_train_pad_shift_one = to_categorical(y_train_pad_shift)
 del y_train_pad_shift
-print()
 
 # print(y_train_pad_one)
 # print()
@@ -311,25 +310,24 @@ def model_test_old(self, sample, valid_shift, valid, model_name):  # input = pad
             print(rev_dict[token2], end=' ')  # the translation part
         print()
 
-    # # SOME STATISTICS
-    # num_sent = len(value)
-    # sent_len = len(value[0])
-    # embed = len(value[0][0])
-    # val_all = 0
-    # for i in range(num_sent):
-    #     # print("prediction:", self.one_hot_to_token([value[i]]))
-    #     # print("true value:", self.one_hot_to_token([valid_one[i]]))
-    #     val = 0
-    #     for j in range(sent_len):
-    #         for k in range(embed):
-    #             val += abs(value_one[i][j][k] - valid_one[i][j][k])
-    #     # print("difference:", val, "accuracy:", 1-(val/sent_len))
-    #     val_all += val
-    # print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
-    # print("f1 prec rec :", f1_precision_recall(value_one, valid_one))
+    value_tokens = self.one_hot_to_token(value_one)
 
-    # print("F1 score:", F1_score(value, valid_one.astype('float32')).numpy())
-    # print("F1 score value_one:", F1_score(value_one, valid_one.astype('float32')).numpy())
+    # SOME STATISTICS
+    num_sent = len(value)
+    sent_len = len(value[0])
+    embed = len(value[0][0])
+    val_all = 0
+    for i in range(num_sent):
+        # print("prediction:", self.one_hot_to_token([value[i]]))
+        # print("true value:", self.one_hot_to_token([valid_one[i]]))
+        val = 0
+        for j in range(sent_len):
+            for k in range(embed):
+                val += abs(value_one[i][j][k] - valid_one[i][j][k])
+        # print("difference:", val, "accuracy:", 1-(val/sent_len))
+        val_all += val
+    print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
+    print("f1 prec rec :", f1_precision_recall(value_tokens, valid_shift))
 def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict):
     decoder_output_all = []
 
@@ -371,7 +369,7 @@ def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict):
     sys.stdout = old_stdout
 
     # SOME STUFF AS IN CLASS
-    valid = y_test_pad  # = y_test_pad_shape trans (1, 1, 90)
+    valid = y_test_pad  # = y_test_pad_shape trans (samples_len, 1, 90)
     predicted = decoder_output_all
     predicted = np.array(predicted)
 
@@ -379,16 +377,22 @@ def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict):
     # print("valid.shape", valid.shape)
     # print("predicted.shape", predicted.shape)
 
-    # EDITED CODE FROM THE DATA CLASS
+    # PRINT OUTPUT
+    output_string = ''
     for i in range(samples):
         for j in range(y_sent_len):
-            print(rev_dict[predicted[i][j]], end=' ')  # the translation part
+            letter = rev_dict[predicted[i][j]]
+            output_string += letter
+            output_string += sep
+            # print(letter, end=' ')  # the translation part
         print()
-
+        output_string += "\n"
+    print(output_string)
     # it is not the best - implement cosine distance instead?                 TODO different then accuracy
     #                                                                         todo it be quite slow
     calc_accuracy(predicted, valid, samples, y_sent_len)
     print("f1 prec rec :", f1_precision_recall(predicted, valid))
+    return output_string
 
 print("testing...")
 print("testing data preparation")
@@ -409,7 +413,7 @@ x_test_pad = test_x.padding(x_test, source.maxlen)
 test_y.dict_chars = target.dict_chars
 y_test = test_y.split_n_count(False)[:samples]
 y_test_pad = test_y.padding(y_test, target.maxlen)
-y_test_pad_shift = test_y.padding_shift(y_test)
+y_test_pad_shift = test_y.padding_shift(y_test, target.maxlen)
 
 assert len(x_test) == len(y_test)
 
@@ -424,4 +428,17 @@ print("new testing")
 encoder, decoder = load_and_split_model(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, model_file_name)
 rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
 
-model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict)
+output_text = model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict)
+
+split_output_text = output_text.split(end_line)
+split_valid_text = test_y.file.split(end_line)
+
+for i in range(len(split_output_text)-1):
+    prediction = split_output_text[i].split(mezera)
+    valid = split_valid_text[i].split(mezera)
+    print(len(prediction), "- ", len(valid),
+          "=", len(prediction) - len(valid))
+    print(prediction)
+    print(valid)
+    # for word in prediction...
+    print()

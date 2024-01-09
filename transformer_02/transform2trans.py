@@ -187,7 +187,7 @@ def calc_accuracy(predicted, valid, num_sent, sent_len):
                 val += 1
         # print("difference:", val, "accuracy:", 1-(val/sent_len))
         val_all += val
-    print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
+    return round(1-(val_all/(sent_len*num_sent)), 2)  # formating na dve desetina mista
 def calculate_precision_recall_f1(y_true, y_pred, label):
     true_positive = np.sum((y_true == label) & (y_pred == label))
     false_positive = np.sum((y_true != label) & (y_pred == label))
@@ -390,7 +390,8 @@ def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict):
     print(output_string)
     # it is not the best - implement cosine distance instead?                 TODO different then accuracy
     #                                                                         todo it be quite slow
-    calc_accuracy(predicted, valid, samples, y_sent_len)
+    character_level_acc = calc_accuracy(predicted, valid, samples, y_sent_len)
+    print("character accuracy:", character_level_acc)
     print("f1 prec rec :", f1_precision_recall(predicted, valid))
     return output_string
 
@@ -430,15 +431,45 @@ rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
 
 output_text = model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict)
 
+#  WORD LEVEL ACCURACY
 split_output_text = output_text.split(end_line)
 split_valid_text = test_y.file.split(end_line)
+new_pred = []
+new_valid = []
+for i in range(len(split_output_text)-1):  # make into lists
+    new_pred.append(split_output_text[i].split(mezera))
+    new_valid.append(split_valid_text[i].split(mezera))
 
-for i in range(len(split_output_text)-1):
-    prediction = split_output_text[i].split(mezera)
-    valid = split_valid_text[i].split(mezera)
+for i in range(len(new_pred)):  # show sentences
+    prediction = new_pred[i]
+    valid = new_valid[i]
     print(len(prediction), "- ", len(valid),
           "=", len(prediction) - len(valid))
     print(prediction)
     print(valid)
-    # for word in prediction...
     print()
+def on_words_accuracy(prediction_list, valid_list):
+    all_value = 0
+    all_sent = 0
+    for i in range(len(prediction_list)):
+        value_i = 0
+        len_sent = len(prediction_list[i])
+        for j in range(len_sent):
+            try:
+                if prediction_list[i][j] != valid_list[i][j]:
+                    value_i += 1
+            except IndexError:  # the lengh is not matching so thats wrong
+                value_i += 1
+        try:
+            if "." in prediction_list[i][len_sent - 1]:
+                value_i -= 1  # protoze tecka tam jakoby je
+                prediction_list[i][len_sent - 1] = valid_list[i][len_sent - 1]
+        except IndexError:
+            pass
+        # print(1 - (value_i/len_sent))
+        all_value += value_i
+        all_sent += len_sent
+    return 1-(all_value/all_sent)
+
+word_accuracy = on_words_accuracy(new_pred, new_valid)
+print("word_accuracy:", word_accuracy)

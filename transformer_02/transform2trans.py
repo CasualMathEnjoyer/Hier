@@ -60,7 +60,7 @@ from model_file_LSTM import model_func, load_and_split_model
 # mezera = '_'
 # end_line = '\n'
 
-model_file_name = "transform2seq_fr-eng_3LSTM"
+model_file_name = "transform2seq_fr-eng_4LSTM"
 training_file_name = "../data/smallvoc_fr_.txt"
 target_file_name = "../data/smallvoc_en_.txt"
 # validation_file_name = "../data/src-sep-val.txt"
@@ -70,11 +70,11 @@ sep = ' '
 mezera = '_'
 end_line = '\n'
 
-new = 0
+new = 1
 
 batch_size = 128
-epochs = 3
-repeat = 0  # full epoch_num=epochs*repeat
+epochs = 1
+repeat = 1  # full epoch_num=epochs*repeat
 
 class Data():
     embed_dim = 32  # Embedding size for each token
@@ -238,7 +238,7 @@ for i in range(repeat):
         (x_train_pad, y_train_pad), y_train_pad_shift_one, batch_size=batch_size, epochs=epochs)
         # validation_data=(x_valid_tokenized, y_valid))
     model.save(model_file_name)
-    model.save_weights("model.h5")
+    model.save_weights(model_file_name + ".h5")
     K.clear_session()
 print()
 # ---------------------------------- TESTING ------------------------------------------------------------------------
@@ -348,7 +348,7 @@ def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict):
     #                                                                         todo it be quite slow
     character_level_acc = m.calc_accuracy(predicted, valid, samples, y_sent_len)
     print("character accuracy:", character_level_acc)
-    print("f1 prec rec :", m.f1_precision_recall(target, predicted, valid))   # TODO target?
+    print("f1 prec rec :", m.f1_precision_recall(target, predicted, valid))   # needs to be the target file
     return output_string
 
 print("testing...")
@@ -382,7 +382,7 @@ model_test_old(test_y, x_test_pad, y_test_pad_shift, y_test_pad, model_file_name
 print("new testing")
 # GET ENCODER AND DECODER
 # inputs should be the same as in training data
-encoder, decoder = load_and_split_model(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, model_file_name)
+encoder, decoder = load_and_split_model(model_file_name, source.vocab_size, target.vocab_size, source.maxlen, target.maxlen)
 rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
 
 output_text = model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict)

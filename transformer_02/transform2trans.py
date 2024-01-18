@@ -35,12 +35,13 @@ print("seed = ", a)
 # fix testing                            DONE
 # save info into json or sth             TODO
 # consider rewritting the class system   TODO
-# split into more files?                 TODO
+# split into more files?                 DONE
 # metriky? cosine similarity?            TODO
 
-# lepsi testovani
-# bi lsm
+# lepsi testovani                        DONE
+# bi lsm                                 DONE
 # attention transformer
+
 # sci kit grit search - hleadni metaparametru
 # FTP - na ssh   rcp na kopirovani veci
 
@@ -83,7 +84,7 @@ end_line = '\n'
 new = 0
 
 batch_size = 128
-epochs = 1
+epochs = 4
 repeat = 1  # full epoch_num=epochs*repeat
 
 class Data():

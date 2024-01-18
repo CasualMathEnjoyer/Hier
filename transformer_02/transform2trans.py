@@ -71,7 +71,7 @@ sep = ' '
 mezera = '_'
 end_line = '\n'
 
-new = 1
+new = 0
 
 batch_size = 128
 epochs = 4

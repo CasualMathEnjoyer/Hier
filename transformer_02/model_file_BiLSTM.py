@@ -55,8 +55,8 @@ def load_model_mine(model_name):
     return load_model(model_name)
 
 def load_and_split_model(model_folder_path, in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
-    latent_dim = 17
-    embed_dim = 17
+    latent_dim = 64
+    # embed_dim = 17
 
     # # CREATE THE MODEL
     # encoder_inputs, encoder_states = Encoder(in_vocab_size, in_seq_len, embed_dim, latent_dim)

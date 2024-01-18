@@ -61,12 +61,21 @@ from model_file_BiLSTM import model_func, load_and_split_model, encoder_state_tr
 # mezera = '_'
 # end_line = '\n'
 
-model_file_name = "transform2seq_fr-eng_BiLSTM"
-training_file_name = "../data/smallvoc_fr_.txt"
-target_file_name = "../data/smallvoc_en_.txt"
-# validation_file_name = "../data/src-sep-val.txt"
-ti_file_name = "../data/smallervoc_fr_.txt"  # test input file
-tt_file_name = "../data/smallervoc_en_.txt"  # test target
+model_file_name = "transform2seq_fr-eng_BiLSTM2"
+# train_in_file_name = "../data/smallvoc_fr_.txt"
+# train_out_file_name = "../data/smallvoc_en_.txt"
+# val_in_file_name = "../data/smallvoc_fr_.txt"
+# val_out_file_name = "../data/smallvoc_en_.txt"
+# test_in_file_name = "../data/smallervoc_fr_.txt"
+# test_out_file_name = "../data/smallervoc_en_.txt"
+
+train_in_file_name = "../data/fr_train.txt"
+train_out_file_name = "../data/en_train.txt"
+val_in_file_name = "../data/fr_val.txt"
+val_out_file_name = "../data/en_val.txt"
+test_in_file_name = "../data/fr_test.txt"
+test_out_file_name = "../data/en_test.txt"
+
 sep = ' '
 mezera = '_'
 end_line = '\n'
@@ -74,7 +83,7 @@ end_line = '\n'
 new = 0
 
 batch_size = 128
-epochs = 4
+epochs = 1
 repeat = 1  # full epoch_num=epochs*repeat
 
 class Data():
@@ -185,11 +194,12 @@ class Data():
 # recall = TP/(TP+FN)
 
 def load_model_mine(model_name):
-    from model_file import PositionalEmbedding, TransformerEncoder, TransformerDecoder
-    return keras.models.load_model(model_name, custom_objects={'PositionalEmbedding': PositionalEmbedding,
-                                                               'TransformerEncoder': TransformerEncoder,
-                                                               'TransformerDecoder': TransformerDecoder
-    })
+    # from model_file import PositionalEmbedding, TransformerEncoder, TransformerDecoder
+    # return keras.models.load_model(model_name, custom_objects={'PositionalEmbedding': PositionalEmbedding,
+    #                                                            'TransformerEncoder': TransformerEncoder,
+    #                                                            'TransformerDecoder': TransformerDecoder
+    # })
+    return keras.models.load_model(model_name)
 
 def save_model_info(model_name, ):
     pass
@@ -198,10 +208,10 @@ print()
 print("data preparation...")
 source = Data(sep, mezera, end_line)
 target = Data(sep, mezera, end_line)
-with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
+with open(train_in_file_name, "r", encoding="utf-8") as f:  # with spaces
     source.file = f.read()
     f.close()
-with open(target_file_name, "r", encoding="utf-8") as ff:
+with open(train_out_file_name, "r", encoding="utf-8") as ff:
     target.file = ff.read()
     ff.close()
 
@@ -218,6 +228,29 @@ del y_train
 y_train_pad_shift_one = to_categorical(y_train_pad_shift)
 del y_train_pad_shift
 
+# VALIDATION:
+print("validation files:")
+val_source = Data(sep, mezera, end_line)
+val_target = Data(sep, mezera, end_line)
+with open(val_in_file_name, "r", encoding="utf-8") as f:
+    val_source.file = f.read()
+    f.close()
+with open(val_out_file_name, "r", encoding="utf-8") as ff:
+    val_target.file = ff.read()
+    ff.close()
+
+val_source.dict_chars = source.dict_chars
+x_val = val_source.split_n_count(False)
+x_val_pad = val_source.padding(x_val, source.maxlen)
+
+val_target.dict_chars = target.dict_chars
+y_val = val_target.split_n_count(False)
+y_val_pad = val_target.padding(y_val, target.maxlen)
+y_val_pad_shift = val_target.padding_shift(y_val, target.maxlen)
+y_val_pad_shift_one = to_categorical(y_val_pad_shift)
+
+assert len(x_val) == len(y_val)
+
 # print(y_train_pad_one)
 # print()
 # print(x_train_pad.shape)
@@ -228,8 +261,10 @@ del y_train_pad_shift
 # --------------------------------- MODEL ---------------------------------------------------------------------------
 print("model starting...")
 if new:
+    print("CREATING A NEW MODEL")
     model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen)
 else:
+    print("LOADING A MODEL")
     model = load_model_mine(model_file_name)
 
 model.compile(optimizer="adam", loss="categorical_crossentropy",
@@ -239,8 +274,8 @@ print()
 # --------------------------------- TRAINING ------------------------------------------------------------------------
 for i in range(repeat):
     history = model.fit(
-        (x_train_pad, y_train_pad), y_train_pad_shift_one, batch_size=batch_size, epochs=epochs)
-        # validation_data=(x_valid_tokenized, y_valid))
+        (x_train_pad, y_train_pad), y_train_pad_shift_one, batch_size=batch_size, epochs=epochs,
+        validation_data=((x_val_pad, y_val_pad), y_val_pad_shift_one))
     model.save(model_file_name)
     model.save_weights(model_file_name + ".h5")
     K.clear_session()
@@ -357,12 +392,13 @@ def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict):
 
 print("testing...")
 print("testing data preparation")
+
 test_x = Data(sep, mezera, end_line)
-with open(ti_file_name, "r", encoding="utf-8") as f:  # with spaces
+with open(test_in_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_x.file = f.read()
     f.close()
 test_y = Data(sep, mezera, end_line)
-with open(tt_file_name, "r", encoding="utf-8") as f:  # with spaces
+with open(test_out_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_y.file = f.read()
     f.close()
 
@@ -396,11 +432,14 @@ split_output_text = output_text.split(end_line)
 split_valid_text = test_y.file.split(end_line)
 new_pred = []
 new_valid = []
-for i in range(len(split_output_text)-1):  # make into lists
+
+# make into lists
+for i in range(len(split_output_text)-1):
     new_pred.append(split_output_text[i].split(mezera))
     new_valid.append(split_valid_text[i].split(mezera))
 
-for i in range(len(new_pred)):  # show sentences
+# show sentences
+for i in range(len(new_pred)):
     prediction = new_pred[i]
     valid = new_valid[i]
     print(len(prediction), "- ", len(valid),

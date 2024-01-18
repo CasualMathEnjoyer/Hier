@@ -32,8 +32,6 @@ def Decoder(output_vocab_size, output_seq_len, embed_dim, latent_dim, initial_st
     decoder = LSTM(2*latent_dim, return_state=True, return_sequences=True, activation='sigmoid', name="decoder_LSTM")
     decoder_outputs, state_h, state_c = decoder(embed_masked_decoder, initial_state=initial_state)
     decoder_states = [state_h, state_c]
-    # attention = Attention()([decoder_outputs, encoder_outputs])
-    # context_vector = Concatenate(axis=-1)([decoder_outputs, attention])
     decoder_dense = Dense(output_vocab_size, activation="softmax", name="decoder_dense")
     decoder_outputs = decoder_dense(decoder_outputs)
     return decoder_inputs, decoder_outputs, decoder_states
@@ -51,7 +49,6 @@ def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
     return model
 
 def load_model_mine(model_name):
-    from model_file import PositionalEmbedding, TransformerEncoder, TransformerDecoder
     return load_model(model_name)
 
 def load_and_split_model(model_folder_path, in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):

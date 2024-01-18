@@ -48,7 +48,8 @@ print("seed = ", a)
 # 47.5 tisic slov jenom jednou
 
 # from model_file import model_func
-from model_file_LSTM import model_func, load_and_split_model
+# from model_file_LSTM import model_func, load_and_split_model
+from model_file_BiLSTM import model_func, load_and_split_model, encoder_state_transform
 
 # model_file_name = "transform2seq_1"
 # training_file_name = "../data/src-sep-train.txt"
@@ -60,7 +61,7 @@ from model_file_LSTM import model_func, load_and_split_model
 # mezera = '_'
 # end_line = '\n'
 
-model_file_name = "transform2seq_fr-eng_4LSTM"
+model_file_name = "transform2seq_fr-eng_BiLSTM"
 training_file_name = "../data/smallvoc_fr_.txt"
 target_file_name = "../data/smallvoc_en_.txt"
 # validation_file_name = "../data/src-sep-val.txt"
@@ -73,7 +74,7 @@ end_line = '\n'
 new = 1
 
 batch_size = 128
-epochs = 1
+epochs = 4
 repeat = 1  # full epoch_num=epochs*repeat
 
 class Data():
@@ -190,6 +191,9 @@ def load_model_mine(model_name):
                                                                'TransformerDecoder': TransformerDecoder
     })
 
+def save_model_info(model_name, ):
+    pass
+
 print()
 print("data preparation...")
 source = Data(sep, mezera, end_line)
@@ -305,7 +309,7 @@ def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict):
         # DECODER
         decoder_output = []
         letter = np.array([[1]])  # the <bos> token, should be shape (1,1)
-        decoder_output_throughts = encoder_output
+        decoder_output_throughts = encoder_state_transform(encoder_output)
 
         for i in range(len(y_test_pad[x][0])):  # x-ta veta ma shape (1, neco), proto [0]
             decoder_output_word = decoder.predict([letter] + decoder_output_throughts)
@@ -341,7 +345,7 @@ def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict):
             output_string += letter
             output_string += sep
             # print(letter, end=' ')  # the translation part
-        print()
+        # print()
         output_string += "\n"
     print(output_string)
     # it is not the best - implement cosine distance instead?                 TODO different then accuracy

@@ -51,6 +51,7 @@ validation_file_name = "../data/smallvoc_en.txt"
 test_file_name = "../data/smallvoc_en.txt"
 sep = ''
 mezera = ' '
+endline = "\n"
 
 new = 0  # whether it creates a model (1) or loads a model (0)
 
@@ -69,16 +70,35 @@ class Data():
 
     window, step = 64, 20
 
+    maxlen = 128
+
     def __init__(self, sep, mezera):
         super().__init__()
         self.sep = sep
         self.space = mezera
-    def tokenize(self, input_list):
-        out = np.zeros((len(input_list), self.window))
+    def tokenize_window(self, input_list):
+        num_lines = len(input_list)
+        out = np.zeros((num_lines, self.window))
         unk_counter = 0
         # assert self.dict_chars != None
         for i, line in enumerate(input_list):
             l = np.zeros((self.window))
+            for j, c in enumerate(line):
+                try:
+                    l[j] = self.dict_chars[c]
+                except KeyError:
+                    l[j] = self.dict_chars["OOV"]
+                    unk_counter += 1
+            out[i] = l
+        print("unknown chars in text: ", unk_counter)
+        return(out)
+    def tokenize(self, input_list):
+        num_lines = len(input_list)
+        out = np.zeros((num_lines, self.maxlen))
+        unk_counter = 0
+        # assert self.dict_chars != None
+        for i, line in enumerate(input_list):
+            l = np.zeros((self.maxlen))
             for j, c in enumerate(line):
                 try:
                     l[j] = self.dict_chars[c]
@@ -159,6 +179,61 @@ class Data():
         # print(self.dict_chars)
         return re_windowed, re_binar
 
+    def non_slidng_data(self, output_file: str, create_dict: bool):  # chunks the data into chunks
+        output_file_pad = []
+        binar, list_chars = [], []
+
+        list_chars.append('<pad>')  # code 0
+        list_chars.append('OOV')
+
+        if endline != '':
+            output_file = output_file.split(endline)
+        num_lines = len(output_file)
+
+        binar = np.zeros((num_lines, self.maxlen))
+        assert binar[0].size == self.maxlen
+
+        output_without_space = np.zeros_like(binar)
+
+        for i, line in enumerate(output_file):
+            if self.sep != '':
+                splitted = line.split(self.sep)
+            else:
+                splitted = list(line)
+            num_mezer = 0
+            for j, element in enumerate(splitted):
+                if element not in list_chars:
+                    list_chars.append(element)
+                if element == self.space:
+                    assert j > 0
+                    binar[i][j-1] = 1  # o jedno predchozi character je nastaveny jako posledni
+                    num_mezer += 1
+
+            # remove mezery
+            new_splitted = [i for i in splitted if i != self.space]
+            assert num_mezer == len([i for i in splitted if i == self.space])
+
+            # pad sentence
+            if len(new_splitted) > self.maxlen:
+                new_splitted = new_splitted[:self.maxlen]
+            else:
+                while len(new_splitted) < self.maxlen:
+                    new_splitted.append('<pad>')
+
+            output_file_pad.append(new_splitted)
+
+        del output_file
+        l = len(output_file_pad[0])
+
+        for line in output_file_pad:
+            assert len(line) == l
+
+        if create_dict:
+            dict_chars = {j: i for i, j in enumerate(list_chars)}
+            self.dict_chars = dict_chars
+
+        return output_file_pad, binar
+
 def F1_score(y_true, y_pred):  # taken from old keras source code
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
@@ -181,11 +256,23 @@ with open(validation_file_name, "r", encoding="utf-8") as ff:
     d.valid_file = ff.read()
     ff.close()
 
-x_train, y_train = d.sliding_window(d.final_file)
-x_valid, y_valid = d.sliding_window(d.valid_file)
+# window training:
+# x_train, y_train = d.sliding_window(d.final_file)
+# x_valid, y_valid = d.sliding_window(d.valid_file)
+
+# x_train_tokenized = d.tokenize_window(x_train)
+# x_valid_tokenized = d.tokenize_window(x_valid)
+
+x_train, y_train = d.non_slidng_data(d.final_file, True)
+x_valid, y_valid = d.non_slidng_data(d.valid_file, False)
+
+print(x_train)
+print(d.dict_chars)
 
 x_train_tokenized = d.tokenize(x_train)
 x_valid_tokenized = d.tokenize(x_valid)
+
+assert 0
 
 # --------------------------------- MODEL ---------------------------------------------------------------------------
 print("model starting...")
@@ -212,5 +299,8 @@ with open(test_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_file = f.read()
     f.close()
 
+# for sliding window
 sample_x, sample_y = d.sliding_window(test_file[:9600])
 d.model_test(sample_x, sample_y, model_file_name, len(sample_x))
+
+# for masking layer

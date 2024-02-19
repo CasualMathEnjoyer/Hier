@@ -20,7 +20,7 @@ import pickle
 
 from keras.optimizers import Adam, SGD
 from keras.losses import BinaryCrossentropy, mean_squared_error
-from keras.metrics import mse, F1Score
+from keras.metrics import mse
 from keras.utils import set_random_seed
 from keras import backend as K
 
@@ -52,7 +52,7 @@ def main():
 
     instant_save = 1
 
-    epochs = 1
+    epochs = 5
     o_epoch = 1
 
     num_neurons = 256
@@ -75,7 +75,7 @@ def main():
     input_file_name = "../data/hier.txt"
     final_file_name = "../data/hier_sep.txt"
     space_file_name = "../data/space_hier_long.npy"
-    model_file_name = '../data/hier2binH'
+    model_file_name = '../data/test_Hbin'
     mezera = '_'
     sep = ' '
 
@@ -123,7 +123,7 @@ def main():
             model = model_func(sent_len, embed_dim, num_neurons)
             model.compile(loss=BinaryCrossentropy(from_logits=False),
                           optimizer=Adam(learning_rate=learning_rate),
-                          metrics=['accuracy', mse, F1Score])
+                          metrics=['accuracy', mse])
         elif model_load:
             from keras.models import load_model
             model = load_model(model_file_name)

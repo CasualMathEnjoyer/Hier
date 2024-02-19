@@ -42,6 +42,8 @@ print("seed = ", a)
 # bi lsm                                 DONE
 # attention transformer
 
+# todo - jaka mame data?
+
 # sci kit grit search - hleadni metaparametru
 # FTP - na ssh   rcp na kopirovani veci
 
@@ -85,7 +87,7 @@ new = 0
 
 batch_size = 128
 epochs = 4
-repeat = 1  # full epoch_num=epochs*repeat
+repeat = 0  # full epoch_num=epochs*repeat
 
 class Data():
     embed_dim = 32  # Embedding size for each token

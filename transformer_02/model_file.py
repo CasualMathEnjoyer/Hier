@@ -1,6 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
 from keras import layers
+from keras.models import Model, Sequential, load_model
+from keras.layers import Input
 
 # https://github.com/evidentlyai/evidently
 
@@ -11,7 +13,8 @@ class TransformerEncoder(layers.Layer):
         self.dense_dim = dense_dim
         self.num_heads = num_heads
         self.attention = layers.MultiHeadAttention(
-            num_heads=num_heads, key_dim=embed_dim
+            num_heads=num_heads,
+            key_dim=embed_dim
         )
         self.dense_proj = keras.Sequential(
             [
@@ -123,7 +126,7 @@ class TransformerDecoder(layers.Layer):
         )
         return config
 
-
+def Encoder
 
 def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
     embed_dim = 32
@@ -151,3 +154,50 @@ def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
     )
     transformer.summary()
     return transformer
+
+def load_model_mine(model_name):
+    from model_file import PositionalEmbedding, TransformerEncoder, TransformerDecoder
+    return keras.models.load_model(model_name, custom_objects={'PositionalEmbedding': PositionalEmbedding,
+                                                               'TransformerEncoder': TransformerEncoder,
+                                                               'TransformerDecoder': TransformerDecoder
+    })
+def load_and_split_model(model_folder_path, in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
+    latent_dim = 32
+    embed_dim = 32
+
+    # Load the entire model
+    full_model = load_model_mine(model_folder_path)
+    # print(len(full_model.layers))
+
+    encoder_inputs = Input(shape=(None, ), dtype="int64", name="encoder_input_sentence")
+    encoder_mask = full_model.get_layer("encoder_mask")
+    encoder_embedding_layer = full_model.get_layer("encoder_embed")
+    encoder_lstm = full_model.get_layer("encoder_LSTM")
+
+    encoder_mask = encoder_mask(encoder_inputs)
+    encoder_embedding_layer = encoder_embedding_layer(encoder_mask)
+    encoder_outputs, state_h, state_c = encoder_lstm(encoder_embedding_layer)
+    encoder_states = [state_h, state_c]
+    encoder_model = Model(inputs=encoder_inputs, outputs=encoder_states, name="Encoder")
+
+    # Extract the decoder layers from the full model
+    decoder_inputs = Input(shape=(None, ), dtype="int64", name="decoder_input_letter")
+    decoder_state_input_h = Input(shape=(latent_dim,), name="decoder_input_h")
+    decoder_state_input_c = Input(shape=(latent_dim,), name="decoder_input_c")
+    decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
+
+    decoder_mask = full_model.get_layer("decoder_mask")
+    decoder_embedding_layer = full_model.get_layer("decoder_embed")
+    decoder_lstm = full_model.get_layer("decoder_LSTM")
+    decoder_dense = full_model.get_layer("decoder_dense")
+
+
+    masked_input = decoder_mask(decoder_inputs)
+    embed_masked_decoder = decoder_embedding_layer(masked_input)
+    decoder_outputs, state_h, state_c = decoder_lstm(embed_masked_decoder, initial_state=decoder_states_inputs)
+    decoder_states = [state_h, state_c]
+    decoder_outputs = decoder_dense(decoder_outputs)
+    decoder_model = Model(inputs=[decoder_inputs] + decoder_states_inputs, outputs=[decoder_outputs] + decoder_states,
+                          name="Decoder")
+
+    return encoder_model, decoder_model

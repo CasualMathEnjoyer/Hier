@@ -29,9 +29,31 @@ text_input = st.text_input(
     )
 
 # todo - load model
+try:
+    from transform2bin import load_model_mine, Data
+
+    with open('data.plk', 'rb') as inp:
+        d = pickle.load(inp)
+
+    x_test, _ = d.non_slidng_data(text_input, False)
+    # print(len(x_test), len(y_test))
+
+    x_valid_tokenized = d.tokenize(x_test)
+    prediction = d.model_use(x_valid_tokenized, model_file_name)
+    # print(prediction)
+    output = d.print_separation(x_test, prediction)
+except Exception as e:
+    output = e
 
 # future output box
-text_output = st.text("Changed input:" + text_input)
+out_pred = ''
+for item in prediction[0]:
+    if item > 0.5:
+        out_pred += "1"
+    else:
+        out_pred += "0"
+text_output = st.text("Prediction:" + out_pred)
+text_output = st.text("Changed input:" + str(output))
 
 # GRAPHS
 genre = st.radio(
@@ -55,4 +77,3 @@ chart_data = pd.DataFrame(ar, columns=[genre, "val_" + genre])
 
 #st.line_chart(data=None, *, x=None, y=None, color=None, width=0, height=0, use_container_width=True)
 st.line_chart(chart_data, color=["#f5ad42", "#42b9f5"])
-# st.line_chart(history[keys[1]])

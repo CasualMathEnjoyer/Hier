@@ -52,15 +52,15 @@ model_file_name = "model_to_delete"
 training_file_name = "../data/en_train.txt"
 validation_file_name = "../data/en_val.txt"
 test_file_name = "../data/en_test.txt"
-sep = ''
-mezera = ' '
+sep = ' '
+mezera = '_'
 endline = "\n"
 
 new = 0  # whether it creates a model (1) or loads a model (0)
 
 batch_size = 128
 epochs = 2
-repeat = 0  # full epoch_num=epochs*repeat
+repeat = 2  # full epoch_num=epochs*repeat
 
 class Data():
     vocab_size = 1138  # why this number here???
@@ -75,10 +75,11 @@ class Data():
 
     maxlen = 128
 
-    def __init__(self, sep, mezera):
+    def __init__(self, sep, mezera, endline):
         super().__init__()
         self.sep = sep
         self.space = mezera
+        self.endline = endline
     def tokenize_window(self, input_list):
         num_lines = len(input_list)
         out = np.zeros((num_lines, self.window))
@@ -121,18 +122,29 @@ class Data():
         valid.resize(prediction.shape)
         print("F1 score:", F1_score(prediction, valid.astype('float32')).numpy())
         return prediction
+
+    def model_use(self, sample_v, model_name):
+        model = load_model_mine(model_name)
+        prediction = model.predict(sample_v)
+        return prediction
     def print_separation(self, text, prediction):
+        output = ''
         for j in range(len(text)):
             # print(text[j])
             # print(prediction[j])
             for i, char in enumerate(text[j]):
                 if char != "<pad>":
                     print(char, end=self.sep)
+                    output += char
+                    output += self.sep
                 if prediction[j][i][0] > 0.5:
                 # if prediction[j][i] > 0.5:
                     print(self.space, end=self.sep)
+                    output += self.space
                 i+=1
             print('')
+        return output
+
     def sliding_window(self, output_file: str):  # chunks the data into chunks
         if self.sep != '':
             output_file = output_file.split(self.sep)
@@ -192,8 +204,8 @@ class Data():
         list_chars.append('<pad>')  # code 0
         list_chars.append('OOV')
 
-        if endline != '':
-            output_file = output_file.split(endline)
+        if self.endline != '':
+            output_file = output_file.split(self.endline)
         num_lines = len(output_file)
 
         binar = np.zeros((num_lines, self.maxlen))
@@ -217,6 +229,9 @@ class Data():
 
             # remove mezery
             new_splitted = [i for i in splitted if i != self.space]
+            # print(new_splitted)
+            # print(self.space)
+            # assert 0
             assert num_mezer == len([i for i in splitted if i == self.space])
 
             # pad sentence
@@ -251,60 +266,6 @@ def F1_score(y_true, y_pred):  # taken from old keras source code
     return f1_val
 def load_model_mine(model_name):
     return keras.models.load_model(model_name, custom_objects={"F1_score": F1_score})
-
-# -------------------------------- DATA ---------------------------------------------------------------------------
-print("data preparation...")
-d = Data(sep, mezera)
-with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
-    d.final_file = f.read()
-    f.close()
-with open(validation_file_name, "r", encoding="utf-8") as ff:
-    d.valid_file = ff.read()
-    ff.close()
-
-# SLIDING WINDOW
-# x_train, y_train = d.sliding_window(d.final_file)
-# x_valid, y_valid = d.sliding_window(d.valid_file)
-# x_train_tokenized = d.tokenize_window(x_train)
-# x_valid_tokenized = d.tokenize_window(x_valid)
-
-# FOR MASKING LAYER
-x_train, y_train = d.non_slidng_data(d.final_file, True)
-x_valid, y_valid = d.non_slidng_data(d.valid_file, False)
-
-# print(x_train)
-# print(d.dict_chars)
-
-x_train_tokenized = d.tokenize(x_train)
-x_valid_tokenized = d.tokenize(x_valid)
-
-# print(x_train_tokenized)
-# print(y_train)
-# print(y_train.size)
-
-assert x_train_tokenized.size == y_train.size
-
-assert d.dict_chars["<pad>"] == 0
-
-# prediction = y_train
-# print(prediction)
-# d.print_separation(x_train, prediction)
-
-
-# --------------------------------- MODEL ---------------------------------------------------------------------------
-print("model starting...")
-if new:
-    # WINDOW
-    # model = model_func(d.vocab_size, d.window, d.embed_dim, d.num_heads, d.ff_dim)
-    # NON WINDOW
-    model = model_func(d.vocab_size, d.maxlen, d.embed_dim, d.num_heads, d.ff_dim)
-else:
-    model = load_model_mine(model_file_name)
-
-model.compile(optimizer="adam", loss="binary_crossentropy",
-              metrics=["accuracy", "Precision", "Recall", F1_score])
-
-# --------------------------------- TRAINING ------------------------------------------------------------------------
 def history_dict(dict1, dict2):
     dict = {}
     if dict1 == {}:
@@ -326,42 +287,105 @@ def history_dict(dict1, dict2):
         dict[history_list[i]] = ar
     # print(dict)
     return dict
+# -------------------------------- DATA ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    print("data preparation...")
+    d = Data(sep, mezera, endline)
+    with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
+        d.final_file = f.read()
+        f.close()
+    with open(validation_file_name, "r", encoding="utf-8") as ff:
+        d.valid_file = ff.read()
+        ff.close()
 
-old_dict = {}
-dict_exist = os.path.isfile(model_file_name + '_HistoryDict')
-if dict_exist:
-    with open(model_file_name + '_HistoryDict', "rb") as file_pi:
-        old_dict = pickle.load(file_pi)
+    # SLIDING WINDOW
+    # x_train, y_train = d.sliding_window(d.final_file)
+    # x_valid, y_valid = d.sliding_window(d.valid_file)
+    # x_train_tokenized = d.tokenize_window(x_train)
+    # x_valid_tokenized = d.tokenize_window(x_valid)
 
-for i in range(repeat):
-    history = model.fit(
-        x_train_tokenized, y_train, batch_size=batch_size, epochs=epochs,
-        validation_data=(x_valid_tokenized, y_valid))
-    model.save(model_file_name)
+    # FOR MASKING LAYER
+    x_train, y_train = d.non_slidng_data(d.final_file, True)
+    x_valid, y_valid = d.non_slidng_data(d.valid_file, False)
 
-    hh = history_dict(old_dict, history.history)
-    old_dict = hh
-    with open(model_file_name + '_HistoryDict', 'wb') as file_pi:
-        pickle.dump(hh, file_pi)
-    K.clear_session()
-# ---------------------------------- TESTING ------------------------------------------------------------------------
-print("testing...")
+    # print(x_train)
+    # print(d.dict_chars)
 
-with open(test_file_name, "r", encoding="utf-8") as f:  # with spaces
-    test_file = f.read()
-    f.close()
+    x_train_tokenized = d.tokenize(x_train)
+    x_valid_tokenized = d.tokenize(x_valid)
 
-# for sliding window
-# sample_x, sample_y = d.sliding_window(test_file[:9600])
-# x_valid_tokenized = d.tokenize_window(x_valid)
-# prediction = d.model_test(sample_x, sample_y, model_file_name)
-# d.print_separation(sample_x, prediction)
+    # print(x_train_tokenized)
+    # print(y_train)
+    # print(y_train.size)
 
-# for masking layer
-x_test, y_test = d.non_slidng_data(test_file[:9600], False)
-# print(len(x_test), len(y_test))
+    assert x_train_tokenized.size == y_train.size
 
-x_valid_tokenized = d.tokenize(x_test)
-prediction = d.model_test(x_valid_tokenized, y_test, model_file_name)
-# print(prediction)
-d.print_separation(x_test, prediction)
+    assert d.dict_chars["<pad>"] == 0
+
+    # prediction = y_train
+    # print(prediction)
+    # d.print_separation(x_train, prediction)
+
+    # SAVE PARAMETERS:
+    def save_object(obj, filename):
+        with open(filename, 'wb') as outp:  # Overwrites any existing file.
+            pickle.dump(obj, outp, pickle.HIGHEST_PROTOCOL)
+
+    # sample usage
+    save_object(d, 'data.plk')
+
+    # --------------------------------- MODEL ---------------------------------------------------------------------------
+    print("model starting...")
+    if new:
+        # WINDOW
+        # model = model_func(d.vocab_size, d.window, d.embed_dim, d.num_heads, d.ff_dim)
+        # NON WINDOW
+        model = model_func(d.vocab_size, d.maxlen, d.embed_dim, d.num_heads, d.ff_dim)
+    else:
+        model = load_model_mine(model_file_name)
+
+    model.compile(optimizer="adam", loss="binary_crossentropy",
+                  metrics=["accuracy", "Precision", "Recall", F1_score])
+
+    # --------------------------------- TRAINING ------------------------------------------------------------------------
+
+    old_dict = {}
+    dict_exist = os.path.isfile(model_file_name + '_HistoryDict')
+    if dict_exist:
+        with open(model_file_name + '_HistoryDict', "rb") as file_pi:
+            old_dict = pickle.load(file_pi)
+
+    for i in range(repeat):
+        history = model.fit(
+            x_train_tokenized, y_train, batch_size=batch_size, epochs=epochs,
+            validation_data=(x_valid_tokenized, y_valid))
+        model.save(model_file_name)
+
+        hh = history_dict(old_dict, history.history)
+        old_dict = hh
+        with open(model_file_name + '_HistoryDict', 'wb') as file_pi:
+            pickle.dump(hh, file_pi)
+        K.clear_session()
+    # ---------------------------------- TESTING ------------------------------------------------------------------------
+    print("testing...")
+
+    with open(test_file_name, "r", encoding="utf-8") as f:  # with spaces
+        test_file = f.read()
+        f.close()
+
+    # for sliding window
+    # sample_x, sample_y = d.sliding_window(test_file[:9600])
+    # x_valid_tokenized = d.tokenize_window(x_valid)
+    # prediction = d.model_test(sample_x, sample_y, model_file_name)
+    # d.print_separation(sample_x, prediction)
+
+    # for masking layer
+    x_test, y_test = d.non_slidng_data(test_file[:9600], False)
+    # print(len(x_test), len(y_test))
+    print(test_file[:9600][0])
+    print(x_test[0])
+
+    x_valid_tokenized = d.tokenize(x_test)
+    prediction = d.model_test(x_valid_tokenized, y_test, model_file_name)
+    # print(prediction)
+    d.print_separation(x_test, prediction)

@@ -49,9 +49,9 @@ print("seed = ", a)
 # test_file_name = "../data/smallvoc_fr.txt"
 
 model_file_name = "model_to_delete"
-training_file_name = "../data/smallervoc_en.txt"
-validation_file_name = "../data/smallervoc_en.txt"
-test_file_name = "../data/smallervoc_en.txt"
+training_file_name = "../data/en_train.txt"
+validation_file_name = "../data/en_val.txt"
+test_file_name = "../data/en_test.txt"
 sep = ''
 mezera = ' '
 endline = "\n"
@@ -59,8 +59,8 @@ endline = "\n"
 new = 0  # whether it creates a model (1) or loads a model (0)
 
 batch_size = 128
-epochs = 16
-repeat = 4  # full epoch_num=epochs*repeat
+epochs = 2
+repeat = 0  # full epoch_num=epochs*repeat
 
 class Data():
     vocab_size = 1138  # why this number here???

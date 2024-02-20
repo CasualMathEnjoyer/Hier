@@ -6,7 +6,7 @@ model_file_name = "model_to_delete"
 with open(model_file_name + '_HistoryDict', "rb") as file_pi:
     history = pickle.load(file_pi)
 
-print(list(history.keys()))
+# print(list(history.keys()))
 print(list(history))
 print(history)
 

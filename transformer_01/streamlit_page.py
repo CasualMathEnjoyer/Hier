@@ -3,6 +3,7 @@ import pandas as pd
 import pickle
 # streamlit run your_script.py
 
+from transform2bin import load_model_mine, Data
 model_file_name = "model_to_delete"
 
 with open(model_file_name + '_HistoryDict', "rb") as file_pi:
@@ -20,6 +21,27 @@ if "visibility" not in st.session_state:
     st.session_state.disabled = False
     st.session_state.placeholder = "Enter text"
 
+# @st.cache_data
+
+def data():
+    try:
+        with open('data.plk', 'rb') as inp:
+            d = pickle.load(inp)
+
+        d.sep = ''
+        d.space = " "
+
+        x_test, _ = d.non_slidng_data(text_input, False)
+        # print(len(x_test), len(y_test))
+
+        x_valid_tokenized = d.tokenize(x_test)
+        prediction = d.model_use(x_valid_tokenized, model_file_name)
+        # print(prediction)
+        output = d.print_separation(x_test, prediction)
+    except Exception as e:
+        output = e
+    return output
+
 # input box
 text_input = st.text_input(
         "Enter text 👇",
@@ -28,32 +50,21 @@ text_input = st.text_input(
         placeholder=st.session_state.placeholder,
     )
 
-# todo - load model
-try:
-    from transform2bin import load_model_mine, Data
-
-    with open('data.plk', 'rb') as inp:
-        d = pickle.load(inp)
-
-    x_test, _ = d.non_slidng_data(text_input, False)
-    # print(len(x_test), len(y_test))
-
-    x_valid_tokenized = d.tokenize(x_test)
-    prediction = d.model_use(x_valid_tokenized, model_file_name)
-    # print(prediction)
-    output = d.print_separation(x_test, prediction)
-except Exception as e:
-    output = e
+if st.button('Separate'):
+    output = data()
 
 # future output box
-out_pred = ''
-for item in prediction[0]:
-    if item > 0.5:
-        out_pred += "1"
-    else:
-        out_pred += "0"
-text_output = st.text("Prediction:" + out_pred)
-text_output = st.text("Changed input:" + str(output))
+# out_pred = ''
+# for item in prediction[0]:
+#     if item > 0.5:
+#         out_pred += "1"
+#     else:
+#         out_pred += "0"
+# text_output = st.text("Prediction:" + out_pred)
+try:
+    text_output = st.text("OUTPUT:" + str(output))
+except Exception:
+    text_output = st.text("OUTPUT:")
 
 # GRAPHS
 genre = st.radio(

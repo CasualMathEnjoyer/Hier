@@ -1,5 +1,8 @@
 # Hier
-Machine learning translation of hieroglyphs
+This is a work-in-progress repository containing both successful and unsuccessful attempts for my Bachelor Thesis Project: **Machine learning translation of hieroglyphs**. 
+
+One day, a clean repository will be published.
+It won't be today.
 
 ## hier2bin
 BiLSTM  

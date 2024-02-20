@@ -126,7 +126,8 @@ class TransformerDecoder(layers.Layer):
         )
         return config
 
-def Encoder
+def Encoder():
+    pass
 
 def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
     embed_dim = 32

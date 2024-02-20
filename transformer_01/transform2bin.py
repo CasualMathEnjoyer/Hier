@@ -45,7 +45,9 @@ print("seed = ", a)
 # training_file_name = "../data/smallvoc_fr.txt"
 # validation_file_name = "../data/smallvoc_fr.txt"
 # test_file_name = "../data/smallvoc_fr.txt"
-model_file_name = "transform2bin_eng"
+
+model_file_name = "transform2bin_eng_mask"
+history_file_name = "history.npy"
 training_file_name = "../data/smallvoc_en.txt"
 validation_file_name = "../data/smallvoc_en.txt"
 test_file_name = "../data/smallvoc_en.txt"
@@ -56,8 +58,8 @@ endline = "\n"
 new = 0  # whether it creates a model (1) or loads a model (0)
 
 batch_size = 128
-epochs = 2
-repeat = 0  # full epoch_num=epochs*repeat
+epochs = 1
+repeat = 1  # full epoch_num=epochs*repeat
 
 class Data():
     vocab_size = 1138
@@ -108,24 +110,25 @@ class Data():
             out[i] = l
         print("unknown chars in text: ", unk_counter)
         return(out)
-    def model_test(self, sample:list, valid, model_name, sample_len):
+    def model_test(self, sample_v, valid, model_name):
         model = load_model_mine(model_name)
 
-        sample_v = self.tokenize(sample)
-        value = model.predict(sample_v)  # has to be in the shape of the input for it to predict
+        prediction = model.predict(sample_v)  # has to be in the shape of the input for it to predict
 
-        for j in range(sample_len):
-            for i, char in enumerate(sample[j]):
-                print(char, end=self.sep)
-                if value[j][i][0] > 0.5:
+        print(len(valid), len(prediction))
+        assert len(valid) == len(prediction)
+        valid.resize(prediction.shape)
+        print("F1 score:", F1_score(prediction, valid.astype('float32')).numpy())
+        return prediction
+    def print_separation(self, text, prediction):
+        for j in range(len(text)):
+            for i, char in enumerate(text[j]):
+                if char != "<pad>":
+                    print(char, end=self.sep)
+                if prediction[j][i][0] > 0.5:
                     print(self.space, end=self.sep)
                 i+=1
             print('')
-
-        assert len(valid) == len(value)
-        valid.resize(value.shape)
-        print("F1 score:", F1_score(value, valid.astype('float32')).numpy())
-
     def sliding_window(self, output_file: str):  # chunks the data into chunks
         if self.sep != '':
             output_file = output_file.split(self.sep)
@@ -178,7 +181,6 @@ class Data():
             self.dict_chars = dict_chars
         # print(self.dict_chars)
         return re_windowed, re_binar
-
     def non_slidng_data(self, output_file: str, create_dict: bool):  # chunks the data into chunks
         output_file_pad = []
         binar, list_chars = [], []
@@ -256,28 +258,37 @@ with open(validation_file_name, "r", encoding="utf-8") as ff:
     d.valid_file = ff.read()
     ff.close()
 
-# window training:
+# SLIDING WINDOW
 # x_train, y_train = d.sliding_window(d.final_file)
 # x_valid, y_valid = d.sliding_window(d.valid_file)
-
 # x_train_tokenized = d.tokenize_window(x_train)
 # x_valid_tokenized = d.tokenize_window(x_valid)
 
+# FOR MASKING LAYER
 x_train, y_train = d.non_slidng_data(d.final_file, True)
 x_valid, y_valid = d.non_slidng_data(d.valid_file, False)
 
-print(x_train)
-print(d.dict_chars)
+# print(x_train)
+# print(d.dict_chars)
 
 x_train_tokenized = d.tokenize(x_train)
 x_valid_tokenized = d.tokenize(x_valid)
 
-assert 0
+# print(x_train_tokenized)
+# print(y_train)
+# print(y_train.size)
+
+assert x_train_tokenized.size == y_train.size
+
+assert d.dict_chars["<pad>"] == 0
 
 # --------------------------------- MODEL ---------------------------------------------------------------------------
 print("model starting...")
 if new:
-    model = model_func(d.vocab_size, d.window, d.embed_dim, d.num_heads, d.ff_dim)
+    # WINDOW
+    # model = model_func(d.vocab_size, d.window, d.embed_dim, d.num_heads, d.ff_dim)
+    # NON WINDOW
+    model = model_func(d.vocab_size, d.maxlen, d.embed_dim, d.num_heads, d.ff_dim)
 else:
     model = load_model_mine(model_file_name)
 
@@ -290,8 +301,8 @@ for i in range(repeat):
         x_train_tokenized, y_train, batch_size=batch_size, epochs=epochs,
         validation_data=(x_valid_tokenized, y_valid))
     model.save(model_file_name)
+    np.save(history_file_name, history)  # save numpy array
     K.clear_session()
-
 # ---------------------------------- TESTING ------------------------------------------------------------------------
 print("testing...")
 
@@ -300,7 +311,16 @@ with open(test_file_name, "r", encoding="utf-8") as f:  # with spaces
     f.close()
 
 # for sliding window
-sample_x, sample_y = d.sliding_window(test_file[:9600])
-d.model_test(sample_x, sample_y, model_file_name, len(sample_x))
+# sample_x, sample_y = d.sliding_window(test_file[:9600])
+# x_valid_tokenized = d.tokenize_window(x_valid)
+# prediction = d.model_test(sample_x, sample_y, model_file_name)
+# d.print_separation(sample_x, prediction)
 
 # for masking layer
+x_test, y_test = d.non_slidng_data(test_file[:9600], False)
+print(len(x_test), len(y_test))
+
+x_valid_tokenized = d.tokenize(x_test)
+prediction = d.model_test(x_valid_tokenized, y_test, model_file_name)
+print(prediction)
+d.print_separation(x_test, prediction)

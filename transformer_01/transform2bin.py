@@ -8,6 +8,7 @@ import keras
 from keras.utils import set_random_seed
 from keras import backend as K
 import pickle
+import os
 
 print("starting transform2bin")
 
@@ -48,7 +49,6 @@ print("seed = ", a)
 # test_file_name = "../data/smallvoc_fr.txt"
 
 model_file_name = "model_to_delete"
-history_file_name = "history.npy"
 training_file_name = "../data/smallervoc_en.txt"
 validation_file_name = "../data/smallervoc_en.txt"
 test_file_name = "../data/smallervoc_en.txt"
@@ -56,11 +56,11 @@ sep = ''
 mezera = ' '
 endline = "\n"
 
-new = 1  # whether it creates a model (1) or loads a model (0)
+new = 0  # whether it creates a model (1) or loads a model (0)
 
 batch_size = 128
-epochs = 2
-repeat = 2  # full epoch_num=epochs*repeat
+epochs = 16
+repeat = 4  # full epoch_num=epochs*repeat
 
 class Data():
     vocab_size = 1138  # why this number here???
@@ -123,10 +123,13 @@ class Data():
         return prediction
     def print_separation(self, text, prediction):
         for j in range(len(text)):
+            # print(text[j])
+            # print(prediction[j])
             for i, char in enumerate(text[j]):
                 if char != "<pad>":
                     print(char, end=self.sep)
                 if prediction[j][i][0] > 0.5:
+                # if prediction[j][i] > 0.5:
                     print(self.space, end=self.sep)
                 i+=1
             print('')
@@ -209,7 +212,7 @@ class Data():
                     list_chars.append(element)
                 if element == self.space:
                     assert j > 0
-                    binar[i][j-1] = 1  # o jedno predchozi character je nastaveny jako posledni
+                    binar[i][j-1-num_mezer] = 1  # o jedno predchozi character je nastaveny jako posledni
                     num_mezer += 1
 
             # remove mezery
@@ -283,6 +286,11 @@ assert x_train_tokenized.size == y_train.size
 
 assert d.dict_chars["<pad>"] == 0
 
+# prediction = y_train
+# print(prediction)
+# d.print_separation(x_train, prediction)
+
+
 # --------------------------------- MODEL ---------------------------------------------------------------------------
 print("model starting...")
 if new:
@@ -309,26 +317,31 @@ def history_dict(dict1, dict2):
 
     for i in range(len(dict1.keys())):
         history_list = list(dict1.keys())
-        print(history_list[i])
+        # print(history_list[i])
         ar = []
         for item in dict1[history_list[i]]:
             ar.append(item)
         for item in dict2[history_list[i]]:
             ar.append(item)
-        print("ar:", ar)
         dict[history_list[i]] = ar
-    print(dict)
+    # print(dict)
     return dict
 
 old_dict = {}
+dict_exist = os.path.isfile(model_file_name + '_HistoryDict')
+if dict_exist:
+    with open(model_file_name + '_HistoryDict', "rb") as file_pi:
+        old_dict = pickle.load(file_pi)
+
 for i in range(repeat):
     history = model.fit(
         x_train_tokenized, y_train, batch_size=batch_size, epochs=epochs,
         validation_data=(x_valid_tokenized, y_valid))
     model.save(model_file_name)
+
     hh = history_dict(old_dict, history.history)
     old_dict = hh
-    with open('trainHistoryDict', 'wb') as file_pi:
+    with open(model_file_name + '_HistoryDict', 'wb') as file_pi:
         pickle.dump(hh, file_pi)
     K.clear_session()
 # ---------------------------------- TESTING ------------------------------------------------------------------------

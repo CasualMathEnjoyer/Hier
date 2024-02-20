@@ -7,6 +7,7 @@ from model_file import model_func
 import keras
 from keras.utils import set_random_seed
 from keras import backend as K
+import pickle
 
 print("starting transform2bin")
 
@@ -46,23 +47,23 @@ print("seed = ", a)
 # validation_file_name = "../data/smallvoc_fr.txt"
 # test_file_name = "../data/smallvoc_fr.txt"
 
-model_file_name = "transform2bin_eng_mask"
+model_file_name = "model_to_delete"
 history_file_name = "history.npy"
-training_file_name = "../data/smallvoc_en.txt"
-validation_file_name = "../data/smallvoc_en.txt"
-test_file_name = "../data/smallvoc_en.txt"
+training_file_name = "../data/smallervoc_en.txt"
+validation_file_name = "../data/smallervoc_en.txt"
+test_file_name = "../data/smallervoc_en.txt"
 sep = ''
 mezera = ' '
 endline = "\n"
 
-new = 0  # whether it creates a model (1) or loads a model (0)
+new = 1  # whether it creates a model (1) or loads a model (0)
 
 batch_size = 128
-epochs = 1
-repeat = 1  # full epoch_num=epochs*repeat
+epochs = 2
+repeat = 2  # full epoch_num=epochs*repeat
 
 class Data():
-    vocab_size = 1138
+    vocab_size = 1138  # why this number here???
     embed_dim = 32      # Embedding size for each token
     num_heads = 2       # Number of attention heads
     ff_dim = 64         # Hidden layer size in feed forward network inside transformer
@@ -296,12 +297,39 @@ model.compile(optimizer="adam", loss="binary_crossentropy",
               metrics=["accuracy", "Precision", "Recall", F1_score])
 
 # --------------------------------- TRAINING ------------------------------------------------------------------------
+def history_dict(dict1, dict2):
+    dict = {}
+    if dict1 == {}:
+        dict = dict2
+
+    if dict1.keys() == dict2.keys():
+        pass
+    else:
+        print(dict1.keys(), " != ", dict2.keys())
+
+    for i in range(len(dict1.keys())):
+        history_list = list(dict1.keys())
+        print(history_list[i])
+        ar = []
+        for item in dict1[history_list[i]]:
+            ar.append(item)
+        for item in dict2[history_list[i]]:
+            ar.append(item)
+        print("ar:", ar)
+        dict[history_list[i]] = ar
+    print(dict)
+    return dict
+
+old_dict = {}
 for i in range(repeat):
     history = model.fit(
         x_train_tokenized, y_train, batch_size=batch_size, epochs=epochs,
         validation_data=(x_valid_tokenized, y_valid))
     model.save(model_file_name)
-    np.save(history_file_name, history)  # save numpy array
+    hh = history_dict(old_dict, history.history)
+    old_dict = hh
+    with open('trainHistoryDict', 'wb') as file_pi:
+        pickle.dump(hh, file_pi)
     K.clear_session()
 # ---------------------------------- TESTING ------------------------------------------------------------------------
 print("testing...")
@@ -318,9 +346,9 @@ with open(test_file_name, "r", encoding="utf-8") as f:  # with spaces
 
 # for masking layer
 x_test, y_test = d.non_slidng_data(test_file[:9600], False)
-print(len(x_test), len(y_test))
+# print(len(x_test), len(y_test))
 
 x_valid_tokenized = d.tokenize(x_test)
 prediction = d.model_test(x_valid_tokenized, y_test, model_file_name)
-print(prediction)
+# print(prediction)
 d.print_separation(x_test, prediction)

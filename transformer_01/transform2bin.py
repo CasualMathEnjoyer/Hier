@@ -15,6 +15,8 @@ print("starting transform2bin")
 # TODO implement the K cross sections thing thing for data processing
 # TODO WINDOW fix data at the end of file - flip around?
 
+# TODO my testing F1 score is significantly lower than the traing one
+
 # check this library: https://github.com/evidentlyai/evidently
 
 a = random.randrange(0, 2**32 - 1)
@@ -35,12 +37,15 @@ print("seed = ", a)
 
 # v datasetu momentale 203 znaku zastoupeno pouze jednou
 
+# class_data = "hiero_data.plk"
 # model_file_name = "transform2bin_4"
 # training_file_name = "../data/src-sep-train.txt"
 # validation_file_name = "../data/src-sep-val.txt"
 # test_file_name = "../data/src-sep-test.txt"
 # sep = ' '
 # mezera = '_'
+# endline = "\n"
+
 
 # model_file_name = "transform2bin_french"
 # training_file_name = "../data/smallvoc_fr.txt"
@@ -61,10 +66,10 @@ new_class_d = 0
 
 batch_size = 128
 epochs = 1
-repeat = 1  # full epoch_num=epochs*repeat
+repeat = 0  # full epoch_num=epochs*repeat
 
 class Data():
-    vocab_size = 1138  # why this number here???
+    vocab_size = 0   # gets inicialised to the size of dict
     embed_dim = 32      # Embedding size for each token
     num_heads = 2       # Number of attention heads
     ff_dim = 64         # Hidden layer size in feed forward network inside transformer
@@ -87,6 +92,7 @@ class Data():
         self.sep = sep
         self.space = mezera
         self.endline = endline
+
     def tokenize_window(self, input_list):
         num_lines = len(input_list)
         out = np.zeros((num_lines, self.window))
@@ -124,12 +130,33 @@ class Data():
 
         prediction = model.predict(sample_v)  # has to be in the shape of the input for it to predict
 
-        print(len(valid), len(prediction))
         assert len(valid) == len(prediction)
-        valid.resize(prediction.shape)
-        print("F1 score:", F1_score(prediction, valid.astype('float32')).numpy())
-        return prediction
+        for i in range(len(valid)):
+            assert len(valid[i]) == len(prediction[i])
 
+        valid.resize(prediction.shape)  # resize to the sahpe of prediction
+
+        # metrics
+        accuracy_metric = keras.metrics.BinaryAccuracy()  # binary includes threshold=0.5
+        accuracy_metric.update_state(valid, prediction)
+        acc = accuracy_metric.result().numpy()
+
+        precision_metrics = keras.metrics.Precision(thresholds=0.5)
+        precision_metrics.update_state(valid, prediction)
+        prec = precision_metrics.result().numpy()
+
+        recall_metrics = keras.metrics.Recall(thresholds=0.5)
+        recall_metrics.update_state(valid, prediction)
+        rec = recall_metrics.result().numpy()
+
+        f1 = F1_score(prediction, valid.astype('float32')).numpy()
+
+        print("Accuracy:", acc)
+        print("Precision:", prec)
+        print("Recall:", rec)
+        print("F1 score:", f1)
+
+        return prediction, [acc, prec, rec, f1]
     def model_use(self, sample_v, model_name):
         model = load_model_mine(model_name)
         prediction = model.predict(sample_v)
@@ -151,7 +178,6 @@ class Data():
                 i+=1
             print('')
         return output
-
     def sliding_window(self, output_file: str):  # chunks the data into chunks
         if self.sep != '':
             output_file = output_file.split(self.sep)
@@ -231,8 +257,10 @@ class Data():
                     list_chars.append(element)
                 if element == self.space:
                     assert j > 0
-                    binar[i][j-1-num_mezer] = 1  # o jedno predchozi character je nastaveny jako posledni
-                    num_mezer += 1
+                    if j-1-num_mezer < self.maxlen:
+                        binar[i][j-1-num_mezer] = 1  # o jedno predchozi character je nastaveny jako posledni
+                    num_mezer += 1  # num mezer in the whole unpadded unshortened text
+                    # others dont get processed in terms of spaces
 
             # remove mezery
             new_splitted = [i for i in splitted if i != self.space]
@@ -259,6 +287,7 @@ class Data():
         if create_dict:
             dict_chars = {j: i for i, j in enumerate(list_chars)}
             self.dict_chars = dict_chars
+            self.vocab_size = len(dict_chars)
 
         return output_file_pad, binar
 
@@ -376,8 +405,13 @@ if __name__ == "__main__":
     old_dict = {}
     dict_exist = os.path.isfile(model_file_name + '_HistoryDict')
     if dict_exist:
-        with open(model_file_name + '_HistoryDict', "rb") as file_pi:
-            old_dict = pickle.load(file_pi)
+        if new:
+            q = input("Dict exist but we create a new one, ok?")
+            if q == "ok":
+                with open(model_file_name + '_HistoryDict', "rb") as file_pi:
+                    old_dict = pickle.load(file_pi)
+            else:
+                raise Exception("Dont do this")
 
     for i in range(repeat):
         history = model.fit(
@@ -404,12 +438,12 @@ if __name__ == "__main__":
     # d.print_separation(sample_x, prediction)
 
     # for masking layer
-    x_test, y_test = d.non_slidng_data(test_file[:9600], False)
+    x_test, y_test = d.non_slidng_data(test_file, False)
     # print(len(x_test), len(y_test))
-    print(test_file[:9600][0])
-    print(x_test[0])
+
+    # print(x_test[0])
 
     x_valid_tokenized = d.tokenize(x_test)
-    prediction = d.model_test(x_valid_tokenized, y_test, model_file_name)
+    prediction, metrics = d.model_test(x_valid_tokenized, y_test, model_file_name)
     # print(prediction)
-    d.print_separation(x_test, prediction)
+    # d.print_separation(x_test, prediction)

@@ -13,8 +13,7 @@ import os
 print("starting transform2bin")
 
 # TODO implement the K cross sections thing thing for data processing
-# TODO fix data at the end of file - flip around?
-# TODO - save class specs into json so you dont have to process the data all the time
+# TODO WINDOW fix data at the end of file - flip around?
 
 # check this library: https://github.com/evidentlyai/evidently
 
@@ -48,6 +47,7 @@ print("seed = ", a)
 # validation_file_name = "../data/smallvoc_fr.txt"
 # test_file_name = "../data/smallvoc_fr.txt"
 
+class_data = "data.plk"
 model_file_name = "model_to_delete"
 training_file_name = "../data/en_train.txt"
 validation_file_name = "../data/en_val.txt"
@@ -57,10 +57,11 @@ mezera = '_'
 endline = "\n"
 
 new = 0  # whether it creates a model (1) or loads a model (0)
+new_class_d = 0
 
 batch_size = 128
-epochs = 2
-repeat = 2  # full epoch_num=epochs*repeat
+epochs = 1
+repeat = 1  # full epoch_num=epochs*repeat
 
 class Data():
     vocab_size = 1138  # why this number here???
@@ -69,6 +70,12 @@ class Data():
     ff_dim = 64         # Hidden layer size in feed forward network inside transformer
 
     final_file, valid_file = '', ''
+
+    x_train, y_train = '', ''
+    x_train_tok = ''
+    x_valid, y_valid = '', ''
+    x_valid_tok = ''
+
     dict_chars = {}
 
     window, step = 64, 20
@@ -289,50 +296,67 @@ def history_dict(dict1, dict2):
     return dict
 # -------------------------------- DATA ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    print("data preparation...")
-    d = Data(sep, mezera, endline)
-    with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
-        d.final_file = f.read()
-        f.close()
-    with open(validation_file_name, "r", encoding="utf-8") as ff:
-        d.valid_file = ff.read()
-        ff.close()
+    if new_class_d:
+        print("data preparation...")
+        d = Data(sep, mezera, endline)
+        with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
+            d.final_file = f.read()
+            f.close()
+        with open(validation_file_name, "r", encoding="utf-8") as ff:
+            d.valid_file = ff.read()
+            ff.close()
 
-    # SLIDING WINDOW
-    # x_train, y_train = d.sliding_window(d.final_file)
-    # x_valid, y_valid = d.sliding_window(d.valid_file)
-    # x_train_tokenized = d.tokenize_window(x_train)
-    # x_valid_tokenized = d.tokenize_window(x_valid)
+        # SLIDING WINDOW
+        # x_train, y_train = d.sliding_window(d.final_file)
+        # x_valid, y_valid = d.sliding_window(d.valid_file)
+        # x_train_tokenized = d.tokenize_window(x_train)
+        # x_valid_tokenized = d.tokenize_window(x_valid)
 
-    # FOR MASKING LAYER
-    x_train, y_train = d.non_slidng_data(d.final_file, True)
-    x_valid, y_valid = d.non_slidng_data(d.valid_file, False)
+        # FOR MASKING LAYER
+        x_train, y_train = d.non_slidng_data(d.final_file, True)
+        x_valid, y_valid = d.non_slidng_data(d.valid_file, False)
 
-    # print(x_train)
-    # print(d.dict_chars)
+        d.x_train = x_train
+        d.y_train = y_train
+        d.x_valid = x_valid
+        d.y_valid = y_valid
 
-    x_train_tokenized = d.tokenize(x_train)
-    x_valid_tokenized = d.tokenize(x_valid)
+        # print(x_train)
+        # print(d.dict_chars)
 
-    # print(x_train_tokenized)
-    # print(y_train)
-    # print(y_train.size)
+        x_train_tokenized = d.tokenize(x_train)
+        x_valid_tokenized = d.tokenize(x_valid)
 
-    assert x_train_tokenized.size == y_train.size
+        d.x_train_tok = x_train_tokenized
+        d.x_valid_tok = x_valid_tokenized
 
-    assert d.dict_chars["<pad>"] == 0
+        # print(x_train_tokenized)
+        # print(y_train)
+        # print(y_train.size)
 
-    # prediction = y_train
-    # print(prediction)
-    # d.print_separation(x_train, prediction)
+        assert x_train_tokenized.size == y_train.size
 
-    # SAVE PARAMETERS:
-    def save_object(obj, filename):
-        with open(filename, 'wb') as outp:  # Overwrites any existing file.
-            pickle.dump(obj, outp, pickle.HIGHEST_PROTOCOL)
+        assert d.dict_chars["<pad>"] == 0
 
-    # sample usage
-    save_object(d, 'data.plk')
+        # print(x_train[0])
+        # print(x_valid_tokenized[0])
+        # prediction = y_train
+        # print(prediction[0])
+        # d.print_separation(x_train[0], prediction[0])
+        # assert 0
+
+
+        # SAVE PARAMETERS:
+        def save_object(obj, filename):
+            with open(filename, 'wb') as outp:  # Overwrites any existing file.
+                pickle.dump(obj, outp, pickle.HIGHEST_PROTOCOL)
+
+        # sample usage
+        save_object(d, class_data)
+    else:
+        print("loading class data")
+        with open(class_data, 'rb') as inp:
+            d = pickle.load(inp)
 
     # --------------------------------- MODEL ---------------------------------------------------------------------------
     print("model starting...")
@@ -357,8 +381,8 @@ if __name__ == "__main__":
 
     for i in range(repeat):
         history = model.fit(
-            x_train_tokenized, y_train, batch_size=batch_size, epochs=epochs,
-            validation_data=(x_valid_tokenized, y_valid))
+            d.x_train_tok, d.y_train, batch_size=batch_size, epochs=epochs,
+            validation_data=(d.x_valid_tok, d.y_valid))
         model.save(model_file_name)
 
         hh = history_dict(old_dict, history.history)

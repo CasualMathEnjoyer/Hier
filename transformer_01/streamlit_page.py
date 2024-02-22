@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import pickle
 from transform2bin import load_model_mine, Data
-# streamlit run your_script.py
+# cd C:\Users\katka\PycharmProjects\Hier\transformer_01
+# streamlit run streamlit_page.py
 
 def data(text_input):
     try:

@@ -36,15 +36,16 @@ print("seed = ", a)
 # False Negative = missed space -> should be spaced but it didnt
 
 # v datasetu momentale 203 znaku zastoupeno pouze jednou
-
-# class_data = "hiero_data.plk"
-# model_file_name = "transform2bin_4"
-# training_file_name = "../data/src-sep-train.txt"
-# validation_file_name = "../data/src-sep-val.txt"
-# test_file_name = "../data/src-sep-test.txt"
-# sep = ' '
-# mezera = '_'
-# endline = "\n"
+# loss_function = "binary_focal_crossentropy"
+loss_function = "binary_crossentropy"
+class_data = "hiero_data.plk"
+model_file_name = "transform2bin_4"
+training_file_name = "../data/src-sep-train.txt"
+validation_file_name = "../data/src-sep-val.txt"
+test_file_name = "../data/src-sep-test.txt"
+sep = ' '
+mezera = '_'
+endline = "\n"
 
 
 # model_file_name = "transform2bin_french"
@@ -52,24 +53,25 @@ print("seed = ", a)
 # validation_file_name = "../data/smallvoc_fr.txt"
 # test_file_name = "../data/smallvoc_fr.txt"
 
-class_data = "data.plk"
-model_file_name = "model_to_delete"
-training_file_name = "../data/en_train.txt"
-validation_file_name = "../data/en_val.txt"
-test_file_name = "../data/en_test.txt"
-sep = ' '
-mezera = '_'
-endline = "\n"
+# class_data = "data.plk"
+# model_file_name = "model_to_delete"
+# training_file_name = "../data/en_train.txt"
+# validation_file_name = "../data/en_val.txt"
+# test_file_name = "../data/en_test.txt"
+# sep = ' '
+# mezera = '_'
+# endline = "\n"
 
-new = 0  # whether it creates a model (1) or loads a model (0)
-new_class_d = 0
+new = 1  # whether it creates a model (1) or loads a model (0)
+new_class_d = 1
 
 batch_size = 128
-epochs = 1
-repeat = 0  # full epoch_num=epochs*repeat
+epochs = 2
+repeat = 10  # full epoch_num=epochs*repeat
 
 class Data():
-    vocab_size = 0   # gets inicialised to the size of dict
+    vocab_size = 0      # gets inicialised to the size of dict - if i want to extend with more data
+                        # i need to have initially greater vocab size
     embed_dim = 32      # Embedding size for each token
     num_heads = 2       # Number of attention heads
     ff_dim = 64         # Hidden layer size in feed forward network inside transformer
@@ -397,7 +399,8 @@ if __name__ == "__main__":
     else:
         model = load_model_mine(model_file_name)
 
-    model.compile(optimizer="adam", loss="binary_crossentropy",
+    model.compile(optimizer="adam",
+                  loss=loss_function,
                   metrics=["accuracy", "Precision", "Recall", F1_score])
 
     # --------------------------------- TRAINING ------------------------------------------------------------------------
@@ -408,11 +411,15 @@ if __name__ == "__main__":
         if new:
             q = input("Dict exist but we create a new one, ok?")
             if q == "ok":
+                pass
+            else:
                 with open(model_file_name + '_HistoryDict', "rb") as file_pi:
                     old_dict = pickle.load(file_pi)
-            else:
                 raise Exception("Dont do this")
-
+        else:
+            with open(model_file_name + '_HistoryDict', "rb") as file_pi:
+                old_dict = pickle.load(file_pi)
+# FITTING
     for i in range(repeat):
         history = model.fit(
             d.x_train_tok, d.y_train, batch_size=batch_size, epochs=epochs,
@@ -438,7 +445,7 @@ if __name__ == "__main__":
     # d.print_separation(sample_x, prediction)
 
     # for masking layer
-    x_test, y_test = d.non_slidng_data(test_file, False)
+    x_test, y_test = d.non_slidng_data(test_file[:10000], False)
     # print(len(x_test), len(y_test))
 
     # print(x_test[0])
@@ -446,4 +453,4 @@ if __name__ == "__main__":
     x_valid_tokenized = d.tokenize(x_test)
     prediction, metrics = d.model_test(x_valid_tokenized, y_test, model_file_name)
     # print(prediction)
-    # d.print_separation(x_test, prediction)
+    d.print_separation(x_test, prediction)

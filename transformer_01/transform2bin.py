@@ -35,24 +35,6 @@ set_random_seed(a)
 
 # v datasetu momentale 203 znaku zastoupeno pouze jednou
 
-
-model_file_name = "transform2bin_d"
-class_data = model_file_name + "_data.plk"
-
-training_file_name = "../data/src-sep-train.txt"
-validation_file_name = "../data/src-sep-val.txt"
-test_file_name = "../data/src-sep-test.txt"
-sep = ' '
-mezera = '_'
-endline = "\n"
-
-
-# model_file_name = "transform2bin_french"
-# training_file_name = "../data/smallvoc_fr.txt"
-# validation_file_name = "../data/smallvoc_fr.txt"
-# test_file_name = "../data/smallvoc_fr.txt"
-
-# class_data = "data.plk"
 # model_file_name = "model_to_delete"
 # training_file_name = "../data/en_train.txt"
 # validation_file_name = "../data/en_val.txt"
@@ -61,8 +43,20 @@ endline = "\n"
 # mezera = '_'
 # endline = "\n"
 
-new = 1  # whether it creates a model (1) or loads a model (0)
-new_class_d = 1
+model_file_name = "transform2bin_focal"
+training_file_name = "../data/src-sep-train.txt"
+validation_file_name = "../data/src-sep-val.txt"
+test_file_name = "../data/src-sep-test.txt"
+sep = ' '
+mezera = '_'
+endline = "\n"
+
+folder_path = model_file_name + "_data"
+class_data = folder_path + "/" + model_file_name + "_data.plk"
+history_dict = folder_path + "/" + model_file_name + '_HistoryDict'
+
+new = 0  # whether it creates a model (1) or loads a model (0)
+new_class_d = 0
 
 # TRAINING PARAMETERS
 batch_size = 128
@@ -375,6 +369,8 @@ def process_data():
 
     return d
 def model_run():
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
     if new_class_d:
         print("data preparation...")
         d = process_data()
@@ -405,11 +401,11 @@ def model_run():
                 else:
                     raise Exception("Dont do this")
             else:
-                with open(model_file_name + '_HistoryDict', "rb") as file_pi:
+                with open(dict_name, "rb") as file_pi:
                     old_dict = pickle.load(file_pi)
                     return old_dict
         return {}
-    old_dict = get_history_dict(model_file_name + '_HistoryDict')
+    old_dict = get_history_dict(history_dict)
 
     # FITTING
     for i in range(repeat):
@@ -422,7 +418,7 @@ def model_run():
         # save model history
         new_dict = join_dicts(old_dict, history.history)
         old_dict = new_dict
-        with open(model_file_name + '_HistoryDict', 'wb') as file_pi:
+        with open(history_dict, 'wb') as file_pi:
             pickle.dump(new_dict, file_pi)
     # ---------------------------------- TESTING ------------------------------------------------------------------------
     print("testing...")
@@ -446,7 +442,7 @@ def model_run():
     x_valid_tokenized = d.tokenize(x_test)
     prediction, metrics = d.model_test(x_valid_tokenized, y_test, model_file_name)
     # print(prediction)
-    d.print_separation(x_test, prediction)
+    # d.print_separation(x_test, prediction)
 
 if __name__ == "__main__":
     model_run()

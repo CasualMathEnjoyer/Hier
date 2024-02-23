@@ -37,7 +37,11 @@ with open(model_file_name + '_HistoryDict', "rb") as file_pi:
 keys = list(history)
 ar = []
 # history
-st.header("Model 1")
+st.header(f"Model: {model_file_name}")
+st.caption("POSSIBLE INPUTS:")
+st.caption("Aa1 D21 Aa13 Aa1 X1 D54 O4 D21 G43 N5 Z2 Z9 D54 D2 Z1 M22 M22")
+st.caption("D37 D37 P5 G43 Z2 D21 D20 Z1 Z2 N41 X1 B1")
+st.caption("G17 X1 Z7 B1 D37 X1 N35 I9 T21 D36 Z1 V19 N35 M34 X1 Z4 U10 Z2 G17 X8 Z1 U10 Z2")
 
 # Store the initial value of widgets in session state
 if "visibility" not in st.session_state:
@@ -55,7 +59,6 @@ text_input = st.text_input(
 
 if st.button('Separate'):
     output = data(text_input)
-
 # future output box
 # out_pred = ''
 # for item in prediction[0]:
@@ -68,6 +71,11 @@ try:
     text_output = st.text("OUTPUT:" + str(output))
 except Exception:
     text_output = st.text("OUTPUT:")
+
+st.caption("THE CORRECT OUTPUT")
+st.caption("Aa1 D21 Aa13 Aa1 X1 D54 _ O4 D21 G43 N5 Z2 _ Z9 D54 _ D2 Z1 _ M22 M22 _ ")
+st.caption("D37 D37 _ P5 G43 Z2 _ D21 _ D20 Z1 Z2 _ N41 X1 B1 _ ")
+st.caption("G17 X1 Z7 _ B1 _ D37 X1 _ N35 _ I9 _ T21 D36 Z1 _ V19 _ N35 _ M34 X1 Z4 U10 Z2 _ G17 _ X8 Z1 U10 Z2 _")
 
 # GRAPHS
 genre = st.radio(

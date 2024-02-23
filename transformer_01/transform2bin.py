@@ -15,8 +15,6 @@ print("starting transform2bin")
 # TODO implement the K cross sections thing thing for data processing
 # TODO WINDOW fix data at the end of file - flip around?
 
-# TODO my testing F1 score is significantly lower than the traing one
-
 # check this library: https://github.com/evidentlyai/evidently
 
 a = random.randrange(0, 2**32 - 1)
@@ -39,8 +37,9 @@ set_random_seed(a)
 
 # loss_function = "binary_focal_crossentropy"
 loss_function = "binary_crossentropy"
-class_data = "hiero_data.plk"
 model_file_name = "transform2bin_try"
+class_data = model_file_name + "_data.plk"
+
 training_file_name = "../data/src-sep-train.txt"
 validation_file_name = "../data/src-sep-val.txt"
 test_file_name = "../data/src-sep-test.txt"

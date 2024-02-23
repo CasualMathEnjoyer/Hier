@@ -43,7 +43,7 @@ set_random_seed(a)
 # mezera = '_'
 # endline = "\n"
 
-model_file_name = "transform2bin_focal"
+model_file_name = "t2b_emb128"
 training_file_name = "../data/src-sep-train.txt"
 validation_file_name = "../data/src-sep-val.txt"
 test_file_name = "../data/src-sep-test.txt"
@@ -55,8 +55,8 @@ folder_path = model_file_name + "_data"
 class_data = folder_path + "/" + model_file_name + "_data.plk"
 history_dict = folder_path + "/" + model_file_name + '_HistoryDict'
 
-new = 0  # whether it creates a model (1) or loads a model (0)
-new_class_d = 0
+new = 1  # whether it creates a model (1) or loads a model (0)
+new_class_d = 1
 
 # TRAINING PARAMETERS
 batch_size = 128
@@ -69,11 +69,11 @@ loss_function = "binary_crossentropy"
 
 
 # HYPER PARAMETERS:
-embed_dim = 32
+embed_dim = 128
 num_heads = 2
 ff_dim = 64         # Hidden layer size in feed forward network inside transformer
-step = 64
 maxlen = 128
+step = 64
 
 
 # 53,377 parametru

@@ -124,7 +124,15 @@ dict = {
 "DATA FROM TESTING"
 dict
 
-
+st.header("O NEURONCE:")
+st.markdown("- 53,377 PARAMETRU")
+st.markdown("- Encoder only transformer architektura")
+st.text("HYPER PARAMETRY")
+st.markdown("- embed_dim = 32")
+st.markdown("- num_heads = 2")
+st.markdown("- ff_dim = 64 # Hidden layer size in feed forward network inside transformer")
+st.markdown("- step = 64")
+st.markdown("- maxlen = 128")
 # ---------------------------------------------------------------------------------------------------------------------
 # model_file_name = "transform2bin_focal"
 # class_data = "hiero_data_focal.plk"

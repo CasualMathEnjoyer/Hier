@@ -35,9 +35,8 @@ set_random_seed(a)
 
 # v datasetu momentale 203 znaku zastoupeno pouze jednou
 
-# loss_function = "binary_focal_crossentropy"
-loss_function = "binary_crossentropy"
-model_file_name = "transform2bin_try"
+
+model_file_name = "transform2bin_d"
 class_data = model_file_name + "_data.plk"
 
 training_file_name = "../data/src-sep-train.txt"
@@ -65,16 +64,31 @@ endline = "\n"
 new = 1  # whether it creates a model (1) or loads a model (0)
 new_class_d = 1
 
-batch_size = 1280
+# TRAINING PARAMETERS
+batch_size = 128
 epochs = 1
-repeat = 1  # full epoch_num=epochs*repeat
+repeat = 0  # full epoch_num=epochs*repeat
 
+optimizer = "adam"
+# loss_function = "binary_focal_crossentropy"
+loss_function = "binary_crossentropy"
+
+
+# HYPER PARAMETERS:
+embed_dim = 32
+num_heads = 2
+ff_dim = 64         # Hidden layer size in feed forward network inside transformer
+step = 64
+maxlen = 128
+
+
+# 53,377 parametru
 class Data():
-    vocab_size = 0      # gets inicialised to the size of dict - if i want to extend with more data
-                        # i need to have initially greater vocab size
-    embed_dim = 32      # Embedding size for each token
-    num_heads = 2       # Number of attention heads
-    ff_dim = 64         # Hidden layer size in feed forward network inside transformer
+    vocab_size = 0         # gets inicialised to the size of dict - if i want to extend with more data
+                           # i need to have initially greater vocab size
+    embed_dim = embed_dim  # Embedding size for each token
+    num_heads = num_heads  # Number of attention heads
+    ff_dim = ff_dim        # Hidden layer size in feed forward network inside transformer
 
     final_file, valid_file = '', ''
 
@@ -85,9 +99,9 @@ class Data():
 
     dict_chars = {}
 
-    step = 64
+    step = step
 
-    maxlen = 128
+    maxlen = maxlen
 
     def __init__(self, sep, mezera, endline):
         super().__init__()
@@ -375,9 +389,10 @@ def model_run():
     else:
         model = load_model_mine(model_file_name)
 
-    model.compile(optimizer="adam",
+    model.compile(optimizer=optimizer,
                   loss=loss_function,
                   metrics=["accuracy", "Precision", "Recall", F1_score])
+    model.summary()
 
     # --------------------------------- TRAINING ------------------------------------------------------------------------
     def get_history_dict(dict_name):

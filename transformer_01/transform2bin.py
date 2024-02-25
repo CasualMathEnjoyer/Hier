@@ -43,7 +43,7 @@ set_random_seed(a)
 # mezera = '_'
 # endline = "\n"
 
-model_file_name = "t2b_emb128"
+model_file_name = "t2b_emb64_h4"
 training_file_name = "../data/src-sep-train.txt"
 validation_file_name = "../data/src-sep-val.txt"
 test_file_name = "../data/src-sep-test.txt"
@@ -55,8 +55,8 @@ folder_path = model_file_name + "_data"
 class_data = folder_path + "/" + model_file_name + "_data.plk"
 history_dict = folder_path + "/" + model_file_name + '_HistoryDict'
 
-new = 1  # whether it creates a model (1) or loads a model (0)
-new_class_d = 1
+new = 0  # whether it creates a model (1) or loads a model (0)
+new_class_d = 0
 
 # TRAINING PARAMETERS
 batch_size = 128
@@ -161,12 +161,30 @@ class Data():
 
         f1 = F1_score(prediction, valid.astype('float32')).numpy()
 
+        pred2 = np.zeros_like(prediction)
+        for i, line in enumerate(valid):
+            for j, char in enumerate(line):
+                if prediction[i][j] > 0.5:
+                    pred2[i][j] = 1
+
+        def edit_distance(valid, pred):
+            score = 0
+            for i, line in enumerate(valid):
+                for j, char in enumerate(line):
+                    if valid[i][j] != pred[i][j]:
+                        score += 1
+            l = len(valid)
+            return score/l
+
+        ed = edit_distance(valid, pred2)
+
         print("Accuracy:", acc)
         print("Precision:", prec)
         print("Recall:", rec)
         print("F1 score:", f1)
+        print("Edit distance:", ed)
 
-        return prediction, [acc, prec, rec, f1]
+        return prediction, [acc, prec, rec, f1, ed]
     def model_use(self, sample_v, model_name):
         model = load_model_mine(model_name)
         prediction = model.predict(sample_v)
@@ -299,6 +317,7 @@ class Data():
             dict_chars = {j: i for i, j in enumerate(list_chars)}
             self.dict_chars = dict_chars
             self.vocab_size = len(dict_chars)
+            print(self.vocab_size)
 
         return output_file_pad, binar
 

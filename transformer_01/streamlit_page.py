@@ -4,6 +4,7 @@ import pickle
 from transform2bin import load_model_mine, Data
 # cd C:\Users\katka\PycharmProjects\Hier\transformer_01
 # streamlit run streamlit_page.py
+PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION="python"
 def load_data():
     with open(class_data, 'rb') as inp:
         d = pickle.load(inp)
@@ -28,16 +29,25 @@ def data(text_input):
     return output
 
 # -----------------------------------------------------------------------------------------------------------------------
-model_file_name = "transform2bin"
-class_data = model_file_name + "_data.plk"
+# model_file_name = "transform2bin"
+# model_file_name = "t2b_emb128"
 
-with open(model_file_name + '_HistoryDict', "rb") as file_pi:
+model_file_name = st.radio(
+    "Select model",
+    ["t2b_emb32", "t2b_emb64", "t2b_emb128", "t2b_emb64_h4", "t2b_emb64_ff128"],
+    key="models")
+
+# model_file_name = "t2b_emb64"
+class_data = model_file_name + "_data/" + model_file_name + "_data.plk"
+history_dict = model_file_name + "_data/" + model_file_name + '_HistoryDict'
+
+with open(history_dict, "rb") as file_pi:
     history = pickle.load(file_pi)
 
 keys = list(history)
 ar = []
 # history
-st.header(f"Model: {model_file_name}")
+st.title(f"Selected model: {model_file_name}")
 st.caption("POSSIBLE INPUTS:")
 st.caption("Aa1 D21 Aa13 Aa1 X1 D54 O4 D21 G43 N5 Z2 Z9 D54 D2 Z1 M22 M22")
 st.caption("D37 D37 P5 G43 Z2 D21 D20 Z1 Z2 N41 X1 B1")
@@ -98,7 +108,7 @@ chart_data = pd.DataFrame(ar, columns=[genre, "val_" + genre])
 
 st.line_chart(chart_data, color=["#f5ad42", "#42b9f5"])
 
-@st.cache_data
+# @st.cache_data
 def get_testing_data():
     # testing stats
     test_file_name = "../data/src-sep-test.txt"
@@ -115,21 +125,27 @@ def get_testing_data():
 
 metrics = get_testing_data()
 dict = {
-    "accuracy  " : metrics[0],
-    "precission" : metrics[1],
-    "recall    " : metrics[2],
-    "F1 score  " : metrics[3]
+    "accuracy  " : round(metrics[0], 4),
+    "precission" : round(metrics[1], 4),
+    "recall    " : round(metrics[2], 4),
+    "F1 score  " : round(metrics[3], 4),
+    "Edit dist " : round(metrics[4], 4)
 }
 
-"DATA FROM TESTING"
-dict
-
-st.header("O NEURONCE:")
-st.markdown("- 53,377 PARAMETRU")
+st.header("ABOUT MODELS:")
+st.markdown("- 53,377 / 123,073 / 311,617 PARAMETRU")
+st.markdown("- emb64_ff128: 131,329 PARAMETRU")
+st.markdown("- emb64_h4:    156,225 PARAMETRU")
+st.markdown("- emb64_h4_ff128: ? PARAMETRU")
+st.markdown("- emb64_ff128_h16: ? PARAMETRU")
 st.markdown("- Encoder only transformer architektura")
 st.text("HYPER PARAMETRY")
-st.markdown("- embed_dim = 32")
-st.markdown("- num_heads = 2")
-st.markdown("- ff_dim = 64 # Hidden layer size in feed forward network inside transformer")
-st.markdown("- step = 64")
+st.markdown("- embed_dim = 32/64/128")
+st.markdown("- num_heads = 2/4")
+st.markdown("- ff_dim = 64/128 # Hidden layer size in feed forward network inside transformer")
+# st.markdown("- step = 64")
 st.markdown("- maxlen = 128")
+st.markdown("- vocabsize = 128")
+
+f"DATA FROM TESTING FOR MODEL: {model_file_name}"
+dict

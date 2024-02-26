@@ -73,6 +73,7 @@ embed_dim = 128
 num_heads = 2
 ff_dim = 64         # Hidden layer size in feed forward network inside transformer
 maxlen = 128
+
 step = 64
 
 

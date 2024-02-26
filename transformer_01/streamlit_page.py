@@ -34,7 +34,8 @@ def data(text_input):
 
 model_file_name = st.radio(
     "Select model",
-    ["t2b_emb32", "t2b_emb64", "t2b_emb128", "t2b_emb64_h4", "t2b_emb64_ff128"],
+    ["t2b_emb32", "t2b_emb64", "t2b_emb128", "t2b_emb64_h4", "t2b_emb64_h4_2", "t2b_emb64_ff128",
+     "t2b_emb64_ff128_h4", "t2b_emb64_ff256_h4", "t2b_emb64_ff128_h16"],
     key="models")
 
 # model_file_name = "t2b_emb64"

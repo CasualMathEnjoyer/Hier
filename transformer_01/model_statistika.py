@@ -42,7 +42,6 @@ def separate_line(line, bins):
             else:
                 print(f"{char} ", end="")
     print()
-
 def string_text(line, bins):
     out_string = ''
     for x, item in enumerate(line):
@@ -89,3 +88,10 @@ print(f"mistakes:{mistake_couneter}")
 # format: (spravne, predicted, kontext)
 print(words_0)
 print(words_1)
+
+with open("../data/src-sep-train.txt", "r", encoding="utf-8") as f:  # with spaces
+    file = f.read()
+    f.close()
+
+x_test, y_test = d.non_slidng_data(file, False)
+# x_valid_tokenized = d.tokenize(x_test)

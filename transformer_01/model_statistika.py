@@ -45,6 +45,28 @@ def separate_line(line, bins):
                 print(f"{char} ", end="")
     print()
 
+def string_text(line, bins):
+    out_string = ''
+    found = False
+    c = False
+    for x, item in enumerate(line):
+        out_string += item
+        if x == j:
+            out_string += "!"
+            found = True
+        if bins[x] == 1:
+            out_string += " _ "
+            if found:
+                if c == True:
+                    break
+                c = True
+        else:
+            out_string += " "
+    return out_string
+
+mistake_couneter = 0
+splits_words = []
+doesnt_split_words = []
 for i, line in enumerate(valid):
     for j, bit in enumerate(valid[i]):
         if text[i][j] != "<pad>":
@@ -55,3 +77,17 @@ for i, line in enumerate(valid):
                 separate_line(text[i], valid[i])
                 print("pre: ", end="")
                 separate_line(text[i], prediction[i])
+                mistake_couneter += 1
+                out_string = string_text(text[i], valid[i])
+                if valid[i][j] == 0:
+                    word = out_string.split("_")[-2]
+                    print(word)
+                else:
+                    slices = out_string.split("!")
+                    one = slices[0].split("_")[-1]
+                    two = slices[1].split("_")[1]
+                    print(slices[0])
+                    print(slices[1])
+                    print(one, "!_", two)
+
+print(f"mistakes:{mistake_couneter}")

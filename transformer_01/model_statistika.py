@@ -1,28 +1,26 @@
 import pickle
-
 import numpy as np
 
 from transform2bin import load_model_mine, Data
-
 
 model_file_name = "t2b_emb64_h4"
 class_data = model_file_name + "_data/" + model_file_name + "_data.plk"
 history_dict = model_file_name + "_data/" + model_file_name + '_HistoryDict'
 
-with open(history_dict, "rb") as file_pi:
+with open(history_dict, 'rb') as file_pi:
     history = pickle.load(file_pi)
 
-def get_testing_data():
+with open(class_data, 'rb') as inp:
+    d = pickle.load(inp)
+
+def get_data(file_path):
     # testing stats
-    test_file_name = "../data/src-sep-test.txt"
+    test_file_name = file_path
     with open(test_file_name, "r", encoding="utf-8") as f:  # with spaces
         test_file = f.read()
         f.close()
 
-    with open(class_data, 'rb') as inp:
-        d = pickle.load(inp)
-
-    x_test, y_test = d.non_slidng_data(test_file[:1000], False)
+    x_test, y_test = d.non_slidng_data(test_file[:999], False)
     x_valid_tokenized = d.tokenize(x_test)
     prediction, metrics = d.model_test(x_valid_tokenized, y_test, model_file_name)
 
@@ -34,7 +32,7 @@ def get_testing_data():
 
     return x_test, y_test, pred2
 
-text, valid, prediction = get_testing_data()
+text, valid, prediction = get_data("../data/src-sep-test.txt")
 
 def separate_line(line, bins):
     for i, char in enumerate(line):
@@ -47,26 +45,21 @@ def separate_line(line, bins):
 
 def string_text(line, bins):
     out_string = ''
-    found = False
-    c = False
     for x, item in enumerate(line):
+        if item == "<pad>":
+            break
         out_string += item
         if x == j:
             out_string += "!"
-            found = True
         if bins[x] == 1:
             out_string += " _ "
-            if found:
-                if c == True:
-                    break
-                c = True
         else:
             out_string += " "
     return out_string
 
 mistake_couneter = 0
-splits_words = []
-doesnt_split_words = []
+words_0 = []
+words_1 = []
 for i, line in enumerate(valid):
     for j, bit in enumerate(valid[i]):
         if text[i][j] != "<pad>":
@@ -80,14 +73,19 @@ for i, line in enumerate(valid):
                 mistake_couneter += 1
                 out_string = string_text(text[i], valid[i])
                 if valid[i][j] == 0:
-                    word = out_string.split("_")[-2]
-                    print(word)
+                    slices = out_string.split("!")
+                    one = slices[0].split(" _ ")[-1]
+                    two = slices[1].split(" _ ")[0]
+                    # print(one, "!", two)
+                    words_0.append((one + two, one + "!" + two, out_string))
                 else:
                     slices = out_string.split("!")
-                    one = slices[0].split("_")[-1]
-                    two = slices[1].split("_")[1]
-                    print(slices[0])
-                    print(slices[1])
-                    print(one, "!_", two)
+                    one = slices[0].split(" _ ")[-1]
+                    two = slices[1].split(" _ ")[1]
+                    # print(one, "!_", two)
+                    words_1.append((one + two, one + "!_" + two, out_string))
 
 print(f"mistakes:{mistake_couneter}")
+# format: (spravne, predicted, kontext)
+print(words_0)
+print(words_1)

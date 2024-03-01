@@ -179,11 +179,12 @@ class Data():
 
         ed = edit_distance(valid, pred2)
 
-        print("Accuracy:", acc)
-        print("Precision:", prec)
-        print("Recall:", rec)
-        print("F1 score:", f1)
-        print("Edit distance:", ed)
+        if __name__ == "__main__":
+            print("Accuracy:", acc)
+            print("Precision:", prec)
+            print("Recall:", rec)
+            print("F1 score:", f1)
+            print("Edit distance:", ed)
 
         return prediction, [acc, prec, rec, f1, ed]
     def model_use(self, sample_v, model_name):

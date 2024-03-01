@@ -42,7 +42,7 @@ def separate_line(line, bins):
             else:
                 print(f"{char} ", end="")
     print()
-def string_text(line, bins):
+def string_text(line, bins, j):
     out_string = ''
     for x, item in enumerate(line):
         if item == "<pad>":
@@ -70,7 +70,7 @@ for i, line in enumerate(valid):
                 print("pre: ", end="")
                 separate_line(text[i], prediction[i])
                 mistake_couneter += 1
-                out_string = string_text(text[i], valid[i])
+                out_string = string_text(text[i], valid[i], j)
                 if valid[i][j] == 0:
                     slices = out_string.split("!")
                     one = slices[0].split(" _ ")[-1]

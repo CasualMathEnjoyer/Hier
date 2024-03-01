@@ -1,9 +1,9 @@
 import pickle
 import matplotlib.pyplot as plt
 
-model_file_name = "model_to_delete"
+model_file_name = "t2b_emb64_ff128_h4"
 
-with open(model_file_name + '_HistoryDict', "rb") as file_pi:
+with open(model_file_name + "_data" + "/" + model_file_name + '_HistoryDict', "rb") as file_pi:
     history = pickle.load(file_pi)
 
 # print(list(history.keys()))

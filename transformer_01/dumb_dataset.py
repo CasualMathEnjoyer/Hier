@@ -3,103 +3,66 @@ import numpy as np
 import pickle
 from transform2bin import load_model_mine, Data
 
-training_file_name = "../data/src-sep-train.txt"
-validation_file_name = "../data/src-sep-val.txt"
-testing_file_name = "../data/src-sep-test.txt"
+def open_files():
+    training_file_name = "../data/src-sep-train.txt"
+    validation_file_name = "../data/src-sep-val.txt"
+    testing_file_name = "../data/src-sep-test.txt"
 
-with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
-    final_file = f.read()
-    f.close()
-with open(validation_file_name, "r", encoding="utf-8") as ff:
-    valid_file = ff.read()
-    ff.close()
-with open(validation_file_name, "r", encoding="utf-8") as fff:
-    test_file = fff.read()
-    fff.close()
+    with open(training_file_name, "r", encoding="utf-8") as f:  # with spaces
+        train_file = f.read()
+        f.close()
+    with open(validation_file_name, "r", encoding="utf-8") as ff:
+        valid_file = ff.read()
+        ff.close()
+    with open(validation_file_name, "r", encoding="utf-8") as fff:
+        test_file = fff.read()
+        fff.close()
+    return train_file, valid_file, test_file
+train_file, valid_file, test_file = open_files()
 
-word_list = {}
-pismeno_list = []
-for line in final_file.split("\n"):
-    line = line.split(" _ ")
-    for word in line:
-        if word not in word_list:
-        #     # print(word)
-            word_list[word] = 1
-        else:
-            word_list[word] += 1
+def create_word_dict(train_file):
+    word_dict = {}
+    for line in train_file.split("\n"):
+        line = line.split(" _ ")
+        for word in line:
+            if word not in word_dict:
+                word_dict[word] = 1
+            else:
+                word_dict[word] += 1
+    return word_dict
+def create_letter_dict(train_file):
+    letter_dict = {}
+    for line in train_file.split("\n"):
+        line = line.split(" _ ")
+        for word in line:
+            for pismeno in word.split(" "):
+                if pismeno not in letter_dict:
+                    letter_dict[pismeno] = 1
+                else:
+                    letter_dict[pismeno] += 1
+    return letter_dict
 
-        # for pismeno in word.split(" "):
-        #     if pismeno not in pismeno_list:
-        #         # print(pismeno)
-        #         pismeno_list.append(pismeno)
+word_dict = create_word_dict(train_file)
+letter_dict = create_letter_dict(train_file)
 
 just_once = []
 others = []
 
-# print(len(pismeno_list))  # todo 1138 pismen
-# print(len(word_list))     # todo 61776 slov
+# print(len(letter_dict))        # todo 1138 pismen
+# print(len(word_dict))          # todo 61776 slov
 
-for i, word in enumerate(word_list):
-    # print(word, ":", word_list[word])
-    if word_list[word] == 1:
-        just_once.append(word)
-    else:
-        others.append((word, word_list[word]))
-
-print("train")
-print("just once:", len(just_once))
-print("more than once:", len(others))
-print("all:", len(just_once)+len(others))
-#
-# just_once = []
-# others = []
-#
-# for line in valid_file.split("\n"):
-#     line = line.split(" _ ")
-#     for word in line:
-#         if word not in word_list:
-#         #     # print(word)
-#             word_list[word] = 1
-#         else:
-#             word_list[word] += 1
-#
-# # print(len(word_list))   # 61776 slov
-# for i, word in enumerate(word_list):
-#     # print(word, ":", word_list[word])
-#     if word_list[word] == 1:
-#         just_once.append(word)
-#     else:
-#         others.append((word, word_list[word]))
-#
-# print()
-# print("train + valid")
-# print(len(just_once))
-# print(len(others))
-#
-# just_once = []
-# others = []
-#
-# for line in test_file.split("\n"):
-#     line = line.split(" _ ")
-#     for word in line:
-#         if word not in word_list:
-#         #     # print(word)
-#             word_list[word] = 1
-#         else:
-#             word_list[word] += 1
-#
-# for i, word in enumerate(word_list):
-#     # print(word, ":", word_list[word])
-#     if word_list[word] == 1:
-#         just_once.append(word)
-#     else:
-#         others.append((word, word_list[word]))
-#
-# print()
-# print("train+valid+test")
-# print(len(just_once))
-# print(len(others))
-# print(len(just_once)+len(others))
+def list_with_once_and_more(word_dict):
+    for i, word in enumerate(word_dict):
+        # print(word, ":", word_list[word])
+        if word_dict[word] == 1:
+            just_once.append(word)
+        else:
+            others.append((word, word_dict[word]))
+    print("Data from dataset:")
+    print("just once:", len(just_once))
+    print("more than once:", len(others))
+    print("all:", len(just_once) + len(others))
+    return just_once, others
 
 def plot(words, counts_training, counts_mistakes=None):
     # dict = word_list
@@ -146,10 +109,9 @@ def get_data(file_path):
                 pred2[i][j] = 1
 
     return x_test, y_test, pred2
-
 text, valid, prediction = get_data("../data/src-sep-test.txt")
 
-def separate_line(line, bins):
+def print_separated(line, bins):
     for i, char in enumerate(line):
         if char != "<pad>":
             if bins[i] == 1:
@@ -157,7 +119,7 @@ def separate_line(line, bins):
             else:
                 print(f"{char} ", end="")
     print()
-def string_text(line, bins, j):
+def mark_mistake_string(line, bins, j):
     out_string = ''
     for x, item in enumerate(line):
         if item == "<pad>":
@@ -171,10 +133,10 @@ def string_text(line, bins, j):
             out_string += " "
     return out_string
 
-
 def funkce_or_sth(valid, prediction, text):
     mistake_couneter = 0
     words_0, words_1 = [], []
+    # only considers sentences with mistakes
     for i, line in enumerate(valid):
         for j, bit in enumerate(valid[i]):
             if text[i][j] == "<pad>":
@@ -187,7 +149,7 @@ def funkce_or_sth(valid, prediction, text):
                 # print("pre: ", end="")
                 # separate_line(text[i], prediction[i])
                 mistake_couneter += 1
-                out_string = string_text(text[i], valid[i], j)
+                out_string = mark_mistake_string(text[i], valid[i], j)
                 if valid[i][j] == 0:
                     slices = out_string.split("!")
                     one = slices[0].split(" _ ")[-1]
@@ -209,5 +171,5 @@ print(words_0)
 print(words_1)
 
 
-plot(list(word_list.keys())[:100], list(word_list.values())[:100])
+plot(list(word_dict.keys())[:100], list(word_dict.values())[:100])
 # plot(["haf", "haff", "haff"], [1, 3, 5], [0, 2, 2])

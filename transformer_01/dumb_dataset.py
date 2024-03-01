@@ -150,13 +150,13 @@ def funkce_or_sth(valid, prediction, text):
                 # separate_line(text[i], prediction[i])
                 mistake_couneter += 1
                 out_string = mark_mistake_string(text[i], valid[i], j)
-                if valid[i][j] == 0:
+                if valid[i][j] == 0:  # model splits something it shouldnt
                     slices = out_string.split("!")
                     one = slices[0].split(" _ ")[-1]
                     two = slices[1].split(" _ ")[0]
                     # print(one, "!", two)
                     words_0.append((one + two, one + "!" + two, out_string))
-                else:
+                else:  # model doesnt split
                     slices = out_string.split("!")
                     one = slices[0].split(" _ ")[-1]
                     two = slices[1].split(" _ ")[1]
@@ -168,8 +168,25 @@ words_0, words_1, mistake_counter = funkce_or_sth(valid, prediction, text)
 print(f"mistakes:{mistake_counter}")
 # format: (spravne, predicted, kontext)
 print(words_0)
-print(words_1)
+# print(words_1)
+words_all = words_0 + words_1
 
+mistakes_dict = {}
+for word in words_0:
+    word = word[0]
+    if word not in mistakes_dict:
+        mistakes_dict[word] = 1
+    else:
+        mistakes_dict[word] += 1
+print(mistakes_dict)
 
-plot(list(word_dict.keys())[:100], list(word_dict.values())[:100])
+words = []
+for item in mistakes_dict:
+    if item in word_dict:
+        print(item)
+        words.append(item)
+    else:
+        print(f"problem word:{item}")
+
+# plot(list(word_dict.keys())[:100], list(word_dict.values())[:100])
 # plot(["haf", "haff", "haff"], [1, 3, 5], [0, 2, 2])

@@ -98,7 +98,7 @@ def get_data(file_path):
         test_file = f.read()
         f.close()
 
-    x_test, y_test = d.non_slidng_data(test_file[:999], False)
+    x_test, y_test = d.non_slidng_data(test_file, False)
     x_valid_tokenized = d.tokenize(x_test)
     prediction, metrics = d.model_test(x_valid_tokenized, y_test, model_file_name)
 
@@ -181,12 +181,20 @@ for word in words_0:
 print(mistakes_dict)
 
 words = []
+counts_all = []
+counts_mistakes = []
 for item in mistakes_dict:
     if item in word_dict:
         print(item)
         words.append(item)
+        if word_dict[item] > 5:
+            counts_all.append(5)
+        else:
+            counts_all.append(word_dict[item])
+        counts_mistakes.append(mistakes_dict[item])
     else:
         print(f"problem word:{item}")
 
 # plot(list(word_dict.keys())[:100], list(word_dict.values())[:100])
 # plot(["haf", "haff", "haff"], [1, 3, 5], [0, 2, 2])
+plot(words, counts_all, counts_mistakes)

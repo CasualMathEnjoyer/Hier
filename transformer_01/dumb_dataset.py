@@ -102,7 +102,7 @@ def print_separated(line, bins):
                 print(f"{char} ", end="")
     print()
 
-def mark_mistake_string(line, bins, j =None):
+def split_and_mark(line, bins, j =None):
     out_string = ''
     for x, item in enumerate(line):
         if item == "<pad>":
@@ -133,13 +133,13 @@ def funkce_or_sth(valid, prediction, text):
     mistake_couneter = 0
     words_0, words_1 = [], []
     correct_words = {}
-    # only considers sentences with mistakes
     for i, line in enumerate(valid):
-        if (valid[i] == prediction[i]).all():  # if the entire line correct
-            tt = mark_mistake_string(text[i], valid[i])
+        # if the entire line correct
+        if (valid[i] == prediction[i]).all():
+            tt = split_and_mark(text[i], valid[i])
             for word in tt.split("_"):
                 add_to_dict(correct_words, word)
-
+        # when mistake
         else:
             wrong_indexes = []
             for j, bit in enumerate(valid[i]):
@@ -154,69 +154,69 @@ def funkce_or_sth(valid, prediction, text):
                     # print("pre: ", end="")
                     # separate_line(text[i], prediction[i])
                     mistake_couneter += 1
-                    out_string = mark_mistake_string(text[i], valid[i], j)
-                    if valid[i][j] == 0:  # model splits something it shouldnt
+                    out_string = split_and_mark(text[i], valid[i], j)
+                    if valid[i][j] == 0:  # when model splits something it shouldnt
                         slices = out_string.split("!")
                         one = slices[0].split(" _ ")[-1]
                         two = slices[1].split(" _ ")[0]
                         # print(one, "!", two)
                         words_0.append((one + two, one + "!" + two, out_string))
-                    else:  # model doesnt split
+                    else:  # when model doesnt split
                         slices = out_string.split("!")
                         one = slices[0].split(" _ ")[-1]
                         two = slices[1].split(" _ ")[1]
                         # print(one, "!_", two)
-                    words_1.append((one + two, one + "!_" + two, out_string))
-            x = 0
-            start = 0
-            cor_string = ''
-            last_space = 0
+                        words_1.append((one + two, one + "!_" + two, out_string))
+            x, start, last_space = 0, 0, 0
             for j in wrong_indexes:
+                # first find the last mezera in correct text
                 while x != j:
-                    cor_string += text[i][x]
-                    cor_string += " "
                     if valid[i][x] == 1:
                         last_space = x
                     x += 1
+                # then split the correctly translated part and save it
                 if start < last_space:
-                    tt = mark_mistake_string(text[i][start:last_space], valid[i][start:last_space])
+                    tt = split_and_mark(text[i][start:last_space], valid[i][start:last_space])
                     for word in tt.split("_"):
                         add_to_dict(correct_words, word)
                 x += 1
                 start = x
-    print("dict")
-    print(correct_words)
+    # print("dict")
+    # print(correct_words)
 
 
-    return words_0, words_1, mistake_couneter
+    return words_0, words_1, correct_words, mistake_couneter
 
-words_0, words_1, mistake_counter = funkce_or_sth(valid, prediction, text)
+words_0, words_1, correct_words, mistake_counter = funkce_or_sth(valid, prediction, text)
 print(f"mistakes:{mistake_counter}")
 # format: (spravne, predicted, kontext)
-print(words_0)
+# print(words_0)
 # print(words_1)
-words_all = words_0 + words_1
+# words_all = words_0 + words_1
 
 mistakes_dict = {}
 for word in words_0:
     add_to_dict(mistakes_dict, word)
 print(mistakes_dict)
 
-words = []
-counts_all = []
-counts_mistakes = []
-for item in mistakes_dict:
-    if item in word_dict:
-        print(item)
-        words.append(item)
-        if word_dict[item] > 5:  # horni hranice
-            counts_all.append(5)
-        else:
-            counts_all.append(word_dict[item])
-        counts_mistakes.append(mistakes_dict[item])
-    else:
-        print(f"problem word:{item}")
-
+def generate_lists(mistakes : dict, corrects : dict):
+    words, counts_correct, counts_mistakes = [], [], []
+    for item in mistakes:
+        if item[0] in corrects: # if the model saw the word before
+            # print(item)
+            words.append(item[0])
+            if corrects[item[0]] > 5:  # horni hranice
+                counts_correct.append(5)
+            else:
+                counts_correct.append(corrects[item[0]])
+            counts_mistakes.append(mistakes[item])  # todo the dictionary is weird
+        else:  # if its a new word
+            # print(f"problem word:{item}")
+            pass
+    return words, counts_correct, counts_mistakes
+# print(len(mistakes_dict), len(word_dict))
+all_words, counts_all, counts_mistakes = generate_lists(mistakes_dict, correct_words)
+print(len(all_words), len(counts_all), len(counts_mistakes))
 # -----------------------------------------------------------------------------------------------------
 def plot(words, counts_training, counts_mistakes=None):
     # dict = word_list
@@ -243,4 +243,4 @@ def plot(words, counts_training, counts_mistakes=None):
 
 # plot(list(word_dict.keys())[:100], list(word_dict.values())[:100])
 # plot(["haf", "haff", "haff"], [1, 3, 5], [0, 2, 2])
-plot(words, counts_all, counts_mistakes)
+plot(all_words, counts_all, counts_mistakes)

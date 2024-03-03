@@ -3,6 +3,9 @@ import numpy as np
 import pickle
 from transform2bin import load_model_mine, Data
 
+# TODO
+# graf slova v testovacim souboru prelozena dobre vs prelozena spatne
+# ABOVE pro slova co rozdeluje (value=0) a nerozdeluje (value=1)
 def open_files():
     training_file_name = "../data/src-sep-train.txt"
     validation_file_name = "../data/src-sep-val.txt"
@@ -14,12 +17,12 @@ def open_files():
     with open(validation_file_name, "r", encoding="utf-8") as ff:
         valid_file = ff.read()
         ff.close()
-    with open(validation_file_name, "r", encoding="utf-8") as fff:
+    with open(testing_file_name, "r", encoding="utf-8") as fff:
         test_file = fff.read()
         fff.close()
     return train_file, valid_file, test_file
 train_file, valid_file, test_file = open_files()
-
+# -----------------------------------------------------------------------------------------------------
 def create_word_dict(train_file):
     word_dict = {}
     for line in train_file.split("\n"):
@@ -51,6 +54,8 @@ others = []
 # print(len(letter_dict))        # todo 1138 pismen
 # print(len(word_dict))          # todo 61776 slov
 
+# -----------------------------------------------------------------------------------------------------
+
 def list_with_once_and_more(word_dict):
     for i, word in enumerate(word_dict):
         # print(word, ":", word_list[word])
@@ -63,29 +68,6 @@ def list_with_once_and_more(word_dict):
     print("more than once:", len(others))
     print("all:", len(just_once) + len(others))
     return just_once, others
-
-def plot(words, counts_training, counts_mistakes=None):
-    # dict = word_list
-    # counts = list(dict.values())[:100]
-
-    # Creating a bar graph
-    bar_width = 0.35
-    index = np.arange(len(words))
-    plt.bar(index, counts_training, width=bar_width, label='training')
-    if counts_mistakes != None:
-        plt.bar(index + bar_width, counts_mistakes, width=bar_width, label='testing mistakes')
-
-    # Adding labels and title
-    plt.xlabel('Words')
-    plt.ylabel('Counts')
-    plt.title('Word Counts Comparison')
-    plt.xticks(index + bar_width / 2, words, rotation=45, ha='right')
-
-    # Adding legend
-    plt.legend()
-
-    # Display the graph
-    plt.show()
 
 model_file_name = "t2b_emb64_h4"
 class_data = model_file_name + "_data/" + model_file_name + "_data.plk"
@@ -119,49 +101,93 @@ def print_separated(line, bins):
             else:
                 print(f"{char} ", end="")
     print()
-def mark_mistake_string(line, bins, j):
+
+def mark_mistake_string(line, bins, j =None):
     out_string = ''
     for x, item in enumerate(line):
         if item == "<pad>":
             break
         out_string += item
-        if x == j:
-            out_string += "!"
+        if j != None:
+            if x == j:
+                out_string += "!"
         if bins[x] == 1:
             out_string += " _ "
         else:
             out_string += " "
     return out_string
 
+def add_to_dict(dictionary, word):
+    if word == " ":
+        return False
+    if word[-1] == " ":
+        word = word[:-1]
+    if word[0] == " ":
+        word = word[1:]
+    if word not in dictionary:
+        dictionary[word] = 1
+    else:
+        dictionary[word] += 1
+
 def funkce_or_sth(valid, prediction, text):
     mistake_couneter = 0
     words_0, words_1 = [], []
+    correct_words = {}
     # only considers sentences with mistakes
     for i, line in enumerate(valid):
-        for j, bit in enumerate(valid[i]):
-            if text[i][j] == "<pad>":
-                break
-            if valid[i][j] != prediction[i][j]:
-                # print(f"sentence:{i}")
-                # print(f"mistake at: {j}")
-                # print("val: ", end="")
-                # separate_line(text[i], valid[i])
-                # print("pre: ", end="")
-                # separate_line(text[i], prediction[i])
-                mistake_couneter += 1
-                out_string = mark_mistake_string(text[i], valid[i], j)
-                if valid[i][j] == 0:  # model splits something it shouldnt
-                    slices = out_string.split("!")
-                    one = slices[0].split(" _ ")[-1]
-                    two = slices[1].split(" _ ")[0]
-                    # print(one, "!", two)
-                    words_0.append((one + two, one + "!" + two, out_string))
-                else:  # model doesnt split
-                    slices = out_string.split("!")
-                    one = slices[0].split(" _ ")[-1]
-                    two = slices[1].split(" _ ")[1]
-                    # print(one, "!_", two)
+        if (valid[i] == prediction[i]).all():  # if the entire line correct
+            tt = mark_mistake_string(text[i], valid[i])
+            for word in tt.split("_"):
+                add_to_dict(correct_words, word)
+
+        else:
+            wrong_indexes = []
+            for j, bit in enumerate(valid[i]):
+                if text[i][j] == "<pad>":  # if we ran out of characters
+                    break
+                if valid[i][j] != prediction[i][j]:
+                    wrong_indexes.append(j)
+                    # print(f"sentence:{i}")
+                    # print(f"mistake at: {j}")
+                    # print("val: ", end="")
+                    # separate_line(text[i], valid[i])
+                    # print("pre: ", end="")
+                    # separate_line(text[i], prediction[i])
+                    mistake_couneter += 1
+                    out_string = mark_mistake_string(text[i], valid[i], j)
+                    if valid[i][j] == 0:  # model splits something it shouldnt
+                        slices = out_string.split("!")
+                        one = slices[0].split(" _ ")[-1]
+                        two = slices[1].split(" _ ")[0]
+                        # print(one, "!", two)
+                        words_0.append((one + two, one + "!" + two, out_string))
+                    else:  # model doesnt split
+                        slices = out_string.split("!")
+                        one = slices[0].split(" _ ")[-1]
+                        two = slices[1].split(" _ ")[1]
+                        # print(one, "!_", two)
                     words_1.append((one + two, one + "!_" + two, out_string))
+            x = 0
+            start = 0
+            cor_string = ''
+            last_space = 0
+            for j in wrong_indexes:
+                while x != j:
+                    cor_string += text[i][x]
+                    cor_string += " "
+                    if valid[i][x] == 1:
+                        last_space = x
+                    x += 1
+                if start < last_space:
+                    tt = mark_mistake_string(text[i][start:last_space], valid[i][start:last_space])
+                    for word in tt.split("_"):
+                        add_to_dict(correct_words, word)
+                x += 1
+                start = x
+    print("dict")
+    print(correct_words)
+
+
     return words_0, words_1, mistake_couneter
 
 words_0, words_1, mistake_counter = funkce_or_sth(valid, prediction, text)
@@ -173,11 +199,7 @@ words_all = words_0 + words_1
 
 mistakes_dict = {}
 for word in words_0:
-    word = word[0]
-    if word not in mistakes_dict:
-        mistakes_dict[word] = 1
-    else:
-        mistakes_dict[word] += 1
+    add_to_dict(mistakes_dict, word)
 print(mistakes_dict)
 
 words = []
@@ -187,13 +209,37 @@ for item in mistakes_dict:
     if item in word_dict:
         print(item)
         words.append(item)
-        if word_dict[item] > 5:
+        if word_dict[item] > 5:  # horni hranice
             counts_all.append(5)
         else:
             counts_all.append(word_dict[item])
         counts_mistakes.append(mistakes_dict[item])
     else:
         print(f"problem word:{item}")
+
+# -----------------------------------------------------------------------------------------------------
+def plot(words, counts_training, counts_mistakes=None):
+    # dict = word_list
+    # counts = list(dict.values())[:100]
+
+    # Creating a bar graph
+    bar_width = 0.35
+    index = np.arange(len(words))
+    plt.bar(index, counts_training, width=bar_width, label='training')
+    if counts_mistakes != None:
+        plt.bar(index + bar_width, counts_mistakes, width=bar_width, label='testing mistakes')
+
+    # Adding labels and title
+    plt.xlabel('Words')
+    plt.ylabel('Counts')
+    plt.title('Word Counts Comparison')
+    plt.xticks(index + bar_width / 2, words, rotation=45, ha='right')
+
+    # Adding legend
+    plt.legend()
+
+    # Display the graph
+    plt.show()
 
 # plot(list(word_dict.keys())[:100], list(word_dict.values())[:100])
 # plot(["haf", "haff", "haff"], [1, 3, 5], [0, 2, 2])

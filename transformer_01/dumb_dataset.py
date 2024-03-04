@@ -1,3 +1,5 @@
+from typing import Tuple, List, Any
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
@@ -93,7 +95,6 @@ def split_string(line : str, bins) -> str:
         else:
             out_string += " "
     return out_string
-
 def split_list(line : str, bins) -> list:
     out_list = []
     for x, item in enumerate(line):
@@ -103,7 +104,6 @@ def split_list(line : str, bins) -> list:
         if bins[x] == 1:
             out_list.append("_")
     return out_list
-
 def mark_mistakes(line : str, index_list : list):
     out_list = []
     i = 0
@@ -113,18 +113,6 @@ def mark_mistakes(line : str, index_list : list):
             if x == index_list[i]:
                 out_list.append("!")
     return out_list
-
-def mark_mistakes_string(line : str, index_list : list):
-    out_str = ''
-    i = 0
-    for x, word in enumerate(line.split(' ')):
-        out_str += word
-        if i < len(index_list) - 1:
-            if x == index_list[i]:
-                out_str += "!"
-                i += 1
-        out_str += " "
-    return out_str
 def split_and_mark(line, bins, j):
     out_string = ''
     for x, item in enumerate(line):
@@ -139,7 +127,17 @@ def split_and_mark(line, bins, j):
         else:
             out_string += " "
     return out_string
-
+def mark_mistakes_string(line : str, index_list : list):
+    out_str = ''
+    i = 0
+    for x, word in enumerate(line.split(' ')):
+        out_str += word
+        if i < len(index_list) - 1:
+            if x == index_list[i]:
+                out_str += "!"
+                i += 1
+        out_str += " "
+    return out_str
 def add_to_dict(dictionary, word):
     if word == " ":
         return False
@@ -151,7 +149,6 @@ def add_to_dict(dictionary, word):
         dictionary[word] = 1
     else:
         dictionary[word] += 1
-
 def extract_good(text_line, valid_line, wrong_indexes):
     global correct_dict
     x, start, last_space = 0, 0, 0
@@ -168,8 +165,9 @@ def extract_good(text_line, valid_line, wrong_indexes):
                 add_to_dict(correct_dict, word)
         x += 1
         start = x
-def find_mistakes(text_line, valid_line, pred_line, mistake_count) -> list:
+def find_mistakes(text_line, valid_line, pred_line):
     wrong_indexes = []
+    mistake_count = 0
     for j, bit in enumerate(valid_line):
         if text_line[j] == "<pad>":  # if we ran out of characters
             break
@@ -177,37 +175,36 @@ def find_mistakes(text_line, valid_line, pred_line, mistake_count) -> list:
             wrong_indexes.append(j)
             mistake_count += 1
     return wrong_indexes, mistake_count
-
-
 def fill_dicts(text_line, valid_line, pred_line, wrong_indexes):
     global words_0, words_1, words_0_context, words_1_context
     out_string = split_string(text_line, valid_line)
     out_string = mark_mistakes_string(out_string, wrong_indexes)
-    for j in wrong_indexes:
-        if valid_line[j] == 0:  # when model splits something it shouldnt
-            slices = out_string.split(" _ ")
-            for word_mistaken in slices:
-                if "!" in word_mistaken:
-                    parts = word_mistaken.split("!")
-                    word_clean = ''
-                    for part in parts:
-                        word_clean += part
-                    if word_clean not in words_0_context:
-                        words_0_context[word_clean] = [word_mistaken]
-                    else:
-                        words_0_context[word_clean] += [word_mistaken]
-                    add_to_dict(words_0, word_clean)
-                else:
-                    pass # healthy word found
-        else:  # when model doesnt split
-            # slices = out_string.split("!")
-            # one = slices[0].split(" _ ")[-1]
-            # two = slices[1].split(" _ ")[1]  # todo check
-            # words_1_context.append((one + " _ " + two, one + "!_" + two, out_string))
-            # add_to_dict(words_1, one + " _ " + two)
-            # print(one + " _ " + two)
-            pass
 
+    if "_ !" in out_string:  # its just fucking                                       TODO
+        return
+    slices = out_string.split(" _ ")
+    for word_mistaken in slices:
+        if "!" in word_mistaken:
+            parts = word_mistaken.split("!")
+            word_clean = ''
+            for part in parts:
+                word_clean += part
+            if word_clean not in words_0_context:
+                words_0_context[word_clean] = [word_mistaken]
+            else:
+                words_0_context[word_clean] += [word_mistaken]
+            assert word_clean != "N35"
+            add_to_dict(words_0, word_clean)
+        else:
+            pass # healthy word found
+        # else:  # when model doesnt split
+        #     # slices = out_string.split("!")
+        #     # one = slices[0].split(" _ ")[-1]
+        #     # two = slices[1].split(" _ ")[1]  # todo check
+        #     # words_1_context.append((one + " _ " + two, one + "!_" + two, out_string))
+        #     # add_to_dict(words_1, one + " _ " + two)
+        #     # print(one + " _ " + two)
+        #     pass
 def all_valid(text_line, valid_line):
     global correct_dict
     tt = split_string(text_line, valid_line)
@@ -215,18 +212,22 @@ def all_valid(text_line, valid_line):
         add_to_dict(correct_dict, word)
 def find_corrects_n_mistakes(valid, prediction, text):
     global correct_dict
-    mistake_couneter = 0
+    mistake_counter = 0
     correct_dict = {}
+    line_mistakes = []
     for i, line in enumerate(valid):
         # if the entire line correct
         if (valid[i] == prediction[i]).all():
             all_valid(text[i], valid[i])
+            line_mistakes.append(0)
         # when mistake
         else:
-            wrong_indexes, mistake_couneter = find_mistakes(text[i], valid[i], prediction[i], mistake_couneter)
+            wrong_indexes, num_mistakes = find_mistakes(text[i], valid[i], prediction[i])
+            line_mistakes.append(num_mistakes)
+            mistake_counter += num_mistakes
             extract_good(text[i], valid[i], wrong_indexes)
             fill_dicts(text[i], valid[i], prediction[i], wrong_indexes)
-    return mistake_couneter
+    return mistake_counter
 
 def generate_lists(mistakes : dict, corrects : dict, cap=None, show_corrects=False):
     words, counts_correct, counts_mistakes = [], [], []
@@ -349,4 +350,4 @@ with open('output.csv', 'w') as csvfile:
     sum = 0
     for count in counts_mistakes:
         sum += count
-    print(sum, mistake_counter, sum==mistake_counter)
+    print(sum, mistake_counter, sum==mistake_counter)  # cant be equal yet, because i dont consider the dvojicky

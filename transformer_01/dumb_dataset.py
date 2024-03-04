@@ -6,6 +6,7 @@ from transform2bin import load_model_mine, Data
 # TODO
 # graf slova v testovacim souboru prelozena dobre vs prelozena spatne
 # ABOVE pro slova co rozdeluje (value=0) a nerozdeluje (value=1)
+# unify the LACUNAS
 def open_files():
     training_file_name = "../data/src-sep-train.txt"
     validation_file_name = "../data/src-sep-val.txt"
@@ -103,13 +104,27 @@ def split_list(line : str, bins) -> list:
             out_list.append("_")
     return out_list
 
-def mark_mistake(line : str, j : int):
+def mark_mistakes(line : str, index_list : list):
     out_list = []
-    for x, word in enumerate(line.split(" _ ")):
-        out_list.append(line[x])
-        if x == j:
-            out_list.append("!")
+    i = 0
+    while i < len(index_list):
+        for x, word in enumerate(line.split(" _ ")):
+            out_list.append(line[x])
+            if x == index_list[i]:
+                out_list.append("!")
     return out_list
+
+def mark_mistakes_string(line : str, index_list : list):
+    out_str = ''
+    i = 0
+    for x, word in enumerate(line.split(' ')):
+        out_str += word
+        if i < len(index_list) - 1:
+            if x == index_list[i]:
+                out_str += "!"
+                i += 1
+        out_str += " "
+    return out_str
 def split_and_mark(line, bins, j):
     out_string = ''
     for x, item in enumerate(line):
@@ -154,7 +169,6 @@ def extract_good(text_line, valid_line, wrong_indexes):
         x += 1
         start = x
 def find_mistakes(text_line, valid_line, pred_line, mistake_count) -> list:
-    global words_0, words_1
     wrong_indexes = []
     for j, bit in enumerate(valid_line):
         if text_line[j] == "<pad>":  # if we ran out of characters
@@ -162,19 +176,37 @@ def find_mistakes(text_line, valid_line, pred_line, mistake_count) -> list:
         if valid_line[j] != pred_line[j]:
             wrong_indexes.append(j)
             mistake_count += 1
-            out_string = split_and_mark(text_line, valid_line, j)
-            if valid_line[j] == 0:  # when model splits something it shouldnt
-                slices = out_string.split("!")
-                one = slices[0].split(" _ ")[-1]
-                two = slices[1].split(" _ ")[0]
-                # words_0_context.append((one + two, one + "!" + two, out_string))
-                add_to_dict(words_0, one+two)
-            else:  # when model doesnt split
-                slices = out_string.split("!")
-                one = slices[0].split(" _ ")[-1]
-                two = slices[1].split(" _ ")[1]  # todo check
-                words_1.append((one + two, one + "!_" + two, out_string))
-    return wrong_indexes
+    return wrong_indexes, mistake_count
+
+
+def fill_dicts(text_line, valid_line, pred_line, wrong_indexes):
+    global words_0, words_1, words_0_context, words_1_context
+    out_string = split_string(text_line, valid_line)
+    out_string = mark_mistakes_string(out_string, wrong_indexes)
+    for j in wrong_indexes:
+        if valid_line[j] == 0:  # when model splits something it shouldnt
+            slices = out_string.split(" _ ")
+            for word_mistaken in slices:
+                if "!" in word_mistaken:
+                    parts = word_mistaken.split("!")
+                    word_clean = ''
+                    for part in parts:
+                        word_clean += part
+                    if word_clean not in words_0_context:
+                        words_0_context[word_clean] = [word_mistaken]
+                    else:
+                        words_0_context[word_clean] += [word_mistaken]
+                    add_to_dict(words_0, word_clean)
+                else:
+                    pass # healthy word found
+        else:  # when model doesnt split
+            # slices = out_string.split("!")
+            # one = slices[0].split(" _ ")[-1]
+            # two = slices[1].split(" _ ")[1]  # todo check
+            # words_1_context.append((one + " _ " + two, one + "!_" + two, out_string))
+            # add_to_dict(words_1, one + " _ " + two)
+            # print(one + " _ " + two)
+            pass
 
 def all_valid(text_line, valid_line):
     global correct_dict
@@ -191,21 +223,19 @@ def find_corrects_n_mistakes(valid, prediction, text):
             all_valid(text[i], valid[i])
         # when mistake
         else:
-            wrong_indexes = find_mistakes(text[i], valid[i], prediction[i], mistake_couneter)
+            wrong_indexes, mistake_couneter = find_mistakes(text[i], valid[i], prediction[i], mistake_couneter)
             extract_good(text[i], valid[i], wrong_indexes)
-
-    # print("dict")
-    # print(correct_words)
-
-
+            fill_dicts(text[i], valid[i], prediction[i], wrong_indexes)
     return mistake_couneter
 
-def generate_lists(mistakes : dict, corrects : dict, cap = 100, show_corrects=False):
+def generate_lists(mistakes : dict, corrects : dict, cap=None, show_corrects=False):
     words, counts_correct, counts_mistakes = [], [], []
     for item in mistakes:
         words.append(item)
         if item in corrects:
-            if corrects[item] > cap:  # horni hranice
+            if cap == None:
+                counts_correct.append(corrects[item])
+            elif corrects[item] > cap:  # horni hranice
                 counts_correct.append(cap)
                 print("capped word:", item)
             else:
@@ -217,7 +247,9 @@ def generate_lists(mistakes : dict, corrects : dict, cap = 100, show_corrects=Fa
         for item in corrects: # word in corrects but not in mistakes
             if item not in mistakes:
                 words.append(item)
-                if corrects[item] > cap:  # horni hranice
+                if cap == None:
+                    counts_correct.append(corrects[item])
+                elif corrects[item] > cap:  # horni hranice
                     counts_correct.append(cap)
                     print("capped word:", item)
                 else:
@@ -264,24 +296,57 @@ with open(class_data, 'rb') as inp:
 text, valid, prediction = get_data("../data/src-sep-test.txt")
 
 # globalni promenne
-words_0, words_1 = {}, []
-words_0_context, words_1_context = [], []
+words_0, words_1 = {}, {}
+words_0_context, words_1_context = {}, []
 correct_dict = {}
 
 mistake_counter = find_corrects_n_mistakes(valid, prediction, text)
 print(f"mistakes:{mistake_counter}")
+
 # format: (spravne, predicted, kontext)
 # print(words_0)
 # print(words_1)
 # words_all = words_0 + words_1
 
-mistakes_dict = words_0
-# for word in words_0:
-#     add_to_dict(mistakes_dict, word)
-# print(mistakes_dict)
-print(len(mistakes_dict), len(word_dict), len(correct_dict))
-all_words, counts_all, counts_mistakes = generate_lists(mistakes_dict, correct_dict, 100, True)
-print(len(all_words), len(counts_all), len(counts_mistakes))
-# -----------------------------------------------------------------------------------------------------
+# TO PLOT A GRAPH:
+# correct_dict are data from testing, word_dict are data from training
+all_words, counts_all, counts_mistakes = generate_lists(words_0, correct_dict, show_corrects=False)
 
-plot(all_words, counts_all, counts_mistakes)
+for word in all_words:
+    if word not in word_dict:
+        word_dict[word] = 0
+# plot(all_words, counts_all, counts_mistakes)
+# -----------------------------------------------------------------------------------------------------
+def process_contexts(list):
+    list.sort()
+    contexts = [list[0]]
+    counts = [0]
+    for context in list:
+        if context == contexts[-1]:
+            counts[-1] += 1
+        else:
+            contexts.append(context)
+            counts.append(1)
+    return counts, contexts
+
+import csv
+# TO SAVE TO EXCEL:
+with open('output.csv', 'w') as csvfile:
+    csvwriter = csv.writer(csvfile, lineterminator="\n")
+    csvwriter.writerow(["word", "in training", "corrects", "mistakes", "mistakes", "mistakes locations"])
+    for i, word in enumerate(all_words):
+        if word in words_0_context:
+            counts, contexts = process_contexts(words_0_context[word])
+            row = [word, word_dict[word], counts_all[i], counts_mistakes[i], counts] + contexts
+            s = 0
+            for n in counts:
+                s += n
+            assert s == counts_mistakes[i]
+
+            csvwriter.writerow(row)
+        else:
+            csvwriter.writerow([word, counts_all[i], counts_mistakes[i]])
+    sum = 0
+    for count in counts_mistakes:
+        sum += count
+    print(sum, mistake_counter, sum==mistake_counter)

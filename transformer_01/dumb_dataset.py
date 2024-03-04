@@ -21,7 +21,6 @@ def open_files():
         test_file = fff.read()
         fff.close()
     return train_file, valid_file, test_file
-train_file, valid_file, test_file = open_files()
 # -----------------------------------------------------------------------------------------------------
 def create_word_dict(train_file):
     word_dict = {}
@@ -45,14 +44,7 @@ def create_letter_dict(train_file):
                     letter_dict[pismeno] += 1
     return letter_dict
 
-word_dict = create_word_dict(train_file)
-letter_dict = create_letter_dict(train_file)
 
-just_once = []
-others = []
-
-# print(len(letter_dict))        # todo 1138 pismen
-# print(len(word_dict))          # todo 61776 slov
 
 # -----------------------------------------------------------------------------------------------------
 
@@ -69,10 +61,6 @@ def list_with_once_and_more(word_dict):
     print("all:", len(just_once) + len(others))
     return just_once, others
 
-model_file_name = "t2b_emb64_h4"
-class_data = model_file_name + "_data/" + model_file_name + "_data.plk"
-with open(class_data, 'rb') as inp:
-    d = pickle.load(inp)
 def get_data(file_path):
     # testing stats
     test_file_name = file_path
@@ -91,18 +79,38 @@ def get_data(file_path):
                 pred2[i][j] = 1
 
     return x_test, y_test, pred2
-text, valid, prediction = get_data("../data/src-sep-test.txt")
 
-def print_separated(line, bins):
-    for i, char in enumerate(line):
-        if char != "<pad>":
-            if bins[i] == 1:
-                print(f"{char} _ ", end="")
-            else:
-                print(f"{char} ", end="")
-    print()
 
-def split_and_mark(line, bins, j =None):
+def split_string(line : str, bins) -> str:
+    out_string = ''
+    for x, item in enumerate(line):
+        if item == "<pad>":
+            break
+        out_string += item
+        if bins[x] == 1:
+            out_string += " _ "
+        else:
+            out_string += " "
+    return out_string
+
+def split_list(line : str, bins) -> list:
+    out_list = []
+    for x, item in enumerate(line):
+        if item == "<pad>":
+            break
+        out_list.append(item)
+        if bins[x] == 1:
+            out_list.append("_")
+    return out_list
+
+def mark_mistake(line : str, j : int):
+    out_list = []
+    for x, word in enumerate(line.split(" _ ")):
+        out_list.append(line[x])
+        if x == j:
+            out_list.append("!")
+    return out_list
+def split_and_mark(line, bins, j):
     out_string = ''
     for x, item in enumerate(line):
         if item == "<pad>":
@@ -129,75 +137,68 @@ def add_to_dict(dictionary, word):
     else:
         dictionary[word] += 1
 
-def funkce_or_sth(valid, prediction, text):
+def extract_good(text_line, valid_line, wrong_indexes):
+    global correct_words
+    x, start, last_space = 0, 0, 0
+    for j in wrong_indexes:
+        # first find the last mezera in correct text
+        while x != j:
+            if valid_line[x] == 1:
+                last_space = x
+            x += 1
+        # then split the correctly translated part and save it
+        if start < last_space:
+            tt = split_string(text_line[start:last_space], valid_line[start:last_space])
+            for word in tt.split("_"):
+                add_to_dict(correct_words, word)
+        x += 1
+        start = x
+def find_mistakes(text_line, valid_line, pred_line, mistake_count) -> list:
+    global words_0, words_1
+    wrong_indexes = []
+    for j, bit in enumerate(valid_line):
+        if text_line[j] == "<pad>":  # if we ran out of characters
+            break
+        if valid_line[j] != pred_line[j]:
+            wrong_indexes.append(j)
+            mistake_count += 1
+            out_string = split_and_mark(text_line, valid_line, j)
+            if valid_line[j] == 0:  # when model splits something it shouldnt
+                slices = out_string.split("!")
+                one = slices[0].split(" _ ")[-1]
+                two = slices[1].split(" _ ")[0]
+                # words_0_context.append((one + two, one + "!" + two, out_string))
+                add_to_dict(words_0, one+two)
+            else:  # when model doesnt split
+                slices = out_string.split("!")
+                one = slices[0].split(" _ ")[-1]
+                two = slices[1].split(" _ ")[1]  # todo check
+                words_1.append((one + two, one + "!_" + two, out_string))
+    return wrong_indexes
+
+def all_valid(text_line, valid_line):
+    global correct_words
+    tt = split_string(text_line, valid_line)
+    for word in tt.split("_"):
+        add_to_dict(correct_words, word)
+def find_corrects_n_mistakes(valid, prediction, text):
+    global correct_words
     mistake_couneter = 0
-    words_0, words_1 = [], []
     correct_words = {}
     for i, line in enumerate(valid):
         # if the entire line correct
         if (valid[i] == prediction[i]).all():
-            tt = split_and_mark(text[i], valid[i])
-            for word in tt.split("_"):
-                add_to_dict(correct_words, word)
+            all_valid(text[i], valid[i])
         # when mistake
         else:
-            wrong_indexes = []
-            for j, bit in enumerate(valid[i]):
-                if text[i][j] == "<pad>":  # if we ran out of characters
-                    break
-                if valid[i][j] != prediction[i][j]:
-                    wrong_indexes.append(j)
-                    # print(f"sentence:{i}")
-                    # print(f"mistake at: {j}")
-                    # print("val: ", end="")
-                    # separate_line(text[i], valid[i])
-                    # print("pre: ", end="")
-                    # separate_line(text[i], prediction[i])
-                    mistake_couneter += 1
-                    out_string = split_and_mark(text[i], valid[i], j)
-                    if valid[i][j] == 0:  # when model splits something it shouldnt
-                        slices = out_string.split("!")
-                        one = slices[0].split(" _ ")[-1]
-                        two = slices[1].split(" _ ")[0]
-                        # print(one, "!", two)
-                        words_0.append((one + two, one + "!" + two, out_string))
-                    else:  # when model doesnt split
-                        slices = out_string.split("!")
-                        one = slices[0].split(" _ ")[-1]
-                        two = slices[1].split(" _ ")[1]
-                        # print(one, "!_", two)
-                        words_1.append((one + two, one + "!_" + two, out_string))
-            x, start, last_space = 0, 0, 0
-            for j in wrong_indexes:
-                # first find the last mezera in correct text
-                while x != j:
-                    if valid[i][x] == 1:
-                        last_space = x
-                    x += 1
-                # then split the correctly translated part and save it
-                if start < last_space:
-                    tt = split_and_mark(text[i][start:last_space], valid[i][start:last_space])
-                    for word in tt.split("_"):
-                        add_to_dict(correct_words, word)
-                x += 1
-                start = x
+            wrong_indexes = find_mistakes(text[i], valid[i], prediction[i], mistake_couneter)
+            extract_good(text[i], valid[i], wrong_indexes)
+
     # print("dict")
     # print(correct_words)
 
 
-    return words_0, words_1, correct_words, mistake_couneter
-
-words_0, words_1, correct_words, mistake_counter = funkce_or_sth(valid, prediction, text)
-print(f"mistakes:{mistake_counter}")
-# format: (spravne, predicted, kontext)
-# print(words_0)
-# print(words_1)
-# words_all = words_0 + words_1
-
-mistakes_dict = {}
-for word in words_0:
-    add_to_dict(mistakes_dict, word)
-print(mistakes_dict)
+    return mistake_couneter
 
 def generate_lists(mistakes : dict, corrects : dict):
     words, counts_correct, counts_mistakes = [], [], []
@@ -214,10 +215,6 @@ def generate_lists(mistakes : dict, corrects : dict):
             # print(f"problem word:{item}")
             pass
     return words, counts_correct, counts_mistakes
-# print(len(mistakes_dict), len(word_dict))
-all_words, counts_all, counts_mistakes = generate_lists(mistakes_dict, correct_words)
-print(len(all_words), len(counts_all), len(counts_mistakes))
-# -----------------------------------------------------------------------------------------------------
 def plot(words, counts_training, counts_mistakes=None):
     # dict = word_list
     # counts = list(dict.values())[:100]
@@ -240,6 +237,45 @@ def plot(words, counts_training, counts_mistakes=None):
 
     # Display the graph
     plt.show()
+
+
+train_file, valid_file, test_file = open_files()
+
+word_dict = create_word_dict(train_file)
+letter_dict = create_letter_dict(train_file)
+
+just_once = []
+others = []
+
+# print(len(letter_dict))        # todo 1138 pismen
+# print(len(word_dict))          # todo 61776 slov
+
+model_file_name = "t2b_emb64_h4"
+class_data = model_file_name + "_data/" + model_file_name + "_data.plk"
+with open(class_data, 'rb') as inp:
+    d = pickle.load(inp)
+
+text, valid, prediction = get_data("../data/src-sep-test.txt")
+
+words_0, words_1 = {}, []
+words_0_context, words_1_context = [], []
+correct_words = {}
+
+mistake_counter = find_corrects_n_mistakes(valid, prediction, text)
+print(f"mistakes:{mistake_counter}")
+# format: (spravne, predicted, kontext)
+# print(words_0)
+# print(words_1)
+# words_all = words_0 + words_1
+
+mistakes_dict = words_0
+# for word in words_0:
+#     add_to_dict(mistakes_dict, word)
+# print(mistakes_dict)
+# print(len(mistakes_dict), len(word_dict))
+all_words, counts_all, counts_mistakes = generate_lists(mistakes_dict, correct_words)
+print(len(all_words), len(counts_all), len(counts_mistakes))
+# -----------------------------------------------------------------------------------------------------
 
 # plot(list(word_dict.keys())[:100], list(word_dict.values())[:100])
 # plot(["haf", "haff", "haff"], [1, 3, 5], [0, 2, 2])

@@ -138,7 +138,7 @@ def add_to_dict(dictionary, word):
         dictionary[word] += 1
 
 def extract_good(text_line, valid_line, wrong_indexes):
-    global correct_words
+    global correct_dict
     x, start, last_space = 0, 0, 0
     for j in wrong_indexes:
         # first find the last mezera in correct text
@@ -150,7 +150,7 @@ def extract_good(text_line, valid_line, wrong_indexes):
         if start < last_space:
             tt = split_string(text_line[start:last_space], valid_line[start:last_space])
             for word in tt.split("_"):
-                add_to_dict(correct_words, word)
+                add_to_dict(correct_dict, word)
         x += 1
         start = x
 def find_mistakes(text_line, valid_line, pred_line, mistake_count) -> list:
@@ -177,14 +177,14 @@ def find_mistakes(text_line, valid_line, pred_line, mistake_count) -> list:
     return wrong_indexes
 
 def all_valid(text_line, valid_line):
-    global correct_words
+    global correct_dict
     tt = split_string(text_line, valid_line)
     for word in tt.split("_"):
-        add_to_dict(correct_words, word)
+        add_to_dict(correct_dict, word)
 def find_corrects_n_mistakes(valid, prediction, text):
-    global correct_words
+    global correct_dict
     mistake_couneter = 0
-    correct_words = {}
+    correct_dict = {}
     for i, line in enumerate(valid):
         # if the entire line correct
         if (valid[i] == prediction[i]).all():
@@ -200,43 +200,50 @@ def find_corrects_n_mistakes(valid, prediction, text):
 
     return mistake_couneter
 
-def generate_lists(mistakes : dict, corrects : dict):
+def generate_lists(mistakes : dict, corrects : dict, cap = 100, show_corrects=False):
     words, counts_correct, counts_mistakes = [], [], []
     for item in mistakes:
-        if item[0] in corrects: # if the model saw the word before
-            # print(item)
-            words.append(item[0])
-            if corrects[item[0]] > 5:  # horni hranice
-                counts_correct.append(5)
+        words.append(item)
+        if item in corrects:
+            if corrects[item] > cap:  # horni hranice
+                counts_correct.append(cap)
+                print("capped word:", item)
             else:
-                counts_correct.append(corrects[item[0]])
-            counts_mistakes.append(mistakes[item])  # todo the dictionary is weird
-        else:  # if its a new word
-            # print(f"problem word:{item}")
-            pass
+                counts_correct.append(corrects[item])
+        else: # word in mistakes but not corrrects
+            counts_correct.append(0)
+        counts_mistakes.append(mistakes[item])
+    if show_corrects:
+        for item in corrects: # word in corrects but not in mistakes
+            if item not in mistakes:
+                words.append(item)
+                if corrects[item] > cap:  # horni hranice
+                    counts_correct.append(cap)
+                    print("capped word:", item)
+                else:
+                    counts_correct.append(corrects[item])
+                counts_mistakes.append(0)
+
     return words, counts_correct, counts_mistakes
 def plot(words, counts_training, counts_mistakes=None):
-    # dict = word_list
-    # counts = list(dict.values())[:100]
-
-    # Creating a bar graph
     bar_width = 0.35
     index = np.arange(len(words))
-    plt.bar(index, counts_training, width=bar_width, label='training')
+    plt.bar(index, counts_training, width=bar_width, label='corrects')
     if counts_mistakes != None:
-        plt.bar(index + bar_width, counts_mistakes, width=bar_width, label='testing mistakes')
+        plt.bar(index + bar_width, counts_mistakes, width=bar_width, label='mistakes')
 
     # Adding labels and title
     plt.xlabel('Words')
     plt.ylabel('Counts')
-    plt.title('Word Counts Comparison')
-    plt.xticks(index + bar_width / 2, words, rotation=45, ha='right')
+    plt.title('ALL testing')
+    # plt.xticks(index + bar_width / 2, words, rotation=45, ha='right')
 
     # Adding legend
     plt.legend()
 
     # Display the graph
-    plt.show()
+    # plt.show()
+    plt.savefig("mygraf.pdf", format="pdf", bbox_inches="tight")
 
 
 train_file, valid_file, test_file = open_files()
@@ -244,8 +251,7 @@ train_file, valid_file, test_file = open_files()
 word_dict = create_word_dict(train_file)
 letter_dict = create_letter_dict(train_file)
 
-just_once = []
-others = []
+just_once, others = [], []
 
 # print(len(letter_dict))        # todo 1138 pismen
 # print(len(word_dict))          # todo 61776 slov
@@ -257,9 +263,10 @@ with open(class_data, 'rb') as inp:
 
 text, valid, prediction = get_data("../data/src-sep-test.txt")
 
+# globalni promenne
 words_0, words_1 = {}, []
 words_0_context, words_1_context = [], []
-correct_words = {}
+correct_dict = {}
 
 mistake_counter = find_corrects_n_mistakes(valid, prediction, text)
 print(f"mistakes:{mistake_counter}")
@@ -272,11 +279,9 @@ mistakes_dict = words_0
 # for word in words_0:
 #     add_to_dict(mistakes_dict, word)
 # print(mistakes_dict)
-# print(len(mistakes_dict), len(word_dict))
-all_words, counts_all, counts_mistakes = generate_lists(mistakes_dict, correct_words)
+print(len(mistakes_dict), len(word_dict), len(correct_dict))
+all_words, counts_all, counts_mistakes = generate_lists(mistakes_dict, correct_dict, 100, True)
 print(len(all_words), len(counts_all), len(counts_mistakes))
 # -----------------------------------------------------------------------------------------------------
 
-# plot(list(word_dict.keys())[:100], list(word_dict.values())[:100])
-# plot(["haf", "haff", "haff"], [1, 3, 5], [0, 2, 2])
 plot(all_words, counts_all, counts_mistakes)

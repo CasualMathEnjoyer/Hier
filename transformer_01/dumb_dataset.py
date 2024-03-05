@@ -113,15 +113,16 @@ def mark_mistakes(line : str, index_list : list):
             if x == index_list[i]:
                 out_list.append("!")
     return out_list
-def split_and_mark(line, bins, j):
+def split_and_mark(line, bins, index_list):
     out_string = ''
+    j = 0
     for x, item in enumerate(line):
         if item == "<pad>":
             break
         out_string += item
-        if j != None:
-            if x == j:
-                out_string += "!"
+        if j < len(index_list) and x == index_list[j]:
+            out_string += "!"
+            j += 1
         if bins[x] == 1:
             out_string += " _ "
         else:
@@ -177,14 +178,36 @@ def find_mistakes(text_line, valid_line, pred_line):
     return wrong_indexes, mistake_count
 def fill_dicts(text_line, valid_line, pred_line, wrong_indexes):
     global words_0, words_1, words_0_context, words_1_context
-    out_string = split_string(text_line, valid_line)
-    out_string = mark_mistakes_string(out_string, wrong_indexes)
-
-    if "_ !" in out_string:  # its just fucking                                       TODO
-        return
+    out_string = split_and_mark(text_line, valid_line, wrong_indexes)
+    # print(len(wrong_indexes))
+    # print(text_line)
+    # print(out_string)
     slices = out_string.split(" _ ")
-    for word_mistaken in slices:
-        if "!" in word_mistaken:
+    if "" in slices:
+        print("empty:", slices)
+        slices.remove("")
+        print("corrected:", slices)
+    for i, word_mistaken in enumerate(slices):
+        if word_mistaken[-1] == "!":
+            # the word was not split - chyba v dvojicce
+            try:
+                dvojicka = word_mistaken +" _ " + slices[i+1]
+                print(1, dvojicka)
+
+                parts = word_mistaken.split("!")
+                word_clean = ''
+                for part in parts:
+                    word_clean += part
+                if word_clean not in words_1_context:
+                    words_1_context[word_clean] = [word_mistaken]
+                else:
+                    words_1_context[word_clean] += [word_mistaken]
+                add_to_dict(words_1, word_clean)
+
+            except IndexError:
+                print("a mistake at the last word:", len(slices), slices)
+        elif "!" in word_mistaken:
+
             parts = word_mistaken.split("!")
             word_clean = ''
             for part in parts:
@@ -193,8 +216,8 @@ def fill_dicts(text_line, valid_line, pred_line, wrong_indexes):
                 words_0_context[word_clean] = [word_mistaken]
             else:
                 words_0_context[word_clean] += [word_mistaken]
-            assert word_clean != "N35"
             add_to_dict(words_0, word_clean)
+
         else:
             pass # healthy word found
         # else:  # when model doesnt split
@@ -298,7 +321,7 @@ text, valid, prediction = get_data("../data/src-sep-test.txt")
 
 # globalni promenne
 words_0, words_1 = {}, {}
-words_0_context, words_1_context = {}, []
+words_0_context, words_1_context = {}, {}
 correct_dict = {}
 
 mistake_counter = find_corrects_n_mistakes(valid, prediction, text)

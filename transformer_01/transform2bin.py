@@ -179,12 +179,25 @@ class Data():
 
         ed = edit_distance(valid, pred2)
 
+
+        # confusion matrix:
+        from sklearn.metrics import confusion_matrix
+
+        y_pred_classes = (prediction > 0.5).astype(int)
+        valid2 = valid.astype(int)
+        y_pred_flat = np.array(y_pred_classes).flatten()
+        valid_flat = np.array(valid2).flatten()
+        print("Unique values in pred2:", np.unique(y_pred_classes))
+        conf_matrix = confusion_matrix(valid_flat, y_pred_flat)
+
         if __name__ == "__main__":
             print("Accuracy:", acc)
             print("Precision:", prec)
             print("Recall:", rec)
             print("F1 score:", f1)
             print("Edit distance:", ed)
+            print("Confusion Matrix:\n", conf_matrix)
+
 
         return prediction, [acc, prec, rec, f1, ed]
     def model_use(self, sample_v, model_name):

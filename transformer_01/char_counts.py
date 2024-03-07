@@ -110,17 +110,19 @@ def balance_dicts(dict1, dict2):
         if item not in dict1:
             dict1[item] = 0
 
-def save_to_csv(char_correct_dict, char_mistake_dict):
+def save_to_csv(all_training_chars, char_correct_dict, char_mistake_dict):
     import csv
     # TO SAVE TO EXCEL:
     with open('output_chars.csv', 'w') as csvfile:
         csvwriter = csv.writer(csvfile, lineterminator="\n")
         csvwriter.writerow(["char", "count_training", "count_correct", "count_mistakes"])
-        balance_dicts(char_correct_dict, char_mistake_dict)
         for i, word in enumerate(char_mistake_dict):
-            row = [word, 0, char_correct_dict[word], char_mistake_dict[word]]
+            row = [word, all_training_chars[word], char_correct_dict[word], char_mistake_dict[word]]
             csvwriter.writerow(row)
 
+
+
+###############################################################################################################
 # PREPARATION
 train_file, valid_file, test_file = open_files()
 word_dict_train = create_word_dict(train_file)
@@ -132,6 +134,7 @@ with open(class_data, 'rb') as inp:
     d = pickle.load(inp)
 text, valid, prediction = get_data(test_file, model_file_name, d)
 
+# DOING SOMETHING USEFUL
 mistake_counter, all_wrong_indexes = find_wrong_indexes(valid, prediction)
 
 ssum = 0
@@ -139,7 +142,17 @@ for line in all_wrong_indexes:
     ssum += len(line)
 assert ssum == mistake_counter
 
-char_mistake_dict, char_correct_dict = {}, {}
+
+all_training_chars, char_mistake_dict, char_correct_dict = {}, {}, {}
+
+# GET JUICE FROM TRAINING DATA
+x_train, _ = d.non_slidng_data(train_file, False)
+for line in x_train:
+    line = remove_pads(line)
+    for item in line:
+        assert item != ''
+    for item in line:
+        add_to_dict(all_training_chars, item)
 
 # text is a list of list of words
 for i, line in enumerate(text):
@@ -150,7 +163,10 @@ for i, line in enumerate(text):
     out_line = mark_mistakes(line, all_wrong_indexes[i])
     print(out_line)
     find_char_mistakes(out_line)
-    save_to_csv(char_correct_dict, char_mistake_dict)
+    balance_dicts(char_correct_dict, char_mistake_dict)
+    balance_dicts(all_training_chars, char_mistake_dict)
+    balance_dicts(char_correct_dict, all_training_chars)
+    save_to_csv(all_training_chars, char_correct_dict, char_mistake_dict)
 
 
 

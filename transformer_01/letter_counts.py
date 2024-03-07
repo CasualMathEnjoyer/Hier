@@ -59,6 +59,14 @@ def split_string(line : list, bins) -> str:
             out_string += " "
     return out_string
 
+def find_char_mistakes(line):
+    global char_mistake_dict, char_correct_dict
+    for char in line:
+        if "!" in char:
+            char = char[:-1]
+            add_to_dict(char_mistake_dict, char)
+        else:
+            add_to_dict(char_correct_dict, char)
 def find_wrong_indexes(valid, prediction):
     mistake_counter = 0
     all_wrong_indexes = []
@@ -104,6 +112,16 @@ def save_to_csv(name, all_training_chars, char_correct_dict, char_mistake_dict):
         csvwriter.writerow(["char", "count_training", "count_correct", "count_mistakes"])
         for i, word in enumerate(char_mistake_dict):
             row = [word, all_training_chars[word], char_correct_dict[word], char_mistake_dict[word]]
+            csvwriter.writerow(row)
+
+def save_to_csv2(name, dict):
+    import csv
+    # TO SAVE TO EXCEL:
+    with open(name, 'w') as csvfile:
+        csvwriter = csv.writer(csvfile, lineterminator="\n")
+        csvwriter.writerow(["char", "count"])
+        for i, word in enumerate(dict):
+            row = [word, dict[word]]
             csvwriter.writerow(row)
 
 def split_n_fill(word_mistaken, context_dict, word_dict):
@@ -156,7 +174,7 @@ for line in x_train:
         add_to_dict(all_training_chars, item)
 
 # WORDS
-all_training_words, word_mistake_dict, word_correct_dict = {}, {}, {}
+all_training_words, word_correct_dict_0 = {}, {}
 words_0, words_1, words_0_context, words_1_context = {}, {}, {}, {}
 
 for line in train_file.split("\n"):  # adding correct words
@@ -169,22 +187,15 @@ for i, line in enumerate(text):
     line = remove_pads(line)
     for item in line:
         assert item != ''
-    # print(line)
     out_line = mark_mistakes(line, all_wrong_indexes[i])
-    # print(out_line)
-    # chars
-    # find_char_mistakes(out_line)
-    # balance_dicts(char_correct_dict, char_mistake_dict)
-    # balance_dicts(all_training_chars, char_mistake_dict)
-    # balance_dicts(char_correct_dict, all_training_chars)
-    # save_to_csv("leter_results.csv", all_training_chars, char_correct_dict, char_mistake_dict)
+    # CHARS
+    find_char_mistakes(out_line)
 
+    # WORDS
     out_str = split_string(out_line, valid[i])  # A21 B3! C12 _ A2! _ B3 OWO _
-    # print(out_str)
     out_list = out_str.split(" _ ")
     if out_list[-1] == "":
         out_list.pop() # there is empty string at the end
-    # print(out_list)
     for j, word in enumerate(out_list):
         check_word(word)
         if word[-1] == "!":
@@ -195,18 +206,25 @@ for i, line in enumerate(text):
         elif "!" in word:
             split_n_fill(word, words_0_context, words_0)
         else:
-            add_to_dict(word_correct_dict, word)
+            add_to_dict(word_correct_dict_0, word)
 
-print(words_0)
-print(words_0_context)
-print(words_1)
-print(words_1_context)
-print(word_correct_dict)
+# print(words_0)
+# print(words_0_context)
+# print(words_1)
+# print(words_1_context)
+# print(word_correct_dict)
 
-balance_dicts(all_training_words, word_correct_dict)
-balance_dicts(words_0, word_correct_dict)
+balance_dicts(char_correct_dict, char_mistake_dict)
+balance_dicts(all_training_chars, char_mistake_dict)
+balance_dicts(char_correct_dict, all_training_chars)
+save_to_csv("leter_results.csv", all_training_chars, char_correct_dict, char_mistake_dict)
+
+balance_dicts(all_training_words, word_correct_dict_0)
+balance_dicts(words_0, word_correct_dict_0)
 balance_dicts(all_training_words, words_0)
-save_to_csv("words_results.csv", all_training_words, word_correct_dict, words_0)
+save_to_csv("words_results.csv", all_training_words, word_correct_dict_0, words_0)
+
+save_to_csv2("words_results_1.csv", words_1)
 
 
 

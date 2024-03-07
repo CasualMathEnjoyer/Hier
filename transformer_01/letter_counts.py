@@ -114,14 +114,24 @@ def save_to_csv(name, all_training_chars, char_correct_dict, char_mistake_dict):
             row = [word, all_training_chars[word], char_correct_dict[word], char_mistake_dict[word]]
             csvwriter.writerow(row)
 
-def save_to_csv2(name, dict):
+def save_to_csv2(name, dict, context_dict):
     import csv
     # TO SAVE TO EXCEL:
     with open(name, 'w') as csvfile:
         csvwriter = csv.writer(csvfile, lineterminator="\n")
         csvwriter.writerow(["char", "count"])
         for i, word in enumerate(dict):
-            row = [word, dict[word]]
+            row = [word, dict[word]] + context_dict[word]
+            csvwriter.writerow(row)
+
+def save_to_csv3(name, training_dict, correct_dict, mistake_dict, context_dict):
+    import csv
+    # TO SAVE TO EXCEL:
+    with open(name, 'w') as csvfile:
+        csvwriter = csv.writer(csvfile, lineterminator="\n")
+        csvwriter.writerow(["char", "count_training", "count_correct", "count_mistakes", "context"])
+        for i, word in enumerate(mistake_dict):
+            row = [word, training_dict[word], correct_dict[word], mistake_dict[word]] + context_dict[word]
             csvwriter.writerow(row)
 
 def split_n_fill(word_mistaken, context_dict, word_dict):
@@ -222,9 +232,16 @@ save_to_csv("leter_results.csv", all_training_chars, char_correct_dict, char_mis
 balance_dicts(all_training_words, word_correct_dict_0)
 balance_dicts(words_0, word_correct_dict_0)
 balance_dicts(all_training_words, words_0)
-save_to_csv("words_results.csv", all_training_words, word_correct_dict_0, words_0)
+# TODO - check same mistakes in word contexts
+for item in words_0:
+    if item not in words_0_context:
+        words_0_context[item] = []
+save_to_csv3("words_results.csv", all_training_words, word_correct_dict_0, words_0, words_0_context)
 
-save_to_csv2("words_results_1.csv", words_1)
+for item in words_1:
+    if item not in words_1_context:
+        words_1_context[item] = []
+save_to_csv2("words_results_1.csv", words_1, words_1_context)
 
 
 

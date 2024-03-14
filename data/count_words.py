@@ -37,8 +37,8 @@ for line in train_file.split("\n"):
         else:
             word_dict[word] += 1
 
-for item in word_dict:
-    print (item, word_dict[item])
+# for item in word_dict:
+#     print (item, word_dict[item])
 
 print("all_count:", all_count)
 print("unique words:", len(word_dict))
@@ -53,4 +53,28 @@ for word in word_dict:
 print("twice:", twice_count)
 print("just_once:", just_once_count)
 
+letter_dict = {}
+letter_count = 0
+unique_letters = 0
 
+for line in train_file.split("\n"):
+    for word in line.split(" _ "):
+        word = replace_lacuna(word)
+        all_count += 1
+        for char in word.split(" "):
+            letter_count += 1
+            if char not in letter_dict:
+                letter_dict[char] = 1
+            else:
+                letter_dict[char] += 1
+
+for char in letter_dict:
+    if letter_dict[char] == 1:
+        unique_letters += 1
+    else:
+        pass
+
+print(letter_dict)
+print(letter_count)
+print("len(letter_dict)", len(letter_dict))
+print(unique_letters)

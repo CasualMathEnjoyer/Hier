@@ -50,9 +50,9 @@ print("seed = ", a)
 # celkem skoro 68 tisic slov
 # 47.5 tisic slov jenom jednou
 
-# from model_file import model_func
+from model_file import model_func
 # from model_file_LSTM import model_func, load_and_split_model
-from model_file_BiLSTM import model_func, load_and_split_model, encoder_state_transform
+# from model_file_BiLSTM import model_func, load_and_split_model, encoder_state_transform
 
 # model_file_name = "transform2seq_1"
 # training_file_name = "../data/src-sep-train.txt"
@@ -64,7 +64,8 @@ from model_file_BiLSTM import model_func, load_and_split_model, encoder_state_tr
 # mezera = '_'
 # end_line = '\n'
 
-model_file_name = "transform2seq_fr-eng_BiLSTM2"
+# model_file_name = "transform2seq_fr-eng_BiLSTM2"
+model_file_name = "transform2seq_fr-eng_trans1"
 # train_in_file_name = "../data/smallvoc_fr_.txt"
 # train_out_file_name = "../data/smallvoc_en_.txt"
 # val_in_file_name = "../data/smallvoc_fr_.txt"
@@ -83,11 +84,11 @@ sep = ' '
 mezera = '_'
 end_line = '\n'
 
-new = 0
+new = 1
 
 batch_size = 128
-epochs = 4
-repeat = 0  # full epoch_num=epochs*repeat
+epochs = 1
+repeat = 1  # full epoch_num=epochs*repeat
 
 class Data():
     embed_dim = 32  # Embedding size for each token
@@ -272,7 +273,7 @@ else:
 
 model.compile(optimizer="adam", loss="categorical_crossentropy",
               metrics=["accuracy"])
-model.summary()
+# model.summary()
 print()
 # --------------------------------- TRAINING ------------------------------------------------------------------------
 for i in range(repeat):

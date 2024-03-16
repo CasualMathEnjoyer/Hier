@@ -126,8 +126,24 @@ class TransformerDecoder(layers.Layer):
         )
         return config
 
-def Encoder():
-    pass
+def Encoder(in_vocab_size, in_seq_len, embed_dim, latent_dim, num_heads):
+    encoder_inputs = keras.Input(shape=(None,), dtype="int64", name="encoder_inputs")
+    x = PositionalEmbedding(in_seq_len, in_vocab_size, embed_dim, name="enc_embed")(encoder_inputs)
+    encoder_outputs = TransformerEncoder(embed_dim, latent_dim, num_heads)(x)
+    encoder = keras.Model(encoder_inputs, encoder_outputs, name="Encoder")
+    encoder_outputs = encoder(encoder_inputs)
+    return encoder_inputs, encoder_outputs
+
+def Decoder(out_vocab_size, out_seq_len, embed_dim, latent_dim, initial_state, num_heads):
+    decoder_inputs = keras.Input(shape=(None,), dtype="int64", name="decoder_inputs")
+    encoded_seq_inputs = keras.Input(shape=(None, embed_dim), name="decoder_state_inputs")
+    x = PositionalEmbedding(out_seq_len, out_vocab_size, embed_dim)(decoder_inputs)
+    x = TransformerDecoder(embed_dim, latent_dim, num_heads)(x, encoded_seq_inputs)
+    # x = layers.Dropout(0.5, name="Dropout")(x)
+    decoder_outputs = layers.Dense(out_vocab_size, activation="softmax")(x)
+    decoder = keras.Model([decoder_inputs, encoded_seq_inputs], decoder_outputs, name="Decoder")
+    decoder_outputs = decoder([decoder_inputs, initial_state])  # todo is this needed?
+    return decoder_inputs, decoder_outputs, x
 
 def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
     embed_dim = 32
@@ -136,20 +152,11 @@ def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
     # in_seq_len = 40
     # out_seq_len = 40  # can they be different ?
 
-    encoder_inputs = keras.Input(shape=(None,), dtype="int64", name="encoder_inputs")
-    x = PositionalEmbedding(in_seq_len, in_vocab_size, embed_dim)(encoder_inputs)
-    encoder_outputs = TransformerEncoder(embed_dim, latent_dim, num_heads)(x)
-    encoder = keras.Model(encoder_inputs, encoder_outputs)
+    encoder_inputs, encoder_states = Encoder(in_vocab_size, in_seq_len, embed_dim, latent_dim, num_heads)
 
-    decoder_inputs = keras.Input(shape=(None,), dtype="int64", name="decoder_inputs")
-    encoded_seq_inputs = keras.Input(shape=(None, embed_dim), name="decoder_state_inputs")
-    x = PositionalEmbedding(out_seq_len, out_vocab_size, embed_dim)(decoder_inputs)
-    x = TransformerDecoder(embed_dim, latent_dim, num_heads)(x, encoded_seq_inputs)
-    x = layers.Dropout(0.5)(x)
-    decoder_outputs = layers.Dense(out_vocab_size, activation="softmax")(x)
-    decoder = keras.Model([decoder_inputs, encoded_seq_inputs], decoder_outputs)
+    decoder_inputs, decoder_outputs, _ = Decoder(out_vocab_size, out_seq_len, embed_dim,
+                                                 latent_dim, encoder_states, num_heads)
 
-    decoder_outputs = decoder([decoder_inputs, encoder_outputs])
     transformer = keras.Model(
         [encoder_inputs, decoder_inputs], decoder_outputs, name="transformer"
     )
@@ -202,3 +209,7 @@ def load_and_split_model(model_folder_path, in_vocab_size, out_vocab_size, in_se
                           name="Decoder")
 
     return encoder_model, decoder_model
+
+if __name__ == "__main__":
+    model = model_func(2, 3, 5, 7)
+    model.summary()

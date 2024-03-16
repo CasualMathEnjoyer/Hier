@@ -9,22 +9,18 @@ from keras.utils import set_random_seed
 from keras.utils import to_categorical
 from keras import backend as K
 
-from metrics_evaluation import metrics as m
 # TODO - check for lines of all zeros in tokens
 # TODO - cropping sentences might be a problem!
 
-
 print("starting transform2seq")
+
+from metrics_evaluation import metrics as m
+from data_file import Data
 
 a = random.randrange(0, 2**32 - 1)
 # a = 1261263827
 set_random_seed(a)
 print("seed = ", a)
-
-#todo : When you use padding, you should always do masking on the output
-# and other places where it is relevant (i.e., when computing the attention
-# distribution in attention), which ensures no gradient gets propagated
-# from the "non-existing" padding positions.
 
 # TODO : plan
 # check if data is processed correctly   IT IS
@@ -50,9 +46,9 @@ print("seed = ", a)
 # celkem skoro 68 tisic slov
 # 47.5 tisic slov jenom jednou
 
-from model_file import model_func, load_and_split_model, load_model_mine, encoder_state_transform
+# from model_file import model_func, load_and_split_model, load_model_mine, encoder_state_transform
 # from model_file_LSTM import model_func, load_and_split_model
-# from model_file_BiLSTM import model_func, load_and_split_model, encoder_state_transform
+from model_file_BiLSTM import model_func, load_and_split_model, encoder_state_transform
 
 # model_file_name = "transform2seq_1"
 # training_file_name = "../data/src-sep-train.txt"
@@ -64,8 +60,7 @@ from model_file import model_func, load_and_split_model, load_model_mine, encode
 # mezera = '_'
 # end_line = '\n'
 
-# model_file_name = "transform2seq_fr-eng_BiLSTM2"
-model_file_name = "transform2seq_fr-eng_trans1"
+model_file_name = "transform2seq_LSTM_em32_dim64"
 # train_in_file_name = "../data/smallvoc_fr_.txt"
 # train_out_file_name = "../data/smallvoc_en_.txt"
 # val_in_file_name = "../data/smallvoc_fr_.txt"
@@ -73,12 +68,23 @@ model_file_name = "transform2seq_fr-eng_trans1"
 # test_in_file_name = "../data/smallervoc_fr_.txt"
 # test_out_file_name = "../data/smallervoc_en_.txt"
 
-train_in_file_name = "../data/fr_train.txt"
-train_out_file_name = "../data/en_train.txt"
-val_in_file_name = "../data/fr_val.txt"
-val_out_file_name = "../data/en_val.txt"
-test_in_file_name = "../data/fr_test.txt"
-test_out_file_name = "../data/en_test.txt"
+# train_in_file_name = "../data/fr_train.txt"
+# train_out_file_name = "../data/en_train.txt"
+# val_in_file_name = "../data/fr_val.txt"
+# val_out_file_name = "../data/en_val.txt"
+# test_in_file_name = "../data/fr_test.txt"
+# test_out_file_name = "../data/en_test.txt"
+
+train_in_file_name = "../data/src-sep-train-short.txt"
+train_out_file_name = "../data/tgt-train-short.txt"
+# train_in_file_name = "../data/src-sep-train.txt"
+# train_out_file_name = "../data/tgt-train.txt"
+val_in_file_name = "../data/src-sep-val.txt"
+val_out_file_name = "../data/tgt-val.txt"
+# test_in_file_name = "../data/src-sep-test.txt"
+# test_out_file_name = "../data/tgt-test.txt"
+test_in_file_name = "../data/src-sep-train-short.txt"
+test_out_file_name = "../data/tgt-train-short.txt"
 
 sep = ' '
 mezera = '_'
@@ -89,108 +95,6 @@ new = 0
 batch_size = 128
 epochs = 1
 repeat = 0  # full epoch_num=epochs*repeat
-
-class Data():
-    embed_dim = 32  # Embedding size for each token
-    num_heads = 2  # Number of attention heads
-
-    maxlen = 0
-    file = ''
-    dict_chars = {}
-    reverse_dict = {}
-    vocab_size = 0
-
-    def __init__(self, sep, mezera, end_line):
-        super().__init__()
-        self.sep = sep
-        self.space = mezera
-        self.end_line = end_line
-
-    def array_to_token(self, input_array): # takes array returns the max index
-        if input_array.size == 0:
-            # Handle empty array case
-            return np.array([])
-        max_index = np.argmax(input_array)
-        # result_array = np.zeros_like(input_array)  # so it is the same shape
-        # result_array[max_index] = 1
-        return max_index
-    def one_hot_to_token(self, vec): # takes one hot array returns list of tokens
-        tokens = []
-        for line in vec:
-            ll = []
-            for char in line:
-                ll.append(np.argmax(char))
-            tokens.append(ll)
-        return tokens
-    def create_reverse_dict(self, dictionary):
-        reverse_dict = {}
-        for key, value in dictionary.items():
-            reverse_dict.setdefault(value, key)  # assuming values and keys unique
-        self.reverse_dict = reverse_dict
-        return reverse_dict
-    def split_n_count(self, create_dic):  # creates a list of lists of TOKENS and a dictionary
-        maxlen, complete = 0, 0
-        output = []
-        len_list = []
-        dict_chars = {"<pad>": 0, "<bos>": 1, "<eos>": 2, "_": 3, "OVV": 4}
-        for line in self.file.split(self.end_line):
-            line = ["<bos>"] + line.split(self.sep) + ["<eos>"]
-            ll = len(line)
-            len_list.append(len(line))
-            if ll > maxlen:
-                maxlen = ll
-            complete += ll
-            l = []
-            for c in line:  # leave mezery !!
-                if c != '':
-                    if create_dic:
-                        if c not in dict_chars:
-                            dict_chars[c] = len(dict_chars)
-                        l.append(dict_chars[c])
-                    else:
-                        if c in self.dict_chars:
-                            l.append(self.dict_chars[c])
-                        else:
-                            l.append(self.dict_chars["OVV"])
-            output.append(l)
-
-        # print("average:     ", round(complete / len(self.file.split('\n')), 2))
-        # print("maxlen:      ", maxlen)
-
-        likelyhood = 39 / 40
-        weird_median = sorted(len_list)[int(len(len_list) * likelyhood)]
-        # print('with:', likelyhood,":", weird_median)  # mene nez 2.5% ma sequence delsi, nez 100 znaku
-        # maxlen: 1128
-        # average: 31.42447596485441
-        self.maxlen = weird_median
-        if create_dic:
-            self.dict_chars = dict_chars
-            self.vocab_size = len(dict_chars)
-            # print("dict chars:", self.dict_chars)
-            # print("vocab size:", self.vocab_size)
-        return output
-    def padding(self, input_list, lengh):
-        input_list_padded = np.zeros((len(input_list), lengh))
-        for i, line in enumerate(input_list):
-            if len(line) > lengh: # shorten
-                input_list_padded[i] = np.array(line[:lengh])
-            elif len(line) < lengh:  # padd, # 0 is the code for padding
-                input_list_padded[i] = np.array(line + [0 for i in range(lengh - len(line))])
-            else:
-                pass
-        # print(input_list_padded)
-        return input_list_padded
-    def padding_shift(self, input_list, lengh):
-        input_list_padded = np.zeros((len(input_list), lengh))  # maybe zeros?
-        for i, line in enumerate(input_list):
-            if len(line) > lengh: # shorten
-                input_list_padded[i] = np.array(line[1 : lengh + 1])
-            elif len(line) < lengh:  # padd, # 0 is the code for padding
-                input_list_padded[i] = np.array(line[1:] + [0 for i in range(lengh - len(line) + 1)])
-            else:
-                pass
-        # print(input_list_padded)
-        return input_list_padded
 
 # precision = to minimise false alarms
 # precision = TP/(TP + FP)
@@ -222,15 +126,14 @@ with open(train_out_file_name, "r", encoding="utf-8") as ff:
 print("first file:")
 x_train = source.split_n_count(True)
 x_train_pad = source.padding(x_train, source.maxlen)
-del x_train
 print("second file:")
 y_train = target.split_n_count(True)
 y_train_pad = target.padding(y_train, target.maxlen)
 # y_train_pad_one = to_categorical(y_train_pad)
 y_train_pad_shift = target.padding_shift(y_train, target.maxlen)
-del y_train
 y_train_pad_shift_one = to_categorical(y_train_pad_shift)
-del y_train_pad_shift
+assert len(x_train_pad) == len(y_train_pad_shift)
+assert len(x_train_pad) == len(y_train_pad_shift_one)
 
 # VALIDATION:
 print("validation files:")
@@ -254,6 +157,9 @@ y_val_pad_shift = val_target.padding_shift(y_val, target.maxlen)
 y_val_pad_shift_one = to_categorical(y_val_pad_shift)
 
 assert len(x_val) == len(y_val)
+assert len(x_val_pad) == len(y_val_pad_shift)
+assert len(x_val_pad) == len(y_val_pad_shift_one)
+
 
 # print(y_train_pad_one)
 # print()
@@ -281,7 +187,7 @@ for i in range(repeat):
         (x_train_pad, y_train_pad), y_train_pad_shift_one, batch_size=batch_size, epochs=epochs,
         validation_data=((x_val_pad, y_val_pad), y_val_pad_shift_one))
     model.save(model_file_name)
-    model.save_weights(model_file_name + ".h5")
+    # model.save_weights(model_file_name + ".h5")
     K.clear_session()
 print()
 # ---------------------------------- TESTING ------------------------------------------------------------------------
@@ -419,8 +325,8 @@ y_test_pad_shift = test_y.padding_shift(y_test, target.maxlen)
 assert len(x_test) == len(y_test)
 
 #  OLD TESTING
-# print("old testing")
-# model_test_old(test_y, x_test_pad, y_test_pad_shift, y_test_pad, model_file_name)
+print("old testing")
+model_test_old(test_y, x_test_pad, y_test_pad_shift, y_test_pad, model_file_name)
 
 #  BETTER TESTING
 print("new testing")

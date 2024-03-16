@@ -13,6 +13,8 @@ from metrics_evaluation import metrics as m
 # TODO - check for lines of all zeros in tokens
 # TODO - cropping sentences might be a problem!
 
+# this is a processing file for the transformer encoder_decoder model
+
 
 print("starting transform2seq")
 
@@ -26,23 +28,6 @@ print("seed = ", a)
 # distribution in attention), which ensures no gradient gets propagated
 # from the "non-existing" padding positions.
 
-# TODO : plan
-# check if data is processed correctly   IT IS
-# 1 implement masking for lstm           DONE
-# 2 make easily switchable lstm here     DONE
-# see if it work                         DONE
-# fix precission                         TODO ?
-# fix testing                            DONE
-# save info into json or sth             TODO
-# consider rewritting the class system   TODO
-# split into more files?                 DONE
-# metriky? cosine similarity?            TODO
-
-# lepsi testovani                        DONE
-# bi lsm                                 DONE
-# attention transformer
-
-# todo - jaka mame data?
 
 # sci kit grit search - hleadni metaparametru
 # FTP - na ssh   rcp na kopirovani veci
@@ -51,8 +36,6 @@ print("seed = ", a)
 # 47.5 tisic slov jenom jednou
 
 from model_file import model_func, load_and_split_model, load_model_mine, encoder_state_transform
-# from model_file_LSTM import model_func, load_and_split_model
-# from model_file_BiLSTM import model_func, load_and_split_model, encoder_state_transform
 
 # model_file_name = "transform2seq_1"
 # training_file_name = "../data/src-sep-train.txt"
@@ -87,8 +70,8 @@ end_line = '\n'
 new = 0
 
 batch_size = 128
-epochs = 1
-repeat = 0  # full epoch_num=epochs*repeat
+epochs = 2
+repeat = 2  # full epoch_num=epochs*repeat
 
 class Data():
     embed_dim = 32  # Embedding size for each token
@@ -197,13 +180,13 @@ class Data():
 # recall = to minimise missed spaces
 # recall = TP/(TP+FN)
 
-def load_model_mine(model_name):
-    # from model_file import PositionalEmbedding, TransformerEncoder, TransformerDecoder
-    # return keras.models.load_model(model_name, custom_objects={'PositionalEmbedding': PositionalEmbedding,
-    #                                                            'TransformerEncoder': TransformerEncoder,
-    #                                                            'TransformerDecoder': TransformerDecoder
-    # })
-    return keras.models.load_model(model_name)
+# def load_model_mine(model_name):
+#     # from model_file import PositionalEmbedding, TransformerEncoder, TransformerDecoder
+#     # return keras.models.load_model(model_name, custom_objects={'PositionalEmbedding': PositionalEmbedding,
+#     #                                                            'TransformerEncoder': TransformerEncoder,
+#     #                                                            'TransformerDecoder': TransformerDecoder
+#     # })
+#     return keras.models.load_model(model_name)
 
 def save_model_info(model_name, ):
     pass
@@ -419,8 +402,8 @@ y_test_pad_shift = test_y.padding_shift(y_test, target.maxlen)
 assert len(x_test) == len(y_test)
 
 #  OLD TESTING
-# print("old testing")
-# model_test_old(test_y, x_test_pad, y_test_pad_shift, y_test_pad, model_file_name)
+print("old testing")
+model_test_old(test_y, x_test_pad, y_test_pad_shift, y_test_pad, model_file_name)
 
 #  BETTER TESTING
 print("new testing")

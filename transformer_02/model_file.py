@@ -129,7 +129,7 @@ class TransformerDecoder(layers.Layer):
 def Encoder(in_vocab_size, in_seq_len, embed_dim, latent_dim, num_heads):
     encoder_inputs = keras.Input(shape=(None,), dtype="int64", name="encoder_inputs")
     x = PositionalEmbedding(in_seq_len, in_vocab_size, embed_dim, name="enc_embed")(encoder_inputs)
-    encoder_outputs = TransformerEncoder(embed_dim, latent_dim, num_heads)(x)
+    encoder_outputs = TransformerEncoder(embed_dim, latent_dim, num_heads, name="encoder_trans")(x)
     encoder = keras.Model(encoder_inputs, encoder_outputs, name="Encoder")
     encoder_outputs = encoder(encoder_inputs)
     return encoder_inputs, encoder_outputs
@@ -137,10 +137,10 @@ def Encoder(in_vocab_size, in_seq_len, embed_dim, latent_dim, num_heads):
 def Decoder(out_vocab_size, out_seq_len, embed_dim, latent_dim, initial_state, num_heads):
     decoder_inputs = keras.Input(shape=(None,), dtype="int64", name="decoder_inputs")
     encoded_seq_inputs = keras.Input(shape=(None, embed_dim), name="decoder_state_inputs")
-    x = PositionalEmbedding(out_seq_len, out_vocab_size, embed_dim)(decoder_inputs)
-    x = TransformerDecoder(embed_dim, latent_dim, num_heads)(x, encoded_seq_inputs)
+    x = PositionalEmbedding(out_seq_len, out_vocab_size, embed_dim, name="dec_em")(decoder_inputs)
+    x = TransformerDecoder(embed_dim, latent_dim, num_heads, name="decoder_transformer")(x, encoded_seq_inputs)
     # x = layers.Dropout(0.5, name="Dropout")(x)
-    decoder_outputs = layers.Dense(out_vocab_size, activation="softmax")(x)
+    decoder_outputs = layers.Dense(out_vocab_size, activation="softmax", name="decoder_dense")(x)
     decoder = keras.Model([decoder_inputs, encoded_seq_inputs], decoder_outputs, name="Decoder")
     decoder_outputs = decoder([decoder_inputs, initial_state])  # todo is this needed?
     return decoder_inputs, decoder_outputs, x
@@ -169,6 +169,9 @@ def load_model_mine(model_name):
                                                                'TransformerEncoder': TransformerEncoder,
                                                                'TransformerDecoder': TransformerDecoder
     })
+
+def encoder_state_transform(encoder_output):
+    return encoder_output
 def load_and_split_model(model_folder_path, in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
     latent_dim = 32
     embed_dim = 32
@@ -178,38 +181,34 @@ def load_and_split_model(model_folder_path, in_vocab_size, out_vocab_size, in_se
     # print(len(full_model.layers))
 
     encoder_inputs = Input(shape=(None, ), dtype="int64", name="encoder_input_sentence")
-    encoder_mask = full_model.get_layer("encoder_mask")
-    encoder_embedding_layer = full_model.get_layer("encoder_embed")
-    encoder_lstm = full_model.get_layer("encoder_LSTM")
+    # encoder_embedding_layer = full_model.get_layer("enc_embed")
+    # encoder_transformer = full_model.get_layer("encoder_trans")
+    #
+    # encoder_embedding_layer = encoder_embedding_layer(encoder_inputs)
+    # encoder_outputs = encoder_transformer(encoder_embedding_layer)
+    #
+    # encoder_model = Model(inputs=encoder_inputs, outputs=encoder_outputs, name="Encoder")
+    #
+    # # Extract the decoder layers from the full model
+    decoder_inputs = Input(shape=(None, ), dtype="int64", name="decoder_inputs")
+    decoder_state_input = Input(shape=(latent_dim,), name="decoder_state_inputs")
+    #
+    # decoder_embedding_layer = full_model.get_layer("dec_em")
+    # decoder_transformer = full_model.get_layer("decoder_transformer")
+    # decoder_dense = full_model.get_layer("decoder_dense")
+    encoder = full_model.get_layer("Encoder")
+    decoder = full_model.get_layer("Decoder")
 
-    encoder_mask = encoder_mask(encoder_inputs)
-    encoder_embedding_layer = encoder_embedding_layer(encoder_mask)
-    encoder_outputs, state_h, state_c = encoder_lstm(encoder_embedding_layer)
-    encoder_states = [state_h, state_c]
-    encoder_model = Model(inputs=encoder_inputs, outputs=encoder_states, name="Encoder")
+    # embed_masked_decoder = decoder_embedding_layer(decoder_inputs)
+    # decoder_outputs, state_h, state_c = decoder_lstm(embed_masked_decoder, initial_state=decoder_states_inputs)
+    # decoder_states = [state_h, state_c]
+    # decoder_outputs = decoder_dense(decoder_outputs)
+    # decoder_model = Model(inputs=[decoder_inputs] + decoder_state_input, outputs=[decoder_outputs] + decoder_states,
+    #                       name="Decoder")
 
-    # Extract the decoder layers from the full model
-    decoder_inputs = Input(shape=(None, ), dtype="int64", name="decoder_input_letter")
-    decoder_state_input_h = Input(shape=(latent_dim,), name="decoder_input_h")
-    decoder_state_input_c = Input(shape=(latent_dim,), name="decoder_input_c")
-    decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
-
-    decoder_mask = full_model.get_layer("decoder_mask")
-    decoder_embedding_layer = full_model.get_layer("decoder_embed")
-    decoder_lstm = full_model.get_layer("decoder_LSTM")
-    decoder_dense = full_model.get_layer("decoder_dense")
-
-
-    masked_input = decoder_mask(decoder_inputs)
-    embed_masked_decoder = decoder_embedding_layer(masked_input)
-    decoder_outputs, state_h, state_c = decoder_lstm(embed_masked_decoder, initial_state=decoder_states_inputs)
-    decoder_states = [state_h, state_c]
-    decoder_outputs = decoder_dense(decoder_outputs)
-    decoder_model = Model(inputs=[decoder_inputs] + decoder_states_inputs, outputs=[decoder_outputs] + decoder_states,
-                          name="Decoder")
-
-    return encoder_model, decoder_model
+    return encoder, decoder
 
 if __name__ == "__main__":
     model = model_func(2, 3, 5, 7)
+    load_and_split_model("transform2seq_fr-eng_trans1", in_vocab_size, out_vocab_size, in_seq_len, out_seq_len)
     model.summary()

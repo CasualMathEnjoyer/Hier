@@ -83,10 +83,10 @@ class Data():
         for i, line in enumerate(input_list):
             if len(line) > lengh: # shorten
                 input_list_padded[i] = np.array(line[:lengh])
-            elif len(line) < lengh:  # padd, # 0 is the code for padding
+            elif len(line) <= lengh:  # padd, # 0 is the code for padding
                 input_list_padded[i] = np.array(line + [0 for i in range(lengh - len(line))])
             else:
-                pass
+                assert False
         # print(input_list_padded)
         return input_list_padded
     def padding_shift(self, input_list, lengh):
@@ -94,9 +94,9 @@ class Data():
         for i, line in enumerate(input_list):
             if len(line) > lengh: # shorten
                 input_list_padded[i] = np.array(line[1 : lengh + 1])
-            elif len(line) < lengh:  # padd, # 0 is the code for padding
+            elif len(line) <= lengh:  # padd, # 0 is the code for padding
                 input_list_padded[i] = np.array(line[1:] + [0 for i in range(lengh - len(line) + 1)])
             else:
-                pass
+                assert False
         # print(input_list_padded)
         return input_list_padded

@@ -1,12 +1,15 @@
 import numpy as np
-from keras.layers import LSTM, Input, Dense, TimeDistributed, Bidirectional, Flatten, RepeatVector, Permute, Multiply, Lambda
-from keras.models import Model, Sequential, load_model
+from keras.layers import LSTM, Input, Dense, Bidirectional
+from keras.models import Model, load_model
 import keras.backend as K
 import tensorflow as tf
 
 from keras.layers import Masking, Embedding
 
 # 0.3734
+# parameters
+embed_dim = 32
+latent_dim = 64
 
 def encoder_state_transform(encoder_output):
     state_h, state_c, state_h2, state_c2 = encoder_output
@@ -37,9 +40,6 @@ def Decoder(output_vocab_size, output_seq_len, embed_dim, latent_dim, initial_st
     return decoder_inputs, decoder_outputs, decoder_states
 
 def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
-    embed_dim = 32
-    latent_dim = 64
-
     encoder_inputs, encoder_states = Encoder(in_vocab_size, in_seq_len, embed_dim, latent_dim)
     state_h, state_c = encoder_state_transform(encoder_states)
     encoder_states = [state_h, state_c]

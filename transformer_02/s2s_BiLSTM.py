@@ -61,6 +61,7 @@ from model_file_BiLSTM import model_func, load_and_split_model, encoder_state_tr
 # end_line = '\n'
 
 model_file_name = "transform2seq_LSTM_em32_dim64"
+# model_file_name = "transform2seq_LSTM_delete"
 # train_in_file_name = "../data/smallvoc_fr_.txt"
 # train_out_file_name = "../data/smallvoc_en_.txt"
 # val_in_file_name = "../data/smallvoc_fr_.txt"
@@ -75,14 +76,17 @@ model_file_name = "transform2seq_LSTM_em32_dim64"
 # test_in_file_name = "../data/fr_test.txt"
 # test_out_file_name = "../data/en_test.txt"
 
-train_in_file_name = "../data/src-sep-train-short.txt"
-train_out_file_name = "../data/tgt-train-short.txt"
+
 # train_in_file_name = "../data/src-sep-train.txt"
 # train_out_file_name = "../data/tgt-train.txt"
-val_in_file_name = "../data/src-sep-val.txt"
-val_out_file_name = "../data/tgt-val.txt"
+# val_in_file_name = "../data/src-sep-val.txt"
+# val_out_file_name = "../data/tgt-val.txt"
 # test_in_file_name = "../data/src-sep-test.txt"
 # test_out_file_name = "../data/tgt-test.txt"
+train_in_file_name = "../data/src-sep-train-short.txt"
+train_out_file_name = "../data/tgt-train-short.txt"
+val_in_file_name = "../data/src-sep-train-short.txt"
+val_out_file_name = "../data/tgt-train-short.txt"
 test_in_file_name = "../data/src-sep-train-short.txt"
 test_out_file_name = "../data/tgt-train-short.txt"
 
@@ -92,9 +96,9 @@ end_line = '\n'
 
 new = 0
 
-batch_size = 128
-epochs = 1
-repeat = 0  # full epoch_num=epochs*repeat
+batch_size = 2
+epochs = 5
+repeat = 2  # full epoch_num=epochs*repeat
 
 # precision = to minimise false alarms
 # precision = TP/(TP + FP)
@@ -233,13 +237,13 @@ def model_test_old(self, sample, valid_shift, valid, model_name):  # input = pad
     print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
     print("f1 prec rec :", m.f1_precision_recall(target, value_tokens, valid_shift))
     # TODO self or target??
-def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict):
+def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict, sample_limit):
     decoder_output_all = []
 
     x_sent_len = x_test_pad[0].size
     y_sent_len = y_test_pad[0].size
-    x_test_pad = x_test_pad.reshape(samples, 1, x_sent_len)  # reshape so encoder takes just one sentence
-    y_test_pad = y_test_pad.reshape(samples, 1, y_sent_len)  # and is not angry about dimensions
+    x_test_pad = x_test_pad.reshape(sample_limit, 1, x_sent_len)  # reshape so encoder takes just one sentence
+    y_test_pad = y_test_pad.reshape(sample_limit, 1, y_sent_len)  # and is not angry about dimensions
     # print("y_test_pad_shape trans", y_test_pad.shape)
     print("printing stopped")
     # ------ stop printing --------
@@ -284,7 +288,7 @@ def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict):
 
     # PRINT OUTPUT
     output_string = ''
-    for i in range(samples):
+    for i in range(sample_limit):
         for j in range(y_sent_len):
             letter = rev_dict[predicted[i][j]]
             output_string += letter
@@ -295,7 +299,7 @@ def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict):
     print(output_string)
     # it is not the best - implement cosine distance instead?                 TODO different then accuracy
     #                                                                         todo it be quite slow
-    character_level_acc = m.calc_accuracy(predicted, valid, samples, y_sent_len)
+    character_level_acc = m.calc_accuracy(predicted, valid, sample_limit, y_sent_len)
     print("character accuracy:", character_level_acc)
     print("f1 prec rec :", m.f1_precision_recall(target, predicted, valid))   # needs to be the target file
     return output_string
@@ -312,13 +316,14 @@ with open(test_out_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_y.file = f.read()
     f.close()
 
-samples = 10
+sample_limit = 7
 test_x.dict_chars = source.dict_chars
-x_test = test_x.split_n_count(False)[:samples]
+x_test = test_x.split_n_count(False)[:sample_limit]
+assert sample_limit == len(x_test)
 x_test_pad = test_x.padding(x_test, source.maxlen)
 
 test_y.dict_chars = target.dict_chars
-y_test = test_y.split_n_count(False)[:samples]
+y_test = test_y.split_n_count(False)[:sample_limit]
 y_test_pad = test_y.padding(y_test, target.maxlen)
 y_test_pad_shift = test_y.padding_shift(y_test, target.maxlen)
 
@@ -335,7 +340,7 @@ print("new testing")
 encoder, decoder = load_and_split_model(model_file_name, source.vocab_size, target.vocab_size, source.maxlen, target.maxlen)
 rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
 
-output_text = model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict)
+output_text = model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict, sample_limit)
 
 #  WORD LEVEL ACCURACY
 split_output_text = output_text.split(end_line)

@@ -359,15 +359,12 @@ for i in range(len(split_output_text)-1):
     new_pred.append(split_output_text[i].split(mezera))
     new_valid.append(split_valid_text[i].split(mezera))
 
-print(new_pred)
-print(new_valid)
-
 # show sentences
 for i in range(len(new_pred)):
     prediction = split_output_text[i]
     valid = split_valid_text[i]
-    print(len(prediction), "- ", len(valid),
-          "=", len(prediction) - len(valid))
+    # print(len(prediction), "- ", len(valid),  # shows values shifted by one because the predicted has one more space
+    #       "=", len(prediction) - len(valid))
     print(prediction)
     print(valid)
     print()

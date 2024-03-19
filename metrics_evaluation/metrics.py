@@ -12,6 +12,7 @@ def calc_accuracy(predicted, valid, num_sent, sent_len):
         # print("difference:", val, "accuracy:", 1-(val/sent_len))
         val_all += val
     return round(1-(val_all/(sent_len*num_sent)), 2)  # formating na dve desetina mista
+
 def calculate_precision_recall_f1(y_true, y_pred, label):
     true_positive = np.sum((y_true == label) & (y_pred == label))
     false_positive = np.sum((y_true != label) & (y_pred == label))
@@ -24,7 +25,6 @@ def calculate_precision_recall_f1(y_true, y_pred, label):
     f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
 
     return precision, recall, f1
-
 def calculate_metrics(true_labels, predicted_labels, classes):
     """
     Calculate recall, precision, and F1 score for multiple classes.
@@ -38,6 +38,7 @@ def calculate_metrics(true_labels, predicted_labels, classes):
         metrics (dict): A dictionary containing recall, precision, and F1 score for each class,
                         as well as overall recall and precision.
     """
+
     metrics = {'overall_precision': 0, 'overall_recall': 0}
 
     true_labels = np.array(true_labels)
@@ -52,9 +53,9 @@ def calculate_metrics(true_labels, predicted_labels, classes):
         if true_positive != 0 or false_positive != 0 or false_negative != 0:
             present_classes.append(cls)
 
-        precision = true_positive / (true_positive + false_positive) if (true_positive + false_positive) > 0 else 0
-        recall = true_positive / (true_positive + false_negative) if (true_positive + false_negative) > 0 else 0
-        f1_score = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+        precision = true_positive / (true_positive + false_positive) if (true_positive + false_positive) > 0 else 0.0
+        recall = true_positive / (true_positive + false_negative) if (true_positive + false_negative) > 0 else 0.0
+        f1_score = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
 
         metrics[cls] = {'precision': precision, 'recall': recall, 'f1_score': f1_score}
 
@@ -64,36 +65,32 @@ def calculate_metrics(true_labels, predicted_labels, classes):
     num_classes = len(present_classes)
     metrics['overall_precision'] /= num_classes
     metrics['overall_recall'] /= num_classes
-    print("HERE:", metrics['overall_precision'], metrics['overall_recall'])
 
     return metrics
 def f1_precision_recall(file, y_true, y_pred):
+    '''
+    Takes in tokens
+    :param file:
+    :param y_true:
+    :param y_pred:
+    :return:
+    '''
     dict = file.dict_chars
-    # if input one hot, use below:
-    # y_true = np.array(target.one_hot_to_token(y_true))
-    # y_pred = np.array(target.one_hot_to_token(y_pred))
     unique_labels = np.array(list(dict.values()))
-    # print("labels:", unique_labels)
-    # print("d labs:", np.array(list(dict.values())))
 
-    file.create_reverse_dict(file.dict_chars)
-    # for label in unique_labels:
-    #     print(file.reverse_dict[label], end=":")
-    #     precision, recall, _ = calculate_precision_recall_f1(y_true, y_pred, label)
-    #     total_precision += precision
-    #     total_recall += recall
-    #     # print("char:", target.reverse_dict[label], "- f1:", round(2*precision*recall/(precision+recall), 5) if (precision+recall) > 0 else "zero")
-    #     # TODO  zero
     metrics = calculate_metrics(y_true, y_pred, unique_labels)
     macro_precision = metrics["overall_precision"]
     macro_recall = metrics["overall_recall"]
-    print("precision:", metrics["overall_precision"])
-    print("recall:   ", metrics["overall_recall"])
+
+    file.create_reverse_dict(file.dict_chars)
+    for cls in unique_labels:
+        if cls in unique_labels:
+            print(file.reverse_dict[cls], " "* (5 - len(file.reverse_dict[cls])),":", metrics[cls])
+        else:
+            print(file.reverse_dict[cls])
 
     macro_f1 = 2 * (macro_precision * macro_recall) / (macro_precision + macro_recall) if (macro_precision + macro_recall) > 0 else 0
 
-    # return f1, precision and recall formated na dve desetinna mista
-    # return float(f'{macro_f1:.2f}'), float(f'{macro_precision:.2f}'), float(f'{macro_recall:.2f}')
     return round(macro_f1, 2), round(macro_precision, 2), round(macro_recall, 2)
 
 def on_words_accuracy(prediction_list, valid_list):

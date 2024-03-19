@@ -97,8 +97,8 @@ end_line = '\n'
 new = 0
 
 batch_size = 2
-epochs = 5
-repeat = 2  # full epoch_num=epochs*repeat
+epochs = 100
+repeat = 0 # full epoch_num=epochs*repeat
 
 # precision = to minimise false alarms
 # precision = TP/(TP + FP)
@@ -183,7 +183,7 @@ else:
 
 model.compile(optimizer="adam", loss="categorical_crossentropy",
               metrics=["accuracy"])
-# model.summary()
+model.summary()
 print()
 # --------------------------------- TRAINING ------------------------------------------------------------------------
 for i in range(repeat):
@@ -237,7 +237,7 @@ def model_test_old(self, sample, valid_shift, valid, model_name):  # input = pad
     print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
     print("f1 prec rec :", m.f1_precision_recall(target, value_tokens, valid_shift))
     # TODO self or target??
-def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict, sample_limit):
+def model_test_new(encoder, decoder, x_test_pad, y_test_pad, y_test_pad_shift, rev_dict, sample_limit):
     decoder_output_all = []
 
     x_sent_len = x_test_pad[0].size
@@ -278,7 +278,9 @@ def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict, sample_li
     sys.stdout = old_stdout
 
     # SOME STUFF AS IN CLASS
-    valid = y_test_pad  # = y_test_pad_shape trans (samples_len, 1, 90)
+    # = y_test_pad_shape trans (samples_len, 1, 90)
+    valid = y_test_pad_shift
+    print(valid.shape)
     predicted = decoder_output_all
     predicted = np.array(predicted)
 
@@ -288,9 +290,13 @@ def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict, sample_li
 
     # PRINT OUTPUT
     output_string = ''
+    assert sample_limit != 0
+    assert y_sent_len != 0
     for i in range(sample_limit):
         for j in range(y_sent_len):
             letter = rev_dict[predicted[i][j]]
+            if letter == "<eos>":
+                break
             output_string += letter
             output_string += sep
             # print(letter, end=' ')  # the translation part
@@ -316,7 +322,7 @@ with open(test_out_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_y.file = f.read()
     f.close()
 
-sample_limit = 7
+sample_limit = 4
 test_x.dict_chars = source.dict_chars
 x_test = test_x.split_n_count(False)[:sample_limit]
 assert sample_limit == len(x_test)
@@ -340,7 +346,7 @@ print("new testing")
 encoder, decoder = load_and_split_model(model_file_name, source.vocab_size, target.vocab_size, source.maxlen, target.maxlen)
 rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
 
-output_text = model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict, sample_limit)
+output_text = model_test_new(encoder, decoder, x_test_pad, y_test_pad, y_test_pad_shift, rev_dict, sample_limit)
 
 #  WORD LEVEL ACCURACY
 split_output_text = output_text.split(end_line)
@@ -353,10 +359,13 @@ for i in range(len(split_output_text)-1):
     new_pred.append(split_output_text[i].split(mezera))
     new_valid.append(split_valid_text[i].split(mezera))
 
+print(new_pred)
+print(new_valid)
+
 # show sentences
 for i in range(len(new_pred)):
-    prediction = new_pred[i]
-    valid = new_valid[i]
+    prediction = split_output_text[i]
+    valid = split_valid_text[i]
     print(len(prediction), "- ", len(valid),
           "=", len(prediction) - len(valid))
     print(prediction)

@@ -60,7 +60,7 @@ from model_file_BiLSTM import model_func, load_and_split_model, encoder_state_tr
 # mezera = '_'
 # end_line = '\n'
 
-model_file_name = "transform2seq_LSTM_em32_dim64"
+model_file_name = "models/transform2seq_LSTM_em32_dim64"
 # model_file_name = "transform2seq_LSTM_delete"
 # train_in_file_name = "../data/smallvoc_fr_.txt"
 # train_out_file_name = "../data/smallvoc_en_.txt"
@@ -77,28 +77,28 @@ model_file_name = "transform2seq_LSTM_em32_dim64"
 # test_out_file_name = "../data/en_test.txt"
 
 
-# train_in_file_name = "../data/src-sep-train.txt"
-# train_out_file_name = "../data/tgt-train.txt"
-# val_in_file_name = "../data/src-sep-val.txt"
-# val_out_file_name = "../data/tgt-val.txt"
-# test_in_file_name = "../data/src-sep-test.txt"
-# test_out_file_name = "../data/tgt-test.txt"
-train_in_file_name = "../data/src-sep-train-short.txt"
-train_out_file_name = "../data/tgt-train-short.txt"
-val_in_file_name = "../data/src-sep-train-short.txt"
-val_out_file_name = "../data/tgt-train-short.txt"
-test_in_file_name = "../data/src-sep-train-short.txt"
-test_out_file_name = "../data/tgt-train-short.txt"
+train_in_file_name = "data/src-sep-train.txt"
+train_out_file_name = "data/tgt-train.txt"
+val_in_file_name = "data/src-sep-val.txt"
+val_out_file_name = "data/tgt-val.txt"
+test_in_file_name = "data/src-sep-test.txt"
+test_out_file_name = "data/tgt-test.txt"
+# train_in_file_name = "data/src-sep-train-short.txt"
+# train_out_file_name = "data/tgt-train-short.txt"
+# val_in_file_name = "data/src-sep-train-short.txt"
+# val_out_file_name = "data/tgt-train-short.txt"
+# test_in_file_name = "data/src-sep-train-short.txt"
+# test_out_file_name = "data/tgt-train-short.txt"
 
 sep = ' '
 mezera = '_'
 end_line = '\n'
 
-new = 0
+new = 1
 
-batch_size = 2
-epochs = 100
-repeat = 0 # full epoch_num=epochs*repeat
+batch_size = 256
+epochs = 1
+repeat = 1 # full epoch_num=epochs*repeat
 
 # precision = to minimise false alarms
 # precision = TP/(TP + FP)
@@ -139,6 +139,11 @@ y_train_pad_shift_one = to_categorical(y_train_pad_shift)
 assert len(x_train_pad) == len(y_train_pad_shift)
 assert len(x_train_pad) == len(y_train_pad_shift_one)
 
+# print(np.array(x_train_pad).shape)            # (1841, 98)
+# print(np.array(y_train_pad).shape)            # (1841, 109)
+# print(np.array(y_train_pad_shift).shape)      # (1841, 109)
+# print(np.array(y_train_pad_shift_one).shape)  # (1841, 109, 55)
+
 # VALIDATION:
 print("validation files:")
 val_source = Data(sep, mezera, end_line)
@@ -158,12 +163,28 @@ val_target.dict_chars = target.dict_chars
 y_val = val_target.split_n_count(False)
 y_val_pad = val_target.padding(y_val, target.maxlen)
 y_val_pad_shift = val_target.padding_shift(y_val, target.maxlen)
-y_val_pad_shift_one = to_categorical(y_val_pad_shift)
+y_val_pad_shift_one = to_categorical(y_val_pad_shift, num_classes=len(target.dict_chars))
 
+# print("source.maxlen:", source.maxlen)
+# print("target.maxlen:", target.maxlen)
+# print("source_val.maxlen:", val_source.maxlen)
+# print("target_val.maxlen:", val_target.maxlen)
+# print("source.dict:", len(source.dict_chars))
+# print("target.dict:", len(target.dict_chars))
+# print("source_val.dict:", len(val_source.dict_chars))
+# print("target_val.dict:", len(val_target.dict_chars))
+
+assert len(x_val) == len(x_val_pad)
 assert len(x_val) == len(y_val)
 assert len(x_val_pad) == len(y_val_pad_shift)
 assert len(x_val_pad) == len(y_val_pad_shift_one)
 
+print(np.array(x_val_pad).shape)            # (1841, 98)
+print(np.array(y_val_pad).shape)            # (1841, 109)
+print(np.array(y_val_pad_shift).shape)      # (1841, 109)
+print(np.array(y_val_pad_shift_one).shape)  # (1841, 109, 55)
+
+# ValueError: Shapes (None, 109, 55) and (None, 109, 63) are incompatible
 
 # print(y_train_pad_one)
 # print()
@@ -334,6 +355,7 @@ y_test_pad = test_y.padding(y_test, target.maxlen)
 y_test_pad_shift = test_y.padding_shift(y_test, target.maxlen)
 
 assert len(x_test) == len(y_test)
+assert len(y_test) == len(y_test_pad_shift)
 
 #  OLD TESTING
 print("old testing")

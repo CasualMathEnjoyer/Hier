@@ -107,7 +107,7 @@ def load_and_split_model(model_folder_path, in_vocab_size, out_vocab_size, in_se
     return encoder_model, decoder_model
 
 if __name__ == "__main__":
-    model = model_func(2, 3, 5, 7)
+    model = model_func(20, 30, 500, 700)
     model.summary()
     # model_folder_path = 'transform2seq_fr-eng_BiLSTM'
     # encoder_model, decoder_model = load_and_split_model(model_folder_path, 0, 0, 0, 0)

@@ -211,7 +211,7 @@ model.summary()
 print()
 
 
-def get_history_dict(dict_name):
+def get_history_dict(dict_name, new):
     dict_exist = os.path.isfile(dict_name)
     if dict_exist:
         if new:
@@ -227,7 +227,7 @@ def get_history_dict(dict_name):
     return {}
 
 
-old_dict = get_history_dict(history_dict)
+old_dict = get_history_dict(history_dict, new)
 def join_dicts(dict1, dict2):
     dict = {}
     if dict1 == {}:
@@ -252,7 +252,9 @@ def join_dicts(dict1, dict2):
 # --------------------------------- TRAINING ------------------------------------------------------------------------
 for i in range(repeat):
     history = model.fit(
-        (x_train_pad, y_train_pad), y_train_pad_shift_one, batch_size=batch_size, epochs=epochs,
+        (x_train_pad, y_train_pad), y_train_pad_shift_one,
+        batch_size=batch_size,
+        epochs=epochs,
         validation_data=((x_val_pad, y_val_pad), y_val_pad_shift_one))
     model.save(model_file_name)
     # model.save_weights(model_file_name + ".h5")

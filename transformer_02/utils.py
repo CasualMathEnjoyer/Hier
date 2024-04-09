@@ -3,29 +3,9 @@ from tensorflow import math, matmul, reshape, shape, transpose, cast, float32
 from keras.backend import softmax
 from tensorflow import convert_to_tensor, string
 import tensorflow as tf
-from tensorflow.data import Dataset
 import numpy as np
 from numpy import random
 import matplotlib.pyplot as plt
-
-# Implementing the Scaled-Dot Product Attention
-class DotProductAttention(Layer):
-    def __init__(self, **kwargs):
-        super(DotProductAttention, self).__init__(**kwargs)
-
-    def call(self, queries, keys, values, d_k, mask=None):
-        # Scoring the queries against the keys after transposing the latter, and scaling
-        scores = matmul(queries, keys, transpose_b=True) / math.sqrt(cast(d_k, float32))
-
-        # Apply mask to the attention scores
-        if mask is not None:
-            scores += -1e9 * mask
-
-        # Computing the weights by a softmax operation
-        weights = softmax(scores)
-
-        # Computing the attention by a weighted sum of the value vectors
-        return matmul(weights, values)
 
 # Implementing the Scaled-Dot Product Attention
 class DotProductAttention(Layer):
@@ -96,7 +76,6 @@ class MultiHeadAttention(Layer):
         # Resulting tensor shape: (batch_size, input_seq_length, d_model)
         return self.W_o(output)
 
-# Implementing the Add & Norm Layer
 class AddNormalization(Layer):
     def __init__(self, **kwargs):
         super(AddNormalization, self).__init__(**kwargs)
@@ -155,7 +134,7 @@ class PositionEmbeddingFixedWeights(Layer):
         embedded_words = self.word_embedding_layer(inputs)
         embedded_indices = self.position_embedding_layer(position_indices)
         return embedded_words + embedded_indices
-# Implementing the Feed-Forward Layer
+
 class FeedForward(Layer):
     def __init__(self, d_ff, d_model, **kwargs):
         super(FeedForward, self).__init__(**kwargs)

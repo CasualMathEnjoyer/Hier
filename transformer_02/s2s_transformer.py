@@ -10,142 +10,47 @@ from keras.utils import to_categorical
 from keras import backend as K
 
 from metrics_evaluation import metrics as m
-# TODO - check for lines of all zeros in tokens
-# TODO - cropping sentences might be a problem!
+from data_file import Data
+from data_preparation import *
 
-# this is a processing file for the transformer encoder_decoder model
+new = 0
 
+batch_size = 256
+epochs = 1
+repeat = 1
 
 print("starting transform2seq")
 
-from data_file import Data
+model_file_name = "models/transform2seq_em32_dim64"
+history_dict = model_file_name + '_HistoryDict'
+print(model_file_name)
+
 
 a = random.randrange(0, 2**32 - 1)
 # a = 1261263827
 set_random_seed(a)
 print("seed = ", a)
 
-#todo : When you use padding, you should always do masking on the output
-# and other places where it is relevant (i.e., when computing the attention
-# distribution in attention), which ensures no gradient gets propagated
-# from the "non-existing" padding positions.
+
+from model_file_2 import model_func
 
 
-# sci kit grit search - hleadni metaparametru
-# FTP - na ssh   rcp na kopirovani veci
-
-# celkem skoro 68 tisic slov
-# 47.5 tisic slov jenom jednou
-
-from model_file import model_func, load_and_split_model, load_model_mine, encoder_state_transform
-
-# model_file_name = "transform2seq_1"
-# training_file_name = "../data/src-sep-train.txt"
-# target_file_name = "../data/tgt-train.txt"
-# # validation_file_name = "../data/src-sep-val.txt"
-# ti_file_name = "../data/src-sep-test.txt"  # test input file
-# tt_file_name = "../data/tgt-test.txt"  # test target
-# sep = ' '
-# mezera = '_'
-# end_line = '\n'
-
-# model_file_name = "transform2seq_fr-eng_BiLSTM2"
-model_file_name = "transform2seq_fr-eng_trans1"
-# train_in_file_name = "../data/smallvoc_fr_.txt"
-# train_out_file_name = "../data/smallvoc_en_.txt"
-# val_in_file_name = "../data/smallvoc_fr_.txt"
-# val_out_file_name = "../data/smallvoc_en_.txt"
-# test_in_file_name = "../data/smallervoc_fr_.txt"
-# test_out_file_name = "../data/smallervoc_en_.txt"
-
-train_in_file_name = "../data/fr_train.txt"
-train_out_file_name = "../data/en_train.txt"
-val_in_file_name = "../data/fr_val.txt"
-val_out_file_name = "../data/en_val.txt"
-test_in_file_name = "../data/fr_test.txt"
-test_out_file_name = "../data/en_test.txt"
-
-sep = ' '
-mezera = '_'
-end_line = '\n'
-
-new = 0
-
-batch_size = 128
-epochs = 2
-repeat = 2  # full epoch_num=epochs*repeat
-
-# precision = to minimise false alarms
-# precision = TP/(TP + FP)
-# recall = to minimise missed spaces
-# recall = TP/(TP+FN)
-
-# def load_model_mine(model_name):
-#     # from model_file import PositionalEmbedding, TransformerEncoder, TransformerDecoder
-#     # return keras.models.load_model(model_name, custom_objects={'PositionalEmbedding': PositionalEmbedding,
-#     #                                                            'TransformerEncoder': TransformerEncoder,
-#     #                                                            'TransformerDecoder': TransformerDecoder
-#     # })
-#     return keras.models.load_model(model_name)
+def load_model_mine(model_name):
+    # from model_file import PositionalEmbedding, TransformerEncoder, TransformerDecoder
+    # return keras.models.load_model(model_name, custom_objects={'PositionalEmbedding': PositionalEmbedding,
+    #                                                            'TransformerEncoder': TransformerEncoder,
+    #                                                            'TransformerDecoder': TransformerDecoder
+    # })
+    return keras.models.load_model(model_name)
 
 def save_model_info(model_name, ):
     pass
 
-print()
-print("data preparation...")
-source = Data(sep, mezera, end_line)
-target = Data(sep, mezera, end_line)
-with open(train_in_file_name, "r", encoding="utf-8") as f:  # with spaces
-    source.file = f.read()
-    f.close()
-with open(train_out_file_name, "r", encoding="utf-8") as ff:
-    target.file = ff.read()
-    ff.close()
-
-print("first file:")
-x_train = source.split_n_count(True)
-x_train_pad = source.padding(x_train, source.maxlen)
-del x_train
-print("second file:")
-y_train = target.split_n_count(True)
-y_train_pad = target.padding(y_train, target.maxlen)
-# y_train_pad_one = to_categorical(y_train_pad)
-y_train_pad_shift = target.padding_shift(y_train, target.maxlen)
-del y_train
-y_train_pad_shift_one = to_categorical(y_train_pad_shift)
-del y_train_pad_shift
-
-# VALIDATION:
-print("validation files:")
-val_source = Data(sep, mezera, end_line)
-val_target = Data(sep, mezera, end_line)
-with open(val_in_file_name, "r", encoding="utf-8") as f:
-    val_source.file = f.read()
-    f.close()
-with open(val_out_file_name, "r", encoding="utf-8") as ff:
-    val_target.file = ff.read()
-    ff.close()
-
-val_source.dict_chars = source.dict_chars
-x_val = val_source.split_n_count(False)
-x_val_pad = val_source.padding(x_val, source.maxlen)
-
-val_target.dict_chars = target.dict_chars
-y_val = val_target.split_n_count(False)
-y_val_pad = val_target.padding(y_val, target.maxlen)
-y_val_pad_shift = val_target.padding_shift(y_val, target.maxlen)
-y_val_pad_shift_one = to_categorical(y_val_pad_shift)
-
-assert len(x_val) == len(y_val)
-
-# print(y_train_pad_one)
-# print()
-# print(x_train_pad.shape)
-# print(y_train_pad.shape)
-# print(y_train_pad_shift.shape)
-# print(y_train_pad_one.shape)
+# ---------------------------- DATA PROCESSING -------------------------------------------------
+source, target, val_source, val_target = prepare_data()
 
 # --------------------------------- MODEL ---------------------------------------------------------------------------
+old_dict = get_history_dict(history_dict, new)
 print("model starting...")
 if new:
     print("CREATING A NEW MODEL")
@@ -154,19 +59,34 @@ else:
     print("LOADING A MODEL")
     model = load_model_mine(model_file_name)
 
-model.compile(optimizer="adam", loss="categorical_crossentropy",
+model.compile(optimizer="adam",
+              loss="categorical_crossentropy",
               metrics=["accuracy"])
 # model.summary()
 print()
+
+
 # --------------------------------- TRAINING ------------------------------------------------------------------------
 for i in range(repeat):
     history = model.fit(
-        (x_train_pad, y_train_pad), y_train_pad_shift_one, batch_size=batch_size, epochs=epochs,
-        validation_data=((x_val_pad, y_val_pad), y_val_pad_shift_one))
+        (source.padded, target.padded), target.padded_shift_one,
+        batch_size=batch_size,
+        epochs=epochs,
+        validation_data=((source.padded, target.padded), val_target.padded_shift_one))
+
     model.save(model_file_name)
-    model.save_weights(model_file_name + ".h5")
+
+    new_dict = join_dicts(old_dict, history.history)
+    old_dict = new_dict
+    with open(history_dict, 'wb') as file_pi:
+        pickle.dump(new_dict, file_pi)
+
     K.clear_session()
 print()
+
+
+
+
 # ---------------------------------- TESTING ------------------------------------------------------------------------
 def model_test_old(self, sample, valid_shift, valid, model_name):  # input = padded array of tokens
     model = load_model_mine(model_name)
@@ -277,63 +197,63 @@ def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict):
     print("f1 prec rec :", m.f1_precision_recall(target, predicted, valid))   # needs to be the target file
     return output_string
 
-print("testing...")
-print("testing data preparation")
-
-test_x = Data(sep, mezera, end_line)
-with open(test_in_file_name, "r", encoding="utf-8") as f:  # with spaces
-    test_x.file = f.read()
-    f.close()
-test_y = Data(sep, mezera, end_line)
-with open(test_out_file_name, "r", encoding="utf-8") as f:  # with spaces
-    test_y.file = f.read()
-    f.close()
-
-samples = 10
-test_x.dict_chars = source.dict_chars
-x_test = test_x.split_n_count(False)[:samples]
-x_test_pad = test_x.padding(x_test, source.maxlen)
-
-test_y.dict_chars = target.dict_chars
-y_test = test_y.split_n_count(False)[:samples]
-y_test_pad = test_y.padding(y_test, target.maxlen)
-y_test_pad_shift = test_y.padding_shift(y_test, target.maxlen)
-
-assert len(x_test) == len(y_test)
-
-#  OLD TESTING
-print("old testing")
-model_test_old(test_y, x_test_pad, y_test_pad_shift, y_test_pad, model_file_name)
-
-#  BETTER TESTING
-print("new testing")
-# GET ENCODER AND DECODER
-# inputs should be the same as in training data
-encoder, decoder = load_and_split_model(model_file_name, source.vocab_size, target.vocab_size, source.maxlen, target.maxlen)
-rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
-
-output_text = model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict)
-
-#  WORD LEVEL ACCURACY
-split_output_text = output_text.split(end_line)
-split_valid_text = test_y.file.split(end_line)
-new_pred = []
-new_valid = []
-
-# make into lists
-for i in range(len(split_output_text)-1):
-    new_pred.append(split_output_text[i].split(mezera))
-    new_valid.append(split_valid_text[i].split(mezera))
-
-# show sentences
-for i in range(len(new_pred)):
-    prediction = new_pred[i]
-    valid = new_valid[i]
-    print(len(prediction), "- ", len(valid),
-          "=", len(prediction) - len(valid))
-    print(prediction)
-    print(valid)
-    print()
-
-word_accuracy = m.on_words_accuracy(new_pred, new_valid)
-print("word_accuracy:", word_accuracy)
+# print("testing...")
+# print("testing data preparation")
+#
+# test_x = Data(sep, mezera, end_line)
+# with open(test_in_file_name, "r", encoding="utf-8") as f:  # with spaces
+#     test_x.file = f.read()
+#     f.close()
+# test_y = Data(sep, mezera, end_line)
+# with open(test_out_file_name, "r", encoding="utf-8") as f:  # with spaces
+#     test_y.file = f.read()
+#     f.close()
+#
+# samples = 10
+# test_x.dict_chars = source.dict_chars
+# x_test = test_x.split_n_count(False)[:samples]
+# x_test_pad = test_x.padding(x_test, source.maxlen)
+#
+# test_y.dict_chars = target.dict_chars
+# y_test = test_y.split_n_count(False)[:samples]
+# y_test_pad = test_y.padding(y_test, target.maxlen)
+# y_test_pad_shift = test_y.padding_shift(y_test, target.maxlen)
+#
+# assert len(x_test) == len(y_test)
+#
+# #  OLD TESTING
+# print("old testing")
+# model_test_old(test_y, x_test_pad, y_test_pad_shift, y_test_pad, model_file_name)
+#
+# #  BETTER TESTING
+# print("new testing")
+# # GET ENCODER AND DECODER
+# # inputs should be the same as in training data
+# encoder, decoder = load_and_split_model(model_file_name, source.vocab_size, target.vocab_size, source.maxlen, target.maxlen)
+# rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
+#
+# output_text = model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict)
+#
+# #  WORD LEVEL ACCURACY
+# split_output_text = output_text.split(end_line)
+# split_valid_text = test_y.file.split(end_line)
+# new_pred = []
+# new_valid = []
+#
+# # make into lists
+# for i in range(len(split_output_text)-1):
+#     new_pred.append(split_output_text[i].split(mezera))
+#     new_valid.append(split_valid_text[i].split(mezera))
+#
+# # show sentences
+# for i in range(len(new_pred)):
+#     prediction = new_pred[i]
+#     valid = new_valid[i]
+#     print(len(prediction), "- ", len(valid),
+#           "=", len(prediction) - len(valid))
+#     print(prediction)
+#     print(valid)
+#     print()
+#
+# word_accuracy = m.on_words_accuracy(new_pred, new_valid)
+# print("word_accuracy:", word_accuracy)

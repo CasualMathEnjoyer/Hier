@@ -6,7 +6,6 @@ from utils import *
 from tensorflow import math, cast, float32, linalg, ones, maximum, newaxis
 from keras import Model, Input
 
-# Implementing the Encoder Layer
 class EncoderLayer(Layer):
     def __init__(self, sequence_length, h, d_k, d_v, d_model, d_ff, rate, **kwargs):
         super(EncoderLayer, self).__init__(**kwargs)
@@ -118,7 +117,6 @@ class DecoderLayer(Layer):
         # Followed by another Add & Norm layer
         return self.add_norm3(addnorm_output2, feedforward_output)
 
-
 # Implementing the Decoder
 class Decoder(Layer):
     def __init__(self, vocab_size, sequence_length, h, d_k, d_v, d_model, d_ff, n, rate, **kwargs):
@@ -169,7 +167,8 @@ class TransformerModel(Model):
 
         return mask
 
-    def call(self, encoder_input, decoder_input, training):
+    def call(self, inputs, training):
+        encoder_input, decoder_input = inputs
 
         # Create padding mask to mask the encoder inputs and the encoder outputs in the decoder
         enc_padding_mask = self.padding_mask(encoder_input)
@@ -190,41 +189,62 @@ class TransformerModel(Model):
 
         return model_output
 
+def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
+    h = 8          # Number of self-attention heads
+    d_k = 64       # Dimensionality of the linearly projected queries and keys
+    d_v = 64       # Dimensionality of the linearly projected values
+    d_ff = 2048    # Dimensionality of the inner fully connected layer
+    d_model = 512  # Dimensionality of the model sub-layers' outputs
+    n = 6          # Number of layers in the encoder stack
+
+    dropout_rate = 0.1  # Frequency of dropping the input units in the dropout layers
+
+    training_model = TransformerModel(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len,
+                                      h, d_k, d_v,
+                                      d_model, d_ff, n, dropout_rate)
+    encoder_input_example = tf.ones((1, in_seq_len))  # Assuming encoder input shape is (batch_size, in_seq_len)
+    decoder_input_example = tf.ones((1, out_seq_len))  # Assuming decoder input shape is (batch_size, out_seq_len)
+    decoder_input_example_2 = tf.ones((1, out_seq_len, 20))
+
+    # Call the model with the sample inputs
+    _ = training_model((encoder_input_example, decoder_input_example), training=False)
+    return training_model
+
 if __name__ == "__main__":
-    enc_vocab_size = 20  # Vocabulary size for the encoder
-    input_seq_length = 5  # Maximum length of the input sequence
-    h = 8  # Number of self-attention heads
-    d_k = 64  # Dimensionality of the linearly projected queries and keys
-    d_v = 64  # Dimensionality of the linearly projected values
-    d_ff = 2048  # Dimensionality of the inner fully connected layer
-    d_model = 512  # Dimensionality of the model sub-layers' outputs
-    n = 6  # Number of layers in the encoder stack
-
-    batch_size = 64  # Batch size from the training process
-    dropout_rate = 0.1  # Frequency of dropping the input units in the dropout layers
-
-    input_seq = random.random((batch_size, input_seq_length))
-
-    encoder = Encoder(enc_vocab_size, input_seq_length, h, d_k, d_v, d_model, d_ff, n, dropout_rate)
-    print(encoder(input_seq, None, True))
-
-    dec_vocab_size = 20  # Vocabulary size for the decoder
-    input_seq_length = 5  # Maximum length of the input sequence
-    h = 8  # Number of self-attention heads
-    d_k = 64  # Dimensionality of the linearly projected queries and keys
-    d_v = 64  # Dimensionality of the linearly projected values
-    d_ff = 2048  # Dimensionality of the inner fully connected layer
-    d_model = 512  # Dimensionality of the model sub-layers' outputs
-    n = 6  # Number of layers in the decoder stack
-
-    batch_size = 64  # Batch size from the training process
-    dropout_rate = 0.1  # Frequency of dropping the input units in the dropout layers
-
-    input_seq = random.random((batch_size, input_seq_length))
-    enc_output = random.random((batch_size, input_seq_length, d_model))
-
-    decoder = Decoder(dec_vocab_size, input_seq_length, h, d_k, d_v, d_model, d_ff, n, dropout_rate)
-    print(decoder(input_seq, enc_output, None, True))
+    # enc_vocab_size = 20  # Vocabulary size for the encoder
+    # input_seq_length = 5  # Maximum length of the input sequence
+    # h = 8  # Number of self-attention heads
+    # d_k = 64  # Dimensionality of the linearly projected queries and keys
+    # d_v = 64  # Dimensionality of the linearly projected values
+    # d_ff = 2048  # Dimensionality of the inner fully connected layer
+    # d_model = 512  # Dimensionality of the model sub-layers' outputs
+    # n = 6  # Number of layers in the encoder stack
+    #
+    # batch_size = 64  # Batch size from the training process
+    # dropout_rate = 0.1  # Frequency of dropping the input units in the dropout layers
+    #
+    # input_seq = random.random((batch_size, input_seq_length))
+    #
+    # encoder = Encoder(enc_vocab_size, input_seq_length, h, d_k, d_v, d_model, d_ff, n, dropout_rate)
+    # print(encoder(input_seq, None, True))
+    #
+    # dec_vocab_size = 20  # Vocabulary size for the decoder
+    # input_seq_length = 5  # Maximum length of the input sequence
+    # h = 8  # Number of self-attention heads
+    # d_k = 64  # Dimensionality of the linearly projected queries and keys
+    # d_v = 64  # Dimensionality of the linearly projected values
+    # d_ff = 2048  # Dimensionality of the inner fully connected layer
+    # d_model = 512  # Dimensionality of the model sub-layers' outputs
+    # n = 6  # Number of layers in the decoder stack
+    #
+    # batch_size = 64  # Batch size from the training process
+    # dropout_rate = 0.1  # Frequency of dropping the input units in the dropout layers
+    #
+    # input_seq = random.random((batch_size, input_seq_length))
+    # enc_output = random.random((batch_size, input_seq_length, d_model))
+    #
+    # decoder = Decoder(dec_vocab_size, input_seq_length, h, d_k, d_v, d_model, d_ff, n, dropout_rate)
+    # print(decoder(input_seq, enc_output, None, True))
 
     enc_vocab_size = 20  # Vocabulary size for the encoder
     dec_vocab_size = 20  # Vocabulary size for the decoder
@@ -244,9 +264,27 @@ if __name__ == "__main__":
     # Create model
     training_model = TransformerModel(enc_vocab_size, dec_vocab_size, enc_seq_length, dec_seq_length, h, d_k, d_v,
                                       d_model, d_ff, n, dropout_rate)
+    encoder_input_example = tf.ones((1, enc_seq_length))  # Assuming encoder input shape is (batch_size, enc_seq_length)
+    decoder_input_example = tf.ones((1, dec_seq_length))  # Assuming decoder input shape is (batch_size, dec_seq_length)
+    decoder_input_example_2 = tf.ones((1, dec_seq_length, dec_vocab_size))  # output is one hot vector
 
-    encoder = EncoderLayer(enc_seq_length, h, d_k, d_v, d_model, d_ff, dropout_rate)
-    encoder.build_graph().summary()
+    # Call the model with the sample inputs
+    _ = training_model((encoder_input_example, decoder_input_example), training=False)
 
-    decoder = DecoderLayer(dec_seq_length, h, d_k, d_v, d_model, d_ff, dropout_rate)
-    decoder.build_graph().summary()
+    training_model.summary()
+
+    history = training_model.compile(optimizer="adam", loss="categorical_crossentropy",
+              metrics=["accuracy"])
+
+    batch_size = 2
+    epochs = 2
+
+    training_model.fit((encoder_input_example, decoder_input_example), decoder_input_example_2,
+                       batch_size=batch_size, epochs=epochs,
+                       )
+
+    # encoder = EncoderLayer(enc_seq_length, h, d_k, d_v, d_model, d_ff, dropout_rate)
+    # encoder.build_graph().summary()
+    #
+    # decoder = DecoderLayer(dec_seq_length, h, d_k, d_v, d_model, d_ff, dropout_rate)
+    # decoder.build_graph().summary()

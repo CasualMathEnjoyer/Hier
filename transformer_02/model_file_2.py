@@ -150,7 +150,7 @@ class TransformerModel(Model):
         self.decoder = Decoder(dec_vocab_size, dec_seq_length, h, d_k, d_v, d_model, d_ff_inner, n, rate)
 
         # Define the final dense layer
-        self.model_last_layer = Dense(dec_vocab_size)
+        self.model_last_layer = Dense(dec_vocab_size, activation="softmax")
 
     def padding_mask(self, input):
         # Create mask which marks the zero padding values in the input by a 1.0
@@ -190,12 +190,12 @@ class TransformerModel(Model):
         return model_output
 
 def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
-    h = 8          # Number of self-attention heads
-    d_k = 64       # Dimensionality of the linearly projected queries and keys
-    d_v = 64       # Dimensionality of the linearly projected values
-    d_ff = 2048    # Dimensionality of the inner fully connected layer
+    h = 2          # Number of self-attention heads
+    d_k = 32       # Dimensionality of the linearly projected queries and keys
+    d_v = 32       # Dimensionality of the linearly projected values
+    d_ff = 512    # Dimensionality of the inner fully connected layer
     d_model = 512  # Dimensionality of the model sub-layers' outputs
-    n = 6          # Number of layers in the encoder stack
+    n = 2          # Number of layers in the encoder stack
 
     dropout_rate = 0.1  # Frequency of dropping the input units in the dropout layers
 
@@ -204,7 +204,6 @@ def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
                                       d_model, d_ff, n, dropout_rate)
     encoder_input_example = tf.ones((1, in_seq_len))  # Assuming encoder input shape is (batch_size, in_seq_len)
     decoder_input_example = tf.ones((1, out_seq_len))  # Assuming decoder input shape is (batch_size, out_seq_len)
-    decoder_input_example_2 = tf.ones((1, out_seq_len, 20))
 
     # Call the model with the sample inputs
     _ = training_model((encoder_input_example, decoder_input_example), training=False)

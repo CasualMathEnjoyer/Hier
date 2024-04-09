@@ -13,21 +13,21 @@ from metrics_evaluation import metrics as m
 from data_file import Data
 from data_preparation import *
 
-new = 0
+new = 1
 
-batch_size = 256
-epochs = 1
-repeat = 1
+batch_size = 1  # 256
+epochs = 20
+repeat = 2
 
 print("starting transform2seq")
 
-model_file_name = "models/transform2seq_em32_dim64"
+model_file_name = "models/transform_smol_delete"
 history_dict = model_file_name + '_HistoryDict'
 print(model_file_name)
 
 
 a = random.randrange(0, 2**32 - 1)
-# a = 1261263827
+a = 12612638
 set_random_seed(a)
 print("seed = ", a)
 
@@ -62,17 +62,18 @@ else:
 model.compile(optimizer="adam",
               loss="categorical_crossentropy",
               metrics=["accuracy"])
-# model.summary()
+model.summary()
 print()
 
-
+# exit()
 # --------------------------------- TRAINING ------------------------------------------------------------------------
+print("training")
 for i in range(repeat):
     history = model.fit(
-        (source.padded, target.padded), target.padded_shift_one,
+        (source.padded[:2], target.padded[:2]), target.padded_shift_one[:2],
         batch_size=batch_size,
         epochs=epochs,
-        validation_data=((source.padded, target.padded), val_target.padded_shift_one))
+        validation_data=((val_source.padded[:2], val_target.padded[:2]), val_target.padded_shift_one[:2]))
 
     model.save(model_file_name)
 
@@ -197,63 +198,78 @@ def model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict):
     print("f1 prec rec :", m.f1_precision_recall(target, predicted, valid))   # needs to be the target file
     return output_string
 
-# print("testing...")
-# print("testing data preparation")
-#
-# test_x = Data(sep, mezera, end_line)
-# with open(test_in_file_name, "r", encoding="utf-8") as f:  # with spaces
-#     test_x.file = f.read()
-#     f.close()
-# test_y = Data(sep, mezera, end_line)
-# with open(test_out_file_name, "r", encoding="utf-8") as f:  # with spaces
-#     test_y.file = f.read()
-#     f.close()
-#
-# samples = 10
-# test_x.dict_chars = source.dict_chars
-# x_test = test_x.split_n_count(False)[:samples]
-# x_test_pad = test_x.padding(x_test, source.maxlen)
-#
-# test_y.dict_chars = target.dict_chars
-# y_test = test_y.split_n_count(False)[:samples]
-# y_test_pad = test_y.padding(y_test, target.maxlen)
-# y_test_pad_shift = test_y.padding_shift(y_test, target.maxlen)
-#
-# assert len(x_test) == len(y_test)
-#
-# #  OLD TESTING
-# print("old testing")
-# model_test_old(test_y, x_test_pad, y_test_pad_shift, y_test_pad, model_file_name)
-#
-# #  BETTER TESTING
-# print("new testing")
-# # GET ENCODER AND DECODER
-# # inputs should be the same as in training data
-# encoder, decoder = load_and_split_model(model_file_name, source.vocab_size, target.vocab_size, source.maxlen, target.maxlen)
-# rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
-#
-# output_text = model_test_new(encoder, decoder, x_test_pad, y_test_pad, rev_dict)
-#
-# #  WORD LEVEL ACCURACY
-# split_output_text = output_text.split(end_line)
-# split_valid_text = test_y.file.split(end_line)
-# new_pred = []
-# new_valid = []
-#
-# # make into lists
-# for i in range(len(split_output_text)-1):
-#     new_pred.append(split_output_text[i].split(mezera))
-#     new_valid.append(split_valid_text[i].split(mezera))
-#
-# # show sentences
-# for i in range(len(new_pred)):
-#     prediction = new_pred[i]
-#     valid = new_valid[i]
-#     print(len(prediction), "- ", len(valid),
-#           "=", len(prediction) - len(valid))
-#     print(prediction)
-#     print(valid)
-#     print()
-#
-# word_accuracy = m.on_words_accuracy(new_pred, new_valid)
-# print("word_accuracy:", word_accuracy)
+print("testing...")
+print("testing data preparation")
+
+test_x = Data(sep, mezera, end_line)
+with open(test_in_file_name, "r", encoding="utf-8") as f:  # with spaces
+    test_x.file = f.read()
+    f.close()
+test_y = Data(sep, mezera, end_line)
+with open(test_out_file_name, "r", encoding="utf-8") as f:  # with spaces
+    test_y.file = f.read()
+    f.close()
+
+samples = 10
+test_x.dict_chars = source.dict_chars
+x_test = test_x.split_n_count(False)[:samples]
+x_test_pad = test_x.padding(x_test, source.maxlen)
+
+test_y.dict_chars = target.dict_chars
+y_test = test_y.split_n_count(False)[:samples]
+y_test_pad = test_y.padding(y_test, target.maxlen)
+y_test_pad_shift = test_y.padding_shift(y_test, target.maxlen)
+
+assert len(x_test) == len(y_test)
+
+#  OLD TESTING
+print("Testing")
+
+output = np.zeros((1, target.maxlen))
+output[:, 0] = 1
+# output = []
+# output.append(1)
+i = 1
+j = 0
+
+# print(x_test_pad[0])
+# print(y_test_pad[0])
+# print(y_test_pad_shift[0])
+
+
+while i < target.maxlen:
+    # old_stdout = sys.stdout
+    # sys.stdout = open(os.devnull, "w")
+    print((np.array(source.padded[0])))
+    print(np.array(output))
+    prediction = model.predict((np.array([source.padded[0]]), np.array(output)))
+    # sys.stdout = old_stdout
+    # print((np.array([source.padded[0]]), output))
+
+    # Get the probabilities for the next token
+    next_token_probs = prediction[j, -1, :]  # Assuming batch size is 1
+
+    # Sample the next token based on the predicted probabilities
+    # next_token = np.random.choice(len(next_token_probs), p=next_token_probs)
+    next_token = np.argmax(next_token_probs)
+    print(next_token)
+    # Update the output sequence with the sampled token
+    output[j, i] = next_token
+    # output.append(np.argmax(prediction[j][i]))
+    # print(i, np.argmax(prediction[j][i]))
+    i += 1
+
+print(output)
+
+print(target.padded_shift[0])
+
+print()
+
+
+mistake_count = 0
+# for i in range(len(prediction)):
+#     for j in range(len(prediction[0])):
+#         if prediction[i][j] != y_test_pad_shift[i][j]:
+#             mistake_count += 1
+
+print(mistake_count)

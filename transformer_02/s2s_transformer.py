@@ -14,7 +14,6 @@ from data_file import Data
 from data_preparation import *
 
 new = 0
-# todo - something overwrites the model with ones?
 
 batch_size = 1  # 256
 epochs = 20

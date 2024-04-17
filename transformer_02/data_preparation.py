@@ -136,7 +136,9 @@ def get_history_dict(dict_name, new):
     dict_exist = os.path.isfile(dict_name)
     if dict_exist:
         if new:
-            q = input(f"Dict with the name {dict_name} exist but we create a new one, ok?")
+            # q = input(f"Dict with the name {dict_name} exist but we create a new one, ok?")
+            q = "ok"
+            print("Rewritting the dict")
             if q == "ok":
                 return {}
             else:

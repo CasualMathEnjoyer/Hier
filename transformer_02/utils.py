@@ -112,7 +112,7 @@ class PositionEmbeddingFixedWeights(Layer):
         self.word_embedding_layer = Embedding(
             input_dim=vocab_size, output_dim=output_dim,
             weights=[word_embedding_matrix],
-            trainable=False
+            trainable=True  # I changed it here
         )
         self.position_embedding_layer = Embedding(
             input_dim=sequence_length, output_dim=output_dim,

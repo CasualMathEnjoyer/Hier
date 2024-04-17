@@ -142,6 +142,17 @@ class Decoder(Layer):
 class TransformerModel(Model):
     def __init__(self, enc_vocab_size, dec_vocab_size, enc_seq_length, dec_seq_length, h, d_k, d_v, d_model, d_ff_inner, n, rate, **kwargs):
         super(TransformerModel, self).__init__(**kwargs)
+        self.enc_vocab_size = enc_vocab_size
+        self.dec_vocab_size = dec_vocab_size
+        self.enc_seq_length = enc_seq_length
+        self.dec_seq_length = dec_seq_length
+        self.h = h
+        self.d_k = d_k
+        self.d_v = d_v
+        self.d_model = d_model
+        self.d_ff_inner = d_ff_inner
+        self.n = n
+        self.rate = rate
 
         # Set up the encoder
         self.encoder = Encoder(enc_vocab_size, enc_seq_length, h, d_k, d_v, d_model, d_ff_inner, n, rate)
@@ -188,6 +199,23 @@ class TransformerModel(Model):
         model_output = self.model_last_layer(decoder_output)
 
         return model_output
+
+    def get_config(self):
+        config = {
+            'enc_vocab_size': self.enc_vocab_size,
+            'dec_vocab_size': self.dec_vocab_size,
+            'enc_seq_length': self.enc_seq_length,
+            'dec_seq_length': self.dec_seq_length,
+            'h': self.h,
+            'd_k': self.d_k,
+            'd_v': self.d_v,
+            'd_model': self.d_model,
+            'd_ff_inner': self.d_ff_inner,
+            'n': self.n,
+            'rate': self.rate
+        }
+        base_config = super(TransformerModel, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
     h = 2          # Number of self-attention heads

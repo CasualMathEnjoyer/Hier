@@ -13,11 +13,12 @@ from metrics_evaluation import metrics as m
 from data_file import Data
 from data_preparation import *
 
-new = 1
+new = 0
+# todo - something overwrites the model with ones?
 
 batch_size = 1  # 256
 epochs = 20
-repeat = 2
+repeat = 0
 
 print("starting transform2seq")
 
@@ -33,15 +34,22 @@ print("seed = ", a)
 
 
 from model_file_2 import model_func
+from model_file_2 import *  # for loading
 
 
 def load_model_mine(model_name):
-    # from model_file import PositionalEmbedding, TransformerEncoder, TransformerDecoder
-    # return keras.models.load_model(model_name, custom_objects={'PositionalEmbedding': PositionalEmbedding,
-    #                                                            'TransformerEncoder': TransformerEncoder,
-    #                                                            'TransformerDecoder': TransformerDecoder
-    # })
-    return keras.models.load_model(model_name)
+    custom_objects = {
+        'EncoderLayer': EncoderLayer,
+        'Encoder': Encoder,
+        'DecoderLayer': DecoderLayer,
+        'Decoder': Decoder,
+        'TransformerModel': TransformerModel,
+        'MultiHeadAttention': MultiHeadAttention,
+        'PositionEmbeddingFixedWeights': PositionEmbeddingFixedWeights,
+        'AddNormalization': AddNormalization,
+        'FeedForward': FeedForward
+    }
+    return keras.models.load_model(model_name, custom_objects=custom_objects)
 
 def save_model_info(model_name, ):
     pass
@@ -225,10 +233,10 @@ assert len(x_test) == len(y_test)
 #  OLD TESTING
 print("Testing")
 
-output = np.zeros((1, target.maxlen))
-output[:, 0] = 1
-# output = []
-# output.append(1)
+# output = np.zeros((1, target.maxlen))
+# output[:, 0] = 1
+output = [[]]
+output[0].append(1)
 i = 1
 j = 0
 
@@ -240,11 +248,12 @@ j = 0
 while i < target.maxlen:
     # old_stdout = sys.stdout
     # sys.stdout = open(os.devnull, "w")
-    print((np.array(source.padded[0])))
-    print(np.array(output))
-    prediction = model.predict((np.array([source.padded[0]]), np.array(output)))
+    # print((np.array(source.padded[0])))
+    # print(np.array(output))
+    prediction = model.call((np.array([source.padded[0]]), np.array(output)), training=False)
     # sys.stdout = old_stdout
     # print((np.array([source.padded[0]]), output))
+    # print(np.array(prediction).shape)  # (1, 1, 63)
 
     # Get the probabilities for the next token
     next_token_probs = prediction[j, -1, :]  # Assuming batch size is 1
@@ -252,24 +261,31 @@ while i < target.maxlen:
     # Sample the next token based on the predicted probabilities
     # next_token = np.random.choice(len(next_token_probs), p=next_token_probs)
     next_token = np.argmax(next_token_probs)
-    print(next_token)
+    # print(next_token)
+
+    if next_token == 0:
+        print("END")
+        break
     # Update the output sequence with the sampled token
-    output[j, i] = next_token
-    # output.append(np.argmax(prediction[j][i]))
+    # output[j, i] = next_token
+    output[0].append(next_token)
+    print(output)
     # print(i, np.argmax(prediction[j][i]))
     i += 1
 
-print(output)
+prediction = output[0]
+valid = list(target.padded[0].astype(np.int32))
 
-print(target.padded_shift[0])
+print("prediction:", prediction)
+print("target:", valid)
 
 print()
 
-
 mistake_count = 0
-# for i in range(len(prediction)):
-#     for j in range(len(prediction[0])):
-#         if prediction[i][j] != y_test_pad_shift[i][j]:
-#             mistake_count += 1
-
+for i in range(len(list(valid))):
+    if valid[i] == 0 or i > len(prediction) - 1:
+        break
+    if valid[i] != prediction[i]:
+        mistake_count += 1
 print(mistake_count)
+

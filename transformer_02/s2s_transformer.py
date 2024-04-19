@@ -25,6 +25,13 @@ model_file_name = "models/transform_smol_delete"
 history_dict = model_file_name + '_HistoryDict'
 print(model_file_name)
 
+h = 2          # Number of self-attention heads
+d_k = 32       # Dimensionality of the linearly projected queries and keys
+d_v = 32       # Dimensionality of the linearly projected values
+d_ff = 512    # Dimensionality of the inner fully connected layer
+d_model = 512  # Dimensionality of the model sub-layers' outputs
+n = 2          # Number of layers in the encoder stack
+params = h, d_k, d_v, d_ff, d_model, n
 
 a = random.randrange(0, 2**32 - 1)
 a = 12612638
@@ -61,7 +68,7 @@ old_dict = get_history_dict(history_dict, new)
 print("model starting...")
 if new:
     print("CREATING A NEW MODEL")
-    model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen)
+    model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, params)
 else:
     print("LOADING A MODEL")
     model = load_model_mine(model_file_name)
@@ -77,10 +84,10 @@ print()
 print("training")
 for i in range(repeat):
     history = model.fit(
-        (source.padded[:2], target.padded[:2]), target.padded_shift_one[:2],
+        (source.padded, target.padded), target.padded_shift_one,
         batch_size=batch_size,
         epochs=epochs,
-        validation_data=((val_source.padded[:2], val_target.padded[:2]), val_target.padded_shift_one[:2]))
+        validation_data=((val_source.padded, val_target.padded), val_target.padded_shift_one))
 
     model.save(model_file_name)
 
@@ -217,7 +224,7 @@ with open(test_out_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_y.file = f.read()
     f.close()
 
-samples = 10
+samples = 3
 test_x.dict_chars = source.dict_chars
 x_test = test_x.split_n_count(False)[:samples]
 x_test_pad = test_x.padding(x_test, source.maxlen)
@@ -234,57 +241,64 @@ print("Testing")
 
 # output = np.zeros((1, target.maxlen))
 # output[:, 0] = 1
-output = [[]]
-output[0].append(1)
-i = 1
+output = [[1] for _ in y_test_pad]
+print(output)
+print(len(output))
+print(np.array(output).shape)
 j = 0
 
 # print(x_test_pad[0])
 # print(y_test_pad[0])
 # print(y_test_pad_shift[0])
 
+while j < len(y_test_pad[:samples]):
+    print(j)
+    i = 1
+    # print(x_test_pad[j])
+    while i < target.maxlen:
+        # old_stdout = sys.stdout
+        # sys.stdout = open(os.devnull, "w")
+        # print(np.array([output[j]]))
+        # print(np.array([x_test_pad[j]]))
+        prediction = model.call((np.array([x_test_pad[j]]), np.array([output[j]])), training=False)
+        # sys.stdout = old_stdout
 
-while i < target.maxlen:
-    # old_stdout = sys.stdout
-    # sys.stdout = open(os.devnull, "w")
-    # print((np.array(source.padded[0])))
-    # print(np.array(output))
-    prediction = model.call((np.array([source.padded[0]]), np.array(output)), training=False)
-    # sys.stdout = old_stdout
-    # print((np.array([source.padded[0]]), output))
-    # print(np.array(prediction).shape)  # (1, 1, 63)
+        # Get the probabilities for the next token
+        next_token_probs = prediction[0, -1, :]  # Prediction is shape (1, i, 63)
 
-    # Get the probabilities for the next token
-    next_token_probs = prediction[j, -1, :]  # Assuming batch size is 1
+        # Sample the next token based on the predicted probabilities
+        # next_token = np.random.choice(len(next_token_probs), p=next_token_probs)
+        next_token = np.argmax(next_token_probs)
+        # print(next_token)
 
-    # Sample the next token based on the predicted probabilities
-    # next_token = np.random.choice(len(next_token_probs), p=next_token_probs)
-    next_token = np.argmax(next_token_probs)
-    # print(next_token)
+        if next_token == 0:
+            print(output[j])
+            print("END")
+            break
+        # Update the output sequence with the sampled token
+        # output[j, i] = next_token
+        output[j].append(next_token)
+        # print(output)
+        # print(i, np.argmax(prediction[j][i]))
+        i += 1
+    j += 1
 
-    if next_token == 0:
-        print("END")
-        break
-    # Update the output sequence with the sampled token
-    # output[j, i] = next_token
-    output[0].append(next_token)
-    print(output)
-    # print(i, np.argmax(prediction[j][i]))
-    i += 1
 
-prediction = output[0]
-valid = list(target.padded[0].astype(np.int32))
+valid = list(target.padded.astype(np.int32))
 
-print("prediction:", prediction)
-print("target:", valid)
+print("prediction:", output)
+# print("target:", valid)
 
 print()
 
 mistake_count = 0
-for i in range(len(list(valid))):
-    if valid[i] == 0 or i > len(prediction) - 1:
-        break
-    if valid[i] != prediction[i]:
-        mistake_count += 1
+for j in range(len(list(output))):
+    for i in range(len(list(output[j]))):
+        if output[j] == 2:
+            break
+        if valid[j][i] == 2 or i > len(valid[j]) - 1:
+            break
+        if valid[j][i] != output[j][i]:
+            mistake_count += 1
 print(mistake_count)
 

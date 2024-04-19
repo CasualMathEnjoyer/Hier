@@ -217,13 +217,8 @@ class TransformerModel(Model):
         base_config = super(TransformerModel, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
-def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
-    h = 2          # Number of self-attention heads
-    d_k = 32       # Dimensionality of the linearly projected queries and keys
-    d_v = 32       # Dimensionality of the linearly projected values
-    d_ff = 512    # Dimensionality of the inner fully connected layer
-    d_model = 512  # Dimensionality of the model sub-layers' outputs
-    n = 2          # Number of layers in the encoder stack
+def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len, params):
+    h, d_k, d_v, d_ff, d_model, n = params
 
     dropout_rate = 0.1  # Frequency of dropping the input units in the dropout layers
 

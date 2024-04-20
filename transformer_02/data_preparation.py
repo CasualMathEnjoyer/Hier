@@ -171,5 +171,24 @@ def join_dicts(dict1, dict2):
     # print(dict)
     return dict
 
+def cache_dict(dictionary, filename):
+    with open(filename, 'wb') as f:
+        pickle.dump(dictionary, f)
+        print("Dict successfully cached")
+
+def load_cached_dict(filename):
+    if os.path.exists(filename):
+        with open(filename, 'rb') as f:
+            loaded_dict = pickle.load(f)
+            if loaded_dict:
+                print("Loaded dictionary from:", filename)
+                return loaded_dict
+            else:
+                print("Empty dictionary loaded from:", filename)
+                return {}
+    else:
+        print("No cached dictionary found at:", filename)
+        return {}
+
 if __name__ == "__main__":
     source, target, val_source, val_target = prepare_data()

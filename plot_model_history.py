@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import pickle
 matplotlib.use('TkAgg')
+import os
 
 def plot_accuracy_history(model_nums, history_dict):
     try:
@@ -16,7 +17,7 @@ def plot_accuracy_history(model_nums, history_dict):
             plt.legend(['Train', 'Validation'], loc='upper left')
             # Save the plot with the model name
             plot_filename = f"{model_nums}_accuracy_plot.png"
-            plt.savefig(plot_filename)
+            # plt.savefig(plot_filename)
 
             plt.show()
     except Exception as e:
@@ -35,18 +36,32 @@ def plot_loss_history(model_nums, history_dict):
             plt.legend(['Train', 'Validation'], loc='upper left')
             # Save the plot with the model name
             plot_filename = f"{model_nums}_loss_plot.png"
-            plt.savefig(plot_filename)
+            # plt.savefig(plot_filename)
 
             plt.show()
     except Exception as e:
         pass
 # Example usage:
 # Assuming you have model_name and history_dict variables already defined
-models = 'C:/Users/katka/OneDrive/Dokumenty/models'
+# models = 'C:/Users/katka/OneDrive/Dokumenty/models_LSTM'
+#
+# mm_list = ["em32_dim64", "em64_dim64", "em64_dim128", "em64_dim128", "em64_dim256",
+#            "em64_dim512", "em128_dim512", "em128_dim256"]
 
-mm_list = ["em32_dim64", "em64_dim64", "em64_dim128", "em64_dim128", "em64_dim256",
-           "em64_dim512", "em128_dim512", "em128_dim256"]
+def get_folder_names(folder_path):
+    folder_names = []
+    for item in os.listdir(folder_path):
+        item_path = os.path.join(folder_path, item)
+        if os.path.isdir(item_path):
+            folder_names.append(item)
+    return folder_names
+
+models = 'C:/Users/katka/OneDrive/Dokumenty/models_trans_1'
+
+mm_list = get_folder_names(models)
+
 for model_nums in mm_list:
-    model_file_name = models + f"/transform2seq_LSTM_{model_nums}"
-    # plot_accuracy_history(model_nums, model_file_name + '_HistoryDict')
+    # model_file_name = models + f"/transform2seq_LSTM_{model_nums}"
+    model_file_name = models + f"/{model_nums}"
+    plot_accuracy_history(model_nums, model_file_name + '_HistoryDict')
     plot_loss_history(model_nums, model_file_name + '_HistoryDict')

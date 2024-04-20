@@ -307,7 +307,6 @@ def model_test_old(self, sample, valid_shift, valid, model_name):  # input = pad
         val_all += val
     print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
     print("f1 prec rec :", m.f1_precision_recall(target, value_tokens, valid_shift))
-    # TODO self or target??
 def model_test_new(encoder, decoder, x_test_pad, y_test_pad, y_test_pad_shift, rev_dict, sample_limit):
     decoder_output_all = []
 
@@ -423,8 +422,8 @@ output_text = model_test_new(encoder, decoder, x_test_pad, y_test_pad, y_test_pa
 #  WORD LEVEL ACCURACY
 split_output_text = output_text.split(end_line)
 split_valid_text = test_y.file.split(end_line)
-new_pred = []
-new_valid = []
+
+new_pred, new_valid = [], []
 
 # make into lists
 for i in range(len(split_output_text)-1):

@@ -61,6 +61,7 @@ def load_model_mine(model_name):
     return keras.models.load_model(model_name, custom_objects=custom_objects)
 
 def save_model_info(model_name, ):
+    # its basically metadata so i can continue testing
     pass
 
 # ---------------------------- DATA PROCESSING -------------------------------------------------
@@ -85,6 +86,8 @@ print()
 # exit()
 # --------------------------------- TRAINING ------------------------------------------------------------------------
 print("training")
+if repeat*epochs == 0:
+    print("Skipping training")
 for i in range(repeat):
     history = model.fit(
         (source.padded, target.padded), target.padded_shift_one,
@@ -106,29 +109,31 @@ print()
 
 
 # ---------------------------------- TESTING ------------------------------------------------------------------------
-print("testing...")
-print("testing data preparation")
+print("Testing data preparation")
 
-test_x = Data(sep, mezera, end_line)
+test_source = Data(sep, mezera, end_line)
+test_target = Data(sep, mezera, end_line)
 with open(test_in_file_name, "r", encoding="utf-8") as f:  # with spaces
-    test_x.file = f.read()
+    test_source.file = f.read()
     f.close()
-test_y = Data(sep, mezera, end_line)
 with open(test_out_file_name, "r", encoding="utf-8") as f:  # with spaces
-    test_y.file = f.read()
+    test_target.file = f.read()
     f.close()
 
 samples = 5
-test_x.dict_chars = source.dict_chars
-x_test = test_x.split_n_count(False)[:samples]
-x_test_pad = test_x.padding(x_test, source.maxlen)
+test_source.dict_chars = source.dict_chars
+x_test = test_source.split_n_count(False)[:samples]
+test_source.padded = test_source.padding(x_test, source.maxlen)
 
-test_y.dict_chars = target.dict_chars
-y_test = test_y.split_n_count(False)[:samples]
-y_test_pad = test_y.padding(y_test, target.maxlen)
-y_test_pad_shift = test_y.padding_shift(y_test, target.maxlen)
+test_target.dict_chars = target.dict_chars
+y_test = test_target.split_n_count(False)[:samples]
+test_target.padded = test_target.padding(y_test, target.maxlen)
+test_target.padded_shift = test_target.padding_shift(y_test, target.maxlen)
+
+valid = list(test_target.padded.astype(np.int32))
 
 assert len(x_test) == len(y_test)
+del x_test, y_test
 
 def translate(model, encoder_input, output_maxlen):
     output_line = [1]
@@ -154,9 +159,9 @@ if caching:
 else:
     print("Caching is OFF")
 
-for j in tqdm(range(len(y_test_pad[:samples]))):
+for j in tqdm(range(len(test_source.padded))):
     i = 1
-    encoder_input = np.array([x_test_pad[j]])
+    encoder_input = np.array([test_source.padded[j]])
     if caching:
         encoder_cache_code = tuple(encoder_input[0])  # cos I can't use np array or list as a hash, [0] removes [around]
         if encoder_cache_code in tested_dict:
@@ -171,18 +176,17 @@ for j in tqdm(range(len(y_test_pad[:samples]))):
 if caching:
     cache_dict(tested_dict, testing_cache_filename)
 
-
-valid = list(target.padded.astype(np.int32))
-
 print("prediction:", output)
 # print("target:", valid)
 
 print()
 # PRETY TESTING PRINTING
-rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
+rev_dict = test_target.create_reverse_dict(test_target.dict_chars)
 
 mistake_count = 0
+all_chars = 0
 line_lengh = len(valid[0])
+output_text, valid_text = [], []  # i could take the valid text from y_test but whatever
 for j in range(len(list(output))):
     print("test line number:", j)
     predicted_line = np.array(output[j])
@@ -202,16 +206,30 @@ for j in range(len(list(output))):
             mistake_in_line += 1
 
     print("prediction:", end=" ")
+    output_text_line, valid_text_line = "", ""
     for char in predicted_line:
+        output_text_line += rev_dict[char]
         print(rev_dict[char], end=" ")
     print()
     print("valid     :", end=" ")
     for char in valid_line:
+        valid_text_line += rev_dict[char]
         print(rev_dict[char], end=" ")
+    output_text.append(output_text_line)
+    valid_text.append(valid_text_line)
     print()
     print("mistakes in line:", mistake_in_line)
     print()
     mistake_count += mistake_in_line
+    all_chars += max_size
 
-print(round(1 - (mistake_count / (line_lengh*len(output))), 5)*100, "% testing accuracy")
+pred_words_split_mezera, valid_words_split_mezera = [], []
+for i in range(len(output_text)):
+    pred_words_split_mezera.append(output_text[i].split(mezera))
+    valid_words_split_mezera.append(valid_text[i].split(mezera))
+
+word_accuracy = m.on_words_accuracy(pred_words_split_mezera, valid_words_split_mezera)
+print("word_accuracy:", word_accuracy)
+
+print("character accuracy:", round(1 - (mistake_count / all_chars), 5)*100, "%")
 

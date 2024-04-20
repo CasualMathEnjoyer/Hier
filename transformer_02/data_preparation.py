@@ -190,5 +190,9 @@ def load_cached_dict(filename):
         print("No cached dictionary found at:", filename)
         return {}
 
+def split_by_underscore(input_list):
+    result = [list(group) for group in ''.join(input_list).split('_') if group]
+    return result
+
 if __name__ == "__main__":
     source, target, val_source, val_target = prepare_data()

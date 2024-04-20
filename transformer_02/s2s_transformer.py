@@ -109,8 +109,22 @@ print()
 
 
 # ---------------------------------- TESTING ------------------------------------------------------------------------
-print("Testing data preparation")
+def translate(model, encoder_input, output_maxlen):
+    output_line = [1]
+    i = 1
+    while i < output_maxlen:
+        prediction = model.call((encoder_input, np.array([output_line])), training=False)
+        next_token_probs = prediction[0, -1, :]  # Prediction is shape (1, i, 63)
+        # next_token = np.random.choice(len(next_token_probs), p=next_token_probs)
+        next_token = np.argmax(next_token_probs)
+        if next_token == 0:
+            break
+        # Update the output sequence with the sampled token
+        output_line.append(next_token)
+        i += 1
+    return output_line
 
+print("Testing data preparation")
 test_source = Data(sep, mezera, end_line)
 test_target = Data(sep, mezera, end_line)
 with open(test_in_file_name, "r", encoding="utf-8") as f:  # with spaces
@@ -135,21 +149,6 @@ valid = list(test_target.padded.astype(np.int32))
 assert len(x_test) == len(y_test)
 del x_test, y_test
 
-def translate(model, encoder_input, output_maxlen):
-    output_line = [1]
-    i = 1
-    while i < output_maxlen:
-        prediction = model.call((encoder_input, np.array([output_line])), training=False)
-        next_token_probs = prediction[0, -1, :]  # Prediction is shape (1, i, 63)
-        # next_token = np.random.choice(len(next_token_probs), p=next_token_probs)
-        next_token = np.argmax(next_token_probs)
-        if next_token == 0:
-            break
-        # Update the output sequence with the sampled token
-        output_line.append(next_token)
-        i += 1
-    return output_line
-
 output = []
 
 print("Testing...")
@@ -158,7 +157,7 @@ if caching:
     tested_dict = load_cached_dict(testing_cache_filename)
 else:
     print("Caching is OFF")
-
+# Testing Loop
 for j in tqdm(range(len(test_source.padded))):
     i = 1
     encoder_input = np.array([test_source.padded[j]])
@@ -172,14 +171,13 @@ for j in tqdm(range(len(test_source.padded))):
     else:
         output_line = translate(model, encoder_input, target.maxlen)
     output.append(output_line)
-
+# End Testing Loop
 if caching:
     cache_dict(tested_dict, testing_cache_filename)
 
-print("prediction:", output)
-# print("target:", valid)
-
 print()
+
+
 # PRETY TESTING PRINTING
 rev_dict = test_target.create_reverse_dict(test_target.dict_chars)
 
@@ -205,20 +203,16 @@ for j in range(len(list(output))):
         if valid[j][i] != output[j][i]:
             mistake_in_line += 1
 
-    print("prediction:", end=" ")
     output_text_line, valid_text_line = "", ""
     for char in predicted_line:
-        output_text_line += rev_dict[char]
-        print(rev_dict[char], end=" ")
-    print()
-    print("valid     :", end=" ")
+        output_text_line += (rev_dict[char] + sep)
     for char in valid_line:
-        valid_text_line += rev_dict[char]
-        print(rev_dict[char], end=" ")
+        valid_text_line += (rev_dict[char] + sep)
     output_text.append(output_text_line)
     valid_text.append(valid_text_line)
-    print()
-    print("mistakes in line:", mistake_in_line)
+    print("prediction: ", output_text_line)
+    print("valid     : ", valid_text_line)
+    print("mistakes  : ", mistake_in_line)
     print()
     mistake_count += mistake_in_line
     all_chars += max_size
@@ -229,7 +223,6 @@ for i in range(len(output_text)):
     valid_words_split_mezera.append(valid_text[i].split(mezera))
 
 word_accuracy = m.on_words_accuracy(pred_words_split_mezera, valid_words_split_mezera)
-print("word_accuracy:", word_accuracy)
-
+print("word_accuracy:", round(word_accuracy, 5))
 print("character accuracy:", round(1 - (mistake_count / all_chars), 5)*100, "%")
 

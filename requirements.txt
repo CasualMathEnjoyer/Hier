@@ -1,5 +1,7 @@
-numpy~=1.26.1
-keras~=2.10.0
+keras~=3.2.1
+numpy~=1.26.4
 tensorflow~=2.10.1
-matplotlib~=3.8.1
+requests~=2.31.0
+tqdm~=4.66.2
+matplotlib~=3.8.4
 gensim~=4.3.2

@@ -6,6 +6,7 @@ import sys
 import os
 import pickle
 from tqdm import tqdm
+import time
 
 from keras.utils import set_random_seed
 from keras.utils import to_categorical
@@ -16,6 +17,7 @@ from data_file import Data
 from data_preparation import *
 
 new = 0
+new_class_dict = 0
 caching = 1
 
 batch_size = 1  # 256
@@ -28,6 +30,8 @@ model_file_name = "models/transform_smol_delete"
 history_dict = model_file_name + '_HistoryDict'
 testing_cache_filename = model_file_name + '_TestingCache'
 print(model_file_name)
+
+class_data = "processed_data_dict.plk"
 
 h = 2          # Number of self-attention heads
 d_k = 32       # Dimensionality of the linearly projected queries and keys
@@ -58,14 +62,37 @@ def load_model_mine(model_name):
         'AddNormalization': AddNormalization,
         'FeedForward': FeedForward
     }
-    return keras.models.load_model(model_name, custom_objects=custom_objects)
+    return keras.models.load_model(model_name, custom_objects=custom_objects)  # KERAS 2
+    # return keras.layers.TFSMLayer(model_name, call_endpoint="serving_default")
 
 def save_model_info(model_name, ):
     # its basically metadata so i can continue testing
     pass
 
 # ---------------------------- DATA PROCESSING -------------------------------------------------
-source, target, val_source, val_target = prepare_data()
+if new_class_dict:
+    start = time.time()
+    print("data preparation...")
+    source, target, val_source, val_target = prepare_data()
+    to_save_list = [source, target, val_source, val_target]
+    end = time.time()
+    print("preparation of data took:", end - start)
+    def save_object(obj, filename):
+        print("Saving data")
+        with open(filename, 'wb') as outp:  # Overwrites any existing file.
+            pickle.dump(obj, outp, pickle.HIGHEST_PROTOCOL)
+    save_start = time.time()
+    save_object(to_save_list, class_data)
+    save_end = time.time()
+    print("saving of data took: ", save_end - save_start)
+else:
+    start = time.time()
+    print("loading class data")
+    with open(class_data, 'rb') as class_data_dict:
+        source, target, val_source, val_target = pickle.load(class_data_dict)
+        print("Class data loaded.")
+        end = time.time()
+    print("loadig took:", end - start)
 
 # --------------------------------- MODEL ---------------------------------------------------------------------------
 old_dict = get_history_dict(history_dict, new)
@@ -104,8 +131,8 @@ for i in range(repeat):
 
     K.clear_session()
 print()
-
-
+# model.save(model_file_name + ".keras", save_format="tf")
+# model.export(model_file_name)  # saving for Keras3
 
 
 # ---------------------------------- TESTING ------------------------------------------------------------------------

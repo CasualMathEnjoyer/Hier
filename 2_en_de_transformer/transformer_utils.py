@@ -1,6 +1,6 @@
 from keras.layers import LayerNormalization, Layer, Dense, ReLU, Dropout, TextVectorization, Embedding
 from tensorflow import math, matmul, reshape, shape, transpose, cast, float32
-from keras.backend import softmax
+from keras.activations import softmax
 from tensorflow import convert_to_tensor, string
 import tensorflow as tf
 import numpy as np

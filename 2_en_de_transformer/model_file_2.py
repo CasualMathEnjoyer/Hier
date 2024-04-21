@@ -2,7 +2,7 @@
 # used tutorial from:
 # https://machinelearningmastery.com/implementing-the-transformer-decoder-from-scratch-in-tensorflow-and-keras/
 
-from utils import *
+from transformer_utils import *
 from tensorflow import math, cast, float32, linalg, ones, maximum, newaxis
 from keras import Model, Input
 

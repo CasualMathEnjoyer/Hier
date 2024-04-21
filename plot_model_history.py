@@ -4,6 +4,7 @@ import pickle
 matplotlib.use('TkAgg')
 import os
 
+root = "plots/"
 def plot_accuracy_history(model_nums, history_dict):
     try:
         with open(history_dict, 'rb') as file_pi:
@@ -16,12 +17,12 @@ def plot_accuracy_history(model_nums, history_dict):
             plt.xlabel('Epoch')
             plt.legend(['Train', 'Validation'], loc='upper left')
             # Save the plot with the model name
-            plot_filename = f"{model_nums}_accuracy_plot.png"
+            plot_filename = f"{root}{model_nums}_accuracy_plot.png"
             # plt.savefig(plot_filename)
 
             plt.show()
     except Exception as e:
-        pass
+        print(e)
 
 def plot_loss_history(model_nums, history_dict):
     try:
@@ -35,12 +36,12 @@ def plot_loss_history(model_nums, history_dict):
             plt.xlabel('Epoch')
             plt.legend(['Train', 'Validation'], loc='upper left')
             # Save the plot with the model name
-            plot_filename = f"{model_nums}_loss_plot.png"
+            plot_filename = f"{root}{model_nums}_loss_plot.png"
             # plt.savefig(plot_filename)
 
             plt.show()
     except Exception as e:
-        pass
+        print(e)
 # Example usage:
 # Assuming you have model_name and history_dict variables already defined
 # models = 'C:/Users/katka/OneDrive/Dokumenty/models_LSTM'
@@ -56,7 +57,7 @@ def get_folder_names(folder_path):
             folder_names.append(item)
     return folder_names
 
-models = 'C:/Users/katka/OneDrive/Dokumenty/models_trans_1'
+models = 'C:/Users/katka/OneDrive/Dokumenty/models'
 
 mm_list = get_folder_names(models)
 

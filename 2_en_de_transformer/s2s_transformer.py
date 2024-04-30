@@ -1,20 +1,21 @@
 import numpy as np
 import random
-import keras
 
 import sys
 import os
 import pickle
 from tqdm import tqdm
 import time
-
-from keras.utils import set_random_seed
-from keras.utils import to_categorical
-from keras import backend as K
+import joblib
 
 from metrics_evaluation import metrics as m
 from data_file import Data
 from data_preparation import *
+
+os.environ["KERAS_BACKEND"] = "tensorflow"
+import keras
+from keras.utils import set_random_seed
+from keras import backend as K
 
 new = 0
 new_class_dict = 0
@@ -36,7 +37,7 @@ class_data = "processed_data_dict.plk"
 h = 2          # Number of self-attention heads
 d_k = 32       # Dimensionality of the linearly projected queries and keys
 d_v = 32       # Dimensionality of the linearly projected values
-d_ff = 512    # Dimensionality of the inner fully connected layer
+d_ff = 512     # Dimensionality of the inner fully connected layer
 d_model = 512  # Dimensionality of the model sub-layers' outputs
 n = 2          # Number of layers in the encoder stack
 params = h, d_k, d_v, d_ff, d_model, n
@@ -131,11 +132,16 @@ for i in range(repeat):
 
     K.clear_session()
 print()
-# model.save(model_file_name + ".keras", save_format="tf")
-# model.export(model_file_name)  # saving for Keras3
+# try:
+#     model.save(model_file_name + ".keras", save_format="tf")
+# except Exception as e:
+#     model.export(model_file_name)  # saving for Keras3
 
 
 # ---------------------------------- TESTING ------------------------------------------------------------------------
+from Levenshtein import distance
+distance("lewenstein", "levenshtein")
+
 def translate(model, encoder_input, output_maxlen):
     output_line = [1]
     i = 1
@@ -208,10 +214,10 @@ print()
 # PRETY TESTING PRINTING
 rev_dict = test_target.create_reverse_dict(test_target.dict_chars)
 
-mistake_count = 0
-all_chars = 0
+mistake_count, all_chars, all_levenstein = 0, 0, 0
 line_lengh = len(valid[0])
-output_text, valid_text = [], []  # i could take the valid text from y_test but whatever
+num_lines = len(valid)
+output_list_strigs, valid_list_strings = [], []  # i could take the valid text from y_test but whatever
 for j in range(len(list(output))):
     print("test line number:", j)
     predicted_line = np.array(output[j])
@@ -235,21 +241,24 @@ for j in range(len(list(output))):
         output_text_line += (rev_dict[char] + sep)
     for char in valid_line:
         valid_text_line += (rev_dict[char] + sep)
-    output_text.append(output_text_line)
-    valid_text.append(valid_text_line)
+    output_list_strigs.append(output_text_line)
+    valid_list_strings.append(valid_text_line)
+    levenstein = distance(output_text_line, valid_text_line)
     print("prediction: ", output_text_line)
     print("valid     : ", valid_text_line)
     print("mistakes  : ", mistake_in_line)
+    print("levenstein: ", levenstein)
     print()
     mistake_count += mistake_in_line
+    all_levenstein += levenstein
     all_chars += max_size
 
 pred_words_split_mezera, valid_words_split_mezera = [], []
-for i in range(len(output_text)):
-    pred_words_split_mezera.append(output_text[i].split(mezera))
-    valid_words_split_mezera.append(valid_text[i].split(mezera))
+for i in range(len(output_list_strigs)):
+    pred_words_split_mezera.append(output_list_strigs[i].split(mezera))
+    valid_words_split_mezera.append(valid_list_strings[i].split(mezera))
 
 word_accuracy = m.on_words_accuracy(pred_words_split_mezera, valid_words_split_mezera)
-print("word_accuracy:", round(word_accuracy, 5))
-print("character accuracy:", round(1 - (mistake_count / all_chars), 5)*100, "%")
-
+print("word_accuracy:", round(word_accuracy*100, 5), "%")
+print("character accuracy:", round((1 - (mistake_count / all_chars))*100, 5), "%")
+print("average Levenstein: ", all_levenstein / num_lines)

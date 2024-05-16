@@ -5,41 +5,46 @@ matplotlib.use('TkAgg')
 import os
 
 root = "plots/"
-def plot_accuracy_history(model_nums, history_dict):
+def plot_accuracy_history(plt, model_nums, history_dict, save=False):
     try:
         with open(history_dict, 'rb') as file_pi:
             history = pickle.load(file_pi)
             # Plot training & validation accuracy values
             plt.plot(history['accuracy'])
             plt.plot(history['val_accuracy'])
-            plt.title(f'{model_nums} accuracy')
-            plt.ylabel('Accuracy')
-            plt.xlabel('Epoch')
+            plt.set_title(f'{model_nums} accuracy')
+            plt.set_ylabel('Accuracy')
+            plt.set_xlabel('Epoch')
             plt.legend(['Train', 'Validation'], loc='upper left')
             # Save the plot with the model name
             plot_filename = f"{root}{model_nums}_accuracy_plot.png"
-            # plt.savefig(plot_filename)
+            if save:
+                plt.savefig(plot_filename)
 
-            plt.show()
+            # plt.show()
+            return plt
     except Exception as e:
         print(e)
 
-def plot_loss_history(model_nums, history_dict):
+def plot_loss_history(plt, model_nums, history_dict, save=False):
     try:
         with open(history_dict, 'rb') as file_pi:
             history = pickle.load(file_pi)
             # Plot training & validation loss values
             plt.plot(history['loss'])
             plt.plot(history['val_loss'])
-            plt.title(f'{model_nums} loss')
-            plt.ylabel('Loss')
-            plt.xlabel('Epoch')
+            plt.set_title(f'{model_nums} loss')
+            plt.set_ylabel('Loss')
+            plt.set_xlabel('Epoch')
             plt.legend(['Train', 'Validation'], loc='upper left')
             # Save the plot with the model name
             plot_filename = f"{root}{model_nums}_loss_plot.png"
-            # plt.savefig(plot_filename)
 
-            plt.show()
+            if save:
+                plt.savefig(plot_filename)
+
+            # plt.show()
+            return plt
     except Exception as e:
         print(e)
 # Example usage:
@@ -57,12 +62,25 @@ def get_folder_names(folder_path):
             folder_names.append(item)
     return folder_names
 
-models = 'C:/Users/katka/OneDrive/Dokumenty/models'
+models = 'C:/Users/katka/OneDrive/Dokumenty/model_10'
 
 mm_list = get_folder_names(models)
 
-for model_nums in mm_list:
+fig, axs = plt.subplots(2, 3, figsize=(10, 6))
+# fig.suptitle("Title centered above all subplots", fontsize=14)
+
+for i, model_nums in enumerate(mm_list):
     # model_file_name = models + f"/transform2seq_LSTM_{model_nums}"
     model_file_name = models + f"/{model_nums}"
-    plot_accuracy_history(model_nums, model_file_name + '_HistoryDict')
-    plot_loss_history(model_nums, model_file_name + '_HistoryDict')
+    save = False
+    accuracy = plot_accuracy_history(axs[0, i], model_nums, model_file_name + '_HistoryDict', save)
+    loss = plot_loss_history(axs[1, i], model_nums, model_file_name + '_HistoryDict', save)
+
+for ax in axs.flatten():
+    ax.grid(True)  # Add grid to all axes
+
+plot_filename = f"{root}six_plots"
+plt.savefig(plot_filename)
+
+plt.tight_layout()
+plt.show()

@@ -1,3 +1,4 @@
+import nltk.translate.bleu_score
 import numpy as np
 import random
 
@@ -7,6 +8,7 @@ import pickle
 from tqdm import tqdm
 import time
 import joblib
+import nltk
 
 from metrics_evaluation import metrics as m
 from data_file import Data
@@ -19,10 +21,10 @@ from keras import backend as K
 
 new = 0
 new_class_dict = 0
-caching = 1
+caching = 0
 
 batch_size = 1  # 256
-epochs = 20
+epochs = 2
 repeat = 0
 
 print("starting transform2seq")
@@ -34,12 +36,12 @@ print(model_file_name)
 
 class_data = "processed_data_dict.plk"
 
-h = 2          # Number of self-attention heads
-d_k = 32       # Dimensionality of the linearly projected queries and keys
-d_v = 32       # Dimensionality of the linearly projected values
+h = 4          # Number of self-attention heads
+d_k = 64       # Dimensionality of the linearly projected queries and keys
+d_v = 64       # Dimensionality of the linearly projected values
 d_ff = 512     # Dimensionality of the inner fully connected layer
 d_model = 512  # Dimensionality of the model sub-layers' outputs
-n = 2          # Number of layers in the encoder stack
+n = 6          # Number of layers in the encoder stack
 params = h, d_k, d_v, d_ff, d_model, n
 
 a = random.randrange(0, 2**32 - 1)
@@ -50,6 +52,7 @@ print("seed = ", a)
 
 from model_file_2 import model_func
 from model_file_2 import *  # for loading
+from model_file_mine import model_func
 
 def load_model_mine(model_name):
     custom_objects = {
@@ -63,12 +66,19 @@ def load_model_mine(model_name):
         'AddNormalization': AddNormalization,
         'FeedForward': FeedForward
     }
-    return keras.models.load_model(model_name, custom_objects=custom_objects)  # KERAS 2
-    # return keras.layers.TFSMLayer(model_name, call_endpoint="serving_default")
+    try:
+        return keras.models.load_model(model_name, custom_objects=custom_objects)  # KERAS 2
+    except Exception as e:
+        return keras.models.load_model(model_name + ".keras", custom_objects=custom_objects)
 
-def save_model_info(model_name, ):
-    # its basically metadata so i can continue testing
-    pass
+def save_model(model, model_file_name):
+    try:
+        model.save(model_file_name)
+        print("Model saved successfully the old way")
+    except Exception as e:
+        model.save(model_file_name + ".keras")
+        print("Model saved using KERAS 3")
+
 
 # ---------------------------- DATA PROCESSING -------------------------------------------------
 if new_class_dict:
@@ -123,7 +133,7 @@ for i in range(repeat):
         epochs=epochs,
         validation_data=((val_source.padded, val_target.padded), val_target.padded_shift_one))
 
-    model.save(model_file_name)
+    save_model(model, model_file_name)
 
     new_dict = join_dicts(old_dict, history.history)
     old_dict = new_dict
@@ -208,9 +218,6 @@ for j in tqdm(range(len(test_source.padded))):
 if caching:
     cache_dict(tested_dict, testing_cache_filename)
 
-print()
-
-
 # PRETY TESTING PRINTING
 rev_dict = test_target.create_reverse_dict(test_target.dict_chars)
 
@@ -218,12 +225,14 @@ mistake_count, all_chars, all_levenstein = 0, 0, 0
 line_lengh = len(valid[0])
 num_lines = len(valid)
 output_list_strigs, valid_list_strings = [], []  # i could take the valid text from y_test but whatever
+output_list_lists, valid_list_lists = [], []
 for j in range(len(list(output))):
     print("test line number:", j)
     predicted_line = np.array(output[j])
     valid_line = np.array(valid[j])
-    zero_index = np.argmax(valid_line == 0)
-    valid_line = valid_line[:zero_index]
+    if 0 in valid_line:  # aby to neusekavalo vetu
+        zero_index = np.argmax(valid_line == 0)
+        valid_line = valid_line[:zero_index]
     min_size = min([predicted_line.shape[0], valid_line.shape[0]])
     max_size = max([predicted_line.shape[0], valid_line.shape[0]])
 
@@ -237,12 +246,17 @@ for j in range(len(list(output))):
             mistake_in_line += 1
 
     output_text_line, valid_text_line = "", ""
+    output_list_line, valid_list_line = [], []
     for char in predicted_line:
         output_text_line += (rev_dict[char] + sep)
+        output_list_line.append(rev_dict[char])
     for char in valid_line:
         valid_text_line += (rev_dict[char] + sep)
+        valid_list_line.append(rev_dict[char])
     output_list_strigs.append(output_text_line)
     valid_list_strings.append(valid_text_line)
+    output_list_lists.append(output_list_line)
+    valid_list_lists.append(valid_list_line)
     levenstein = distance(output_text_line, valid_text_line)
     print("prediction: ", output_text_line)
     print("valid     : ", valid_text_line)
@@ -262,3 +276,5 @@ word_accuracy = m.on_words_accuracy(pred_words_split_mezera, valid_words_split_m
 print("word_accuracy:", round(word_accuracy*100, 5), "%")
 print("character accuracy:", round((1 - (mistake_count / all_chars))*100, 5), "%")
 print("average Levenstein: ", all_levenstein / num_lines)
+print("BLEU SCORE words:", nltk.translate.bleu_score.corpus_bleu(valid_words_split_mezera, pred_words_split_mezera))
+print("BLEU SCORE chars:", nltk.translate.bleu_score.corpus_bleu(valid_list_lists, output_list_lists))

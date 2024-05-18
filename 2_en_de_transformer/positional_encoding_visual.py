@@ -17,7 +17,7 @@ def get_positional_encoding(max_seq_len, d_model):
 
 # Example usage
 max_seq_len = 64  # Maximum sequence length
-d_model = 356  # Dimension of the model (must be even)
+d_model = 256  # Dimension of the model (must be even)
 positional_encoding = get_positional_encoding(max_seq_len, d_model)
 
 # Plot the positional encoding for visualization

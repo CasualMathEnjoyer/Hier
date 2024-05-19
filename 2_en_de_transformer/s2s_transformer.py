@@ -23,9 +23,9 @@ new = 0
 new_class_dict = 0
 caching = 0
 
-batch_size = 1  # 256
-epochs = 2
-repeat = 0
+batch_size = 2  # 256
+epochs = 100
+repeat = 1
 
 print("starting transform2seq")
 
@@ -38,10 +38,10 @@ class_data = "processed_data_dict.plk"
 
 h = 4          # Number of self-attention heads
 d_k = 64       # Dimensionality of the linearly projected queries and keys
-d_v = 64       # Dimensionality of the linearly projected values
-d_ff = 512     # Dimensionality of the inner fully connected layer
-d_model = 512  # Dimensionality of the model sub-layers' outputs
-n = 6          # Number of layers in the encoder stack
+d_v = 63       # Dimensionality of the linearly projected values                                     # values not used
+d_ff = 512      # Dimensionality of the inner fully connected layer
+d_model = 128  # Dimensionality of the model sub-layers' outputs
+n = 2          # Number of layers in the encoder stack
 params = h, d_k, d_v, d_ff, d_model, n
 
 a = random.randrange(0, 2**32 - 1)
@@ -52,24 +52,28 @@ print("seed = ", a)
 
 from model_file_2 import model_func
 from model_file_2 import *  # for loading
-from model_file_mine import model_func
+from model_file_mine import *
 
 def load_model_mine(model_name):
-    custom_objects = {
-        'EncoderLayer': EncoderLayer,
-        'Encoder': Encoder,
-        'DecoderLayer': DecoderLayer,
-        'Decoder': Decoder,
-        'TransformerModel': TransformerModel,
-        'MultiHeadAttention': MultiHeadAttention,
-        'PositionEmbeddingFixedWeights': PositionEmbeddingFixedWeights,
-        'AddNormalization': AddNormalization,
-        'FeedForward': FeedForward
-    }
     try:
+        custom_objects = {
+            'EncoderLayer': EncoderLayer,
+            'Encoder': Encoder,
+            'DecoderLayer': DecoderLayer,
+            'Decoder': Decoder,
+            'TransformerModel': TransformerModel,
+            'MultiHeadAttention': MultiHeadAttention,
+            'PositionEmbeddingFixedWeights': PositionEmbeddingFixedWeights,
+            'AddNormalization': AddNormalization,
+            'FeedForward': FeedForward
+        }
         return keras.models.load_model(model_name, custom_objects=custom_objects)  # KERAS 2
     except Exception as e:
+        custom_objects = {
+            "MyMaskingLayer" : MyMaskingLayer
+        }
         return keras.models.load_model(model_name + ".keras", custom_objects=custom_objects)
+        # return keras.models.load_model(model_name + ".keras")
 
 def save_model(model, model_file_name):
     try:
@@ -118,7 +122,7 @@ else:
 model.compile(optimizer="adam",
               loss="categorical_crossentropy",
               metrics=["accuracy"])
-model.summary()
+# model.summary()
 print()
 
 # exit()
@@ -154,10 +158,12 @@ distance("lewenstein", "levenshtein")
 
 def translate(model, encoder_input, output_maxlen):
     output_line = [1]
-    i = 1
+    # i = 1
+    i = 0
     while i < output_maxlen:
-        prediction = model.call((encoder_input, np.array([output_line])), training=False)
-        next_token_probs = prediction[0, -1, :]  # Prediction is shape (1, i, 63)
+        prediction = model.call((encoder_input, np.array([output_line])), training=False)  # enc shape: (1, maxlen), out shape: (1, j)
+        # next_token_probs = prediction[0, -1, :]  # Prediction is shape (1, i, 63)
+        next_token_probs = prediction[0, i, :]  # prediction has the whole sentence every time
         # next_token = np.random.choice(len(next_token_probs), p=next_token_probs)
         next_token = np.argmax(next_token_probs)
         if next_token == 0:
@@ -213,6 +219,7 @@ for j in tqdm(range(len(test_source.padded))):
             tested_dict[encoder_cache_code] = output_line
     else:
         output_line = translate(model, encoder_input, target.maxlen)
+        print(output_line)
     output.append(output_line)
 # End Testing Loop
 if caching:
@@ -224,8 +231,8 @@ rev_dict = test_target.create_reverse_dict(test_target.dict_chars)
 mistake_count, all_chars, all_levenstein = 0, 0, 0
 line_lengh = len(valid[0])
 num_lines = len(valid)
-output_list_strigs, valid_list_strings = [], []  # i could take the valid text from y_test but whatever
-output_list_lists, valid_list_lists = [], []
+output_list_words, valid_list_words = [], []  # i could take the valid text from y_test but whatever
+output_list_chars, valid_list_chars = [], []
 for j in range(len(list(output))):
     print("test line number:", j)
     predicted_line = np.array(output[j])
@@ -253,10 +260,10 @@ for j in range(len(list(output))):
     for char in valid_line:
         valid_text_line += (rev_dict[char] + sep)
         valid_list_line.append(rev_dict[char])
-    output_list_strigs.append(output_text_line)
-    valid_list_strings.append(valid_text_line)
-    output_list_lists.append(output_list_line)
-    valid_list_lists.append(valid_list_line)
+    output_list_words.append(output_text_line)
+    valid_list_words.append(valid_text_line)
+    output_list_chars.append(output_list_line)
+    valid_list_chars.append([valid_list_line])  # to be accepted by BLEU scocre
     levenstein = distance(output_text_line, valid_text_line)
     print("prediction: ", output_text_line)
     print("valid     : ", valid_text_line)
@@ -267,14 +274,15 @@ for j in range(len(list(output))):
     all_levenstein += levenstein
     all_chars += max_size
 
-pred_words_split_mezera, valid_words_split_mezera = [], []
-for i in range(len(output_list_strigs)):
-    pred_words_split_mezera.append(output_list_strigs[i].split(mezera))
-    valid_words_split_mezera.append(valid_list_strings[i].split(mezera))
+pred_words_split_mezera, valid_words_split_mezera, valid_words_split_mezeraB = [], [], []
+for i in range(len(output_list_words)):
+    pred_words_split_mezera.append(output_list_words[i].split(mezera))
+    valid_words_split_mezera.append(valid_list_words[i].split(mezera))
+    valid_words_split_mezeraB.append([valid_list_words[i].split(mezera)])
 
 word_accuracy = m.on_words_accuracy(pred_words_split_mezera, valid_words_split_mezera)
 print("word_accuracy:", round(word_accuracy*100, 5), "%")
 print("character accuracy:", round((1 - (mistake_count / all_chars))*100, 5), "%")
 print("average Levenstein: ", all_levenstein / num_lines)
-print("BLEU SCORE words:", nltk.translate.bleu_score.corpus_bleu(valid_words_split_mezera, pred_words_split_mezera))
-print("BLEU SCORE chars:", nltk.translate.bleu_score.corpus_bleu(valid_list_lists, output_list_lists))
+print("BLEU SCORE words:", nltk.translate.bleu_score.corpus_bleu(valid_words_split_mezeraB, pred_words_split_mezera))
+print("BLEU SCORE chars:", nltk.translate.bleu_score.corpus_bleu(valid_list_chars, output_list_chars))

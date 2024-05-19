@@ -72,6 +72,7 @@ def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_max
     de_embed_pos = keras.layers.Dropout(0.1)(de_embed_pos)
 
     decoded = de_embed_pos
+    cross_attention_vecs = []
     for i in range(n):
         self_attention = keras.layers.MultiHeadAttention(
             num_heads,
@@ -87,14 +88,18 @@ def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_max
         add = decoded + self_attention_d
         normalized1 = keras.layers.LayerNormalization()(add)
 
-        cross_attention = keras.layers.MultiHeadAttention(
+        cross_attention, cross_attention_scores = keras.layers.MultiHeadAttention(
             num_heads,
             key_dim,
             value_dim=value_dim,
             dropout=0.1,
-            use_bias=True)(normalized1, encoder_output, encoder_output
-                           , attention_mask=encoder_mask
-                           )
+            use_bias=True,
+            name=f'cross_att{i}')(normalized1, encoder_output, encoder_output
+                                   , attention_mask=encoder_mask
+                                   , return_attention_scores=True  # to calculate attention matrix
+                                   )
+        # cross_attention_vecs.append(cross_attention_scores)
+
         cross_attention_d = keras.layers.Dropout(0.1)(cross_attention)
 
         add2 = normalized1 + cross_attention_d
@@ -111,20 +116,51 @@ def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_max
 
     decoder_dense_output = keras.layers.Dense(decoder_vocab_len, activation='softmax', name='decoder_output')(decoded)
 
-    return keras.Model(inputs=[encoder_input, decoder_input], outputs=decoder_dense_output)
+    return keras.Model(inputs=[encoder_input, decoder_input], outputs=[decoder_dense_output])
 
+import matplotlib.pyplot as plt
+def plot_attention_weights(attention, input_sentence, output_sentence):
+    fig = plt.figure(figsize=(16, 8))
+    for head in range(attention.shape[0]):
+        ax = fig.add_subplot(2, 4, head + 1)
+
+        # Plot the attention weights
+        ax.matshow(attention[head], cmap='viridis')
+
+        fontdict = {'fontsize': 10}
+
+        ax.set_xticks(range(len(input_sentence)))
+        ax.set_yticks(range(len(output_sentence)))
+
+        ax.set_xticklabels(input_sentence, fontdict=fontdict, rotation=90)
+        ax.set_yticklabels(output_sentence, fontdict=fontdict)
+
+        ax.set_xlabel(f'Head {head + 1}')
+
+    plt.tight_layout()
+    plt.show()
 
 if __name__ == '__main__':
     params = (8, 64, 64, 256, 512, 6)
-    model = model_func(10000, 10000, 100, 100, params)
-    model.summary()
+    model = model_func(10, 10, 50, 50, params)
+    # model.summary()
 
     # Generate random input data with appropriate shapes
-    encoder_input_data = np.random.randint(0, 10000, (1, 100))  # (batch_size, sequence_length)
-    decoder_input_data = np.random.randint(0, 10000, (1, 100))  # (batch_size, sequence_length)
+    encoder_input_data = np.random.randint(0, 10, (1, 50))  # (batch_size, sequence_length)
+    decoder_input_data = np.random.randint(0, 10, (1, 50))  # (batch_size, sequence_length)
 
     # Call the model with the random input data
-    output = model.call([encoder_input_data, decoder_input_data], training=False)
+    model = keras.Model(inputs=model.input,
+                  outputs=[model.output, model.get_layer('cross_att0').output])
+    output, attention_scores = model([encoder_input_data, decoder_input_data], training=False)
 
     # Print the shape of the output
-    print(f'Output shape: {output.shape}')
+    # print(f'Output shape: {np.array(output).shape}')
+    # print(f'Attention scores shape: {attention_scores}')
+
+    # Example sentences (just for illustration, replace with actual sentences)
+    input_sentence = [str(i) for i in range(encoder_input_data.shape[1])]
+    output_sentence = [str(i) for i in range(decoder_input_data.shape[1])]
+
+    # Plot the attention weights for the last layer's cross attention
+    plot_attention_weights(attention_scores[-1][0].numpy(), input_sentence, output_sentence)

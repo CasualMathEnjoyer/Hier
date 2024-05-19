@@ -70,7 +70,8 @@ def load_model_mine(model_name):
         return keras.models.load_model(model_name, custom_objects=custom_objects)  # KERAS 2
     except Exception as e:
         custom_objects = {
-            "MyMaskingLayer" : MyMaskingLayer
+            "MyMaskingLayer" : MyMaskingLayer,
+            "CustomSinePositionEncoding" : CustomSinePositionEncoding
         }
         return keras.models.load_model(model_name + ".keras", custom_objects=custom_objects)
         # return keras.models.load_model(model_name + ".keras")
@@ -219,7 +220,7 @@ for j in tqdm(range(len(test_source.padded))):
             tested_dict[encoder_cache_code] = output_line
     else:
         output_line = translate(model, encoder_input, target.maxlen)
-        print(output_line)
+        # print(output_line)
     output.append(output_line)
 # End Testing Loop
 if caching:

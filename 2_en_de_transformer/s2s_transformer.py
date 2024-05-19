@@ -19,7 +19,7 @@ import keras
 from keras.utils import set_random_seed
 from keras import backend as K
 
-new = 0
+new = 1
 new_class_dict = 0
 caching = 0
 

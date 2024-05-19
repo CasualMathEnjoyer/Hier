@@ -3,11 +3,7 @@ import numpy as np
 import tensorflow as tf
 import keras_nlp
 
-# todo missing future masking
 # TODO masking is not propagating - implement it elseway?
-# !!! TODO KerasNLP layers sinecosine positional embeddings !!!
-# todo - I would want the potional encoding to be a simple fixed layer that just does addition - find a way
-# todo - end dimensions are not matching at the possitional encoding layer : [1,2,128] vs. [22,128]
 
 class CustomSinePositionEncoding(keras.layers.Layer):
     def __init__(self, **kwargs):
@@ -21,21 +17,11 @@ class CustomSinePositionEncoding(keras.layers.Layer):
     def compute_mask(self, inputs, mask=None):
         return mask
 
-class LookAheadMaskLayer(keras.layers.Layer):
-    def call(self, inputs):
-        batch_size, seq_len, _ = tf.shape(inputs)
-        look_ahead_mask = tf.linalg.band_part(tf.ones((seq_len, seq_len)), -1, 0)
-        # look_ahead_mask = tf.reshape(look_ahead_mask, (1, 1, seq_len, seq_len))
-        # return tf.tile(look_ahead_mask, [batch_size, 1, 1, 1])
-        return look_ahead_mask
-    # def compute_mask(self, inputs, mask=None):
-    #     return mask
-
 class MyMaskingLayer(keras.layers.Layer):
     def call(self, x):
-        # mask = tf.cast(tf.math.not_equal(x, 0), tf.float32)
-        mask = x
-        mask = mask[:, tf.newaxis, :]  # this works!!
+        mask = tf.cast(tf.not_equal(x, 0), dtype=tf.float32)
+        mask = mask[:, tf.newaxis, :]
+        # mask = x[:, tf.newaxis, :]  # this works when input is a mask
         return mask
 
 def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_maxlen, params):
@@ -45,11 +31,9 @@ def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_max
     decoder_input = keras.Input(shape=(decoder_maxlen,))
 
     # Encoder part
-    embedded = keras.layers.Embedding(input_dim=encoder_vocab_len, output_dim=d_model, mask_zero=True)(encoder_input)
-    encoder_mask = embedded._keras_mask
-    print(encoder_mask)
-    encoder_mask = MyMaskingLayer()(embedded._keras_mask)
-    print(encoder_mask)
+    encoder_mask = MyMaskingLayer()(encoder_input)
+    embedded = keras.layers.Embedding(input_dim=encoder_vocab_len, output_dim=d_model, mask_zero=False)(encoder_input)
+    # not usig default masking in embedding because it doesn't propagate anyway
 
     embedded_position = CustomSinePositionEncoding()(embedded)
     embedded_position = keras.layers.Dropout(0.1)(embedded_position)
@@ -81,15 +65,11 @@ def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_max
     encoder_output = encoded  # output from encoder
 
     # Decoder part
-    de_embed = keras.layers.Embedding(input_dim=decoder_vocab_len, output_dim=d_model, mask_zero=True)(decoder_input)
+    decoder_mask = MyMaskingLayer()(decoder_input)
+    de_embed = keras.layers.Embedding(input_dim=decoder_vocab_len, output_dim=d_model, mask_zero=False)(decoder_input)
 
     de_embed_pos = CustomSinePositionEncoding()(de_embed)
     de_embed_pos = keras.layers.Dropout(0.1)(de_embed_pos)
-
-    decoder_mask = MyMaskingLayer()(de_embed._keras_mask)
-
-    # combined_mask = CombinedMask()(de_mask)
-    # decoder_mask = tf.linalg.band_part(tf.ones((decoder_maxlen, decoder_maxlen)), -1, 0)
 
     decoded = de_embed_pos
     for i in range(n):
@@ -140,8 +120,8 @@ if __name__ == '__main__':
     model.summary()
 
     # Generate random input data with appropriate shapes
-    encoder_input_data = np.random.randint(0, 10000, (1, 190))  # (batch_size, sequence_length)
-    decoder_input_data = np.random.randint(0, 10000, (1, 170))  # (batch_size, sequence_length)
+    encoder_input_data = np.random.randint(0, 10000, (1, 100))  # (batch_size, sequence_length)
+    decoder_input_data = np.random.randint(0, 10000, (1, 100))  # (batch_size, sequence_length)
 
     # Call the model with the random input data
     output = model.call([encoder_input_data, decoder_input_data], training=False)

@@ -31,6 +31,12 @@ class LookAheadMaskLayer(keras.layers.Layer):
     # def compute_mask(self, inputs, mask=None):
     #     return mask
 
+class MyMaskingLayer(keras.layers.Layer):
+    def call(self, x):
+        # mask = tf.cast(tf.math.not_equal(x, 0), tf.float32)
+        mask = x
+        mask = mask[:, tf.newaxis, :]  # this works!!
+        return mask
 
 def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_maxlen, params):
     num_heads, key_dim, value_dim, d_ff, d_model, n = params
@@ -41,6 +47,9 @@ def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_max
     # Encoder part
     embedded = keras.layers.Embedding(input_dim=encoder_vocab_len, output_dim=d_model, mask_zero=True)(encoder_input)
     encoder_mask = embedded._keras_mask
+    print(encoder_mask)
+    encoder_mask = MyMaskingLayer()(embedded._keras_mask)
+    print(encoder_mask)
 
     embedded_position = CustomSinePositionEncoding()(embedded)
     embedded_position = keras.layers.Dropout(0.1)(embedded_position)
@@ -53,7 +62,7 @@ def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_max
             value_dim=value_dim,
             dropout=0.1,
             use_bias=True)(encoded, encoded, encoded,
-                           # attention_mask=encoder_mask
+                           attention_mask=encoder_mask
                            )
         attended_encoded_d = keras.layers.Dropout(0.1)(attended_encoded)
 
@@ -73,12 +82,14 @@ def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_max
 
     # Decoder part
     de_embed = keras.layers.Embedding(input_dim=decoder_vocab_len, output_dim=d_model, mask_zero=True)(decoder_input)
-    de_mask = de_embed._keras_mask
 
     de_embed_pos = CustomSinePositionEncoding()(de_embed)
     de_embed_pos = keras.layers.Dropout(0.1)(de_embed_pos)
 
+    decoder_mask = MyMaskingLayer()(de_embed._keras_mask)
+
     # combined_mask = CombinedMask()(de_mask)
+    # decoder_mask = tf.linalg.band_part(tf.ones((decoder_maxlen, decoder_maxlen)), -1, 0)
 
     decoded = de_embed_pos
     for i in range(n):
@@ -88,7 +99,7 @@ def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_max
             value_dim=value_dim,
             dropout=0.1,
             use_bias=True)(decoded, decoded, decoded
-                           # , attention_mask=de_mask
+                           , attention_mask=decoder_mask
                            )
         self_attention_d = keras.layers.Dropout(0.1)(self_attention)
 
@@ -101,7 +112,7 @@ def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_max
             value_dim=value_dim,
             dropout=0.1,
             use_bias=True)(normalized1, encoder_output, encoder_output
-                           # , attention_mask=encoder_mask
+                           , attention_mask=encoder_mask
                            )
         cross_attention_d = keras.layers.Dropout(0.1)(cross_attention)
 

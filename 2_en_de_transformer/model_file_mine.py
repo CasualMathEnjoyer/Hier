@@ -140,6 +140,16 @@ def plot_attention_weights(attention, input_sentence, output_sentence):
     plt.tight_layout()
     plt.show()
 
+def visualise_attention(model, encoder_input_data, decoder_input_data):
+    model = keras.Model(inputs=model.input,
+                        outputs=[model.output, model.get_layer('cross_att0').output])
+    output, attention_scores = model.call((encoder_input_data, decoder_input_data), training=False)
+
+    input_sentence = [str(i) for i in range(encoder_input_data.shape[1])]
+    output_sentence = [str(i) for i in range(decoder_input_data.shape[1])]
+
+    plot_attention_weights(attention_scores[-1][0].numpy(), input_sentence, output_sentence)
+
 if __name__ == '__main__':
     params = (8, 64, 64, 256, 512, 6)
     model = model_func(10, 10, 50, 50, params)
@@ -149,18 +159,4 @@ if __name__ == '__main__':
     encoder_input_data = np.random.randint(0, 10, (1, 50))  # (batch_size, sequence_length)
     decoder_input_data = np.random.randint(0, 10, (1, 50))  # (batch_size, sequence_length)
 
-    # Call the model with the random input data
-    model = keras.Model(inputs=model.input,
-                  outputs=[model.output, model.get_layer('cross_att0').output])
-    output, attention_scores = model([encoder_input_data, decoder_input_data], training=False)
-
-    # Print the shape of the output
-    # print(f'Output shape: {np.array(output).shape}')
-    # print(f'Attention scores shape: {attention_scores}')
-
-    # Example sentences (just for illustration, replace with actual sentences)
-    input_sentence = [str(i) for i in range(encoder_input_data.shape[1])]
-    output_sentence = [str(i) for i in range(decoder_input_data.shape[1])]
-
-    # Plot the attention weights for the last layer's cross attention
-    plot_attention_weights(attention_scores[-1][0].numpy(), input_sentence, output_sentence)
+    visualise_attention(model, encoder_input_data, decoder_input_data)

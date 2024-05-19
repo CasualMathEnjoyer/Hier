@@ -9,7 +9,6 @@ from keras import Model, Input
 class EncoderLayer(Layer):
     def __init__(self, sequence_length, h, d_k, d_v, d_model, d_ff, rate, **kwargs):
         super(EncoderLayer, self).__init__(**kwargs)
-        self.build(input_shape=[None, sequence_length, d_model])
         self.d_model = d_model
         self.sequence_length = sequence_length
         self.multihead_attention = MultiHeadAttention(h, d_k, d_v, d_model)
@@ -18,6 +17,7 @@ class EncoderLayer(Layer):
         self.feed_forward = FeedForward(d_ff, d_model)
         self.dropout2 = Dropout(rate)
         self.add_norm2 = AddNormalization()
+        self.build(input_shape=[None, sequence_length, d_model])
 
     def build_graph(self):
         input_layer = Input(shape=(self.sequence_length, self.d_model))
@@ -69,7 +69,6 @@ class Encoder(Layer):
 class DecoderLayer(Layer):
     def __init__(self, sequence_length, h, d_k, d_v, d_model, d_ff, rate, **kwargs):
         super(DecoderLayer, self).__init__(**kwargs)
-        self.build(input_shape=[None, sequence_length, d_model])
         self.d_model = d_model
         self.sequence_length = sequence_length
         self.multihead_attention1 = MultiHeadAttention(h, d_k, d_v, d_model)
@@ -81,6 +80,7 @@ class DecoderLayer(Layer):
         self.feed_forward = FeedForward(d_ff, d_model)
         self.dropout3 = Dropout(rate)
         self.add_norm3 = AddNormalization()
+        self.build(input_shape=[None, sequence_length, d_model])
 
     def build_graph(self):
         input_layer = Input(shape=(self.sequence_length, self.d_model))

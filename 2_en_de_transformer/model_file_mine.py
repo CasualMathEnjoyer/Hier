@@ -62,7 +62,7 @@ def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_max
             value_dim=value_dim,
             dropout=0.1,
             use_bias=True)(encoded, encoded, encoded,
-                           attention_mask=encoder_mask
+                           attention_mask=encoder_mask  # [batch, sequences, model_dim(embedding)]
                            )
         attended_encoded_d = keras.layers.Dropout(0.1)(attended_encoded)
 
@@ -100,6 +100,7 @@ def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_max
             dropout=0.1,
             use_bias=True)(decoded, decoded, decoded
                            , attention_mask=decoder_mask
+                           , use_causal_mask=True
                            )
         self_attention_d = keras.layers.Dropout(0.1)(self_attention)
 

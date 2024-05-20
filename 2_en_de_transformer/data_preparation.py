@@ -24,18 +24,18 @@ from data_file import Data
 # test_out_file_name = "../data/en_test.txt"
 
 
-train_in_file_name = "../data/src-sep-train.txt"
-train_out_file_name = "../data/tgt-train.txt"
-val_in_file_name = "../data/src-sep-val.txt"
-val_out_file_name = "../data/tgt-val.txt"
-test_in_file_name = "../data/src-sep-test.txt"
-test_out_file_name = "../data/tgt-test.txt"
-# train_in_file_name = "../data/src-sep-train-short.txt"
-# train_out_file_name = "../data/tgt-train-short.txt"
-# val_in_file_name = "../data/src-sep-train-short.txt"
-# val_out_file_name = "../data/tgt-train-short.txt"
-# test_in_file_name = "../data/src-sep-train-short.txt"
-# test_out_file_name = "../data/tgt-train-short.txt"
+# train_in_file_name = "../data/src-sep-train.txt"
+# train_out_file_name = "../data/tgt-train.txt"
+# val_in_file_name = "../data/src-sep-val.txt"
+# val_out_file_name = "../data/tgt-val.txt"
+# test_in_file_name = "../data/src-sep-test.txt"
+# test_out_file_name = "../data/tgt-test.txt"
+train_in_file_name = "../data/src-sep-train-short.txt"
+train_out_file_name = "../data/tgt-train-short.txt"
+val_in_file_name = "../data/src-sep-train-short.txt"
+val_out_file_name = "../data/tgt-train-short.txt"
+test_in_file_name = "../data/src-sep-train-short.txt"
+test_out_file_name = "../data/tgt-train-short.txt"
 
 sep = ' '
 mezera = '_'

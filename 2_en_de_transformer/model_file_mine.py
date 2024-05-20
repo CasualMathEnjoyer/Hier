@@ -3,8 +3,6 @@ import numpy as np
 import tensorflow as tf
 import keras_nlp
 
-# TODO masking is not propagating - implement it elseway?
-
 class CustomSinePositionEncoding(keras.layers.Layer):
     def __init__(self, **kwargs):
         super(CustomSinePositionEncoding, self).__init__(**kwargs)
@@ -118,40 +116,8 @@ def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_max
 
     return keras.Model(inputs=[encoder_input, decoder_input], outputs=[decoder_dense_output])
 
-import matplotlib.pyplot as plt
-def plot_attention_weights(attention, input_sentence, output_sentence):
-    fig = plt.figure(figsize=(16, 8))
-    for head in range(attention.shape[0]):
-        ax = fig.add_subplot(2, 4, head + 1)
-
-        # Plot the attention weights
-        ax.matshow(attention[head], cmap='viridis')
-
-        fontdict = {'fontsize': 10}
-
-        ax.set_xticks(range(len(input_sentence)))
-        ax.set_yticks(range(len(output_sentence)))
-
-        ax.set_xticklabels(input_sentence, fontdict=fontdict, rotation=90)
-        ax.set_yticklabels(output_sentence, fontdict=fontdict)
-
-        ax.set_xlabel(f'Head {head + 1}')
-
-    plt.tight_layout()
-    plt.show()
-
-def visualise_attention(model, encoder_input_data, decoder_input_data):
-    model = keras.Model(inputs=model.input,
-                        outputs=[model.output, model.get_layer('cross_att0').output])
-    output, attention_scores = model.call((encoder_input_data, decoder_input_data), training=False)
-
-    input_sentence = [str(i) for i in range(encoder_input_data.shape[1])]
-    output_sentence = [str(i) for i in range(decoder_input_data.shape[1])]
-
-    plot_attention_weights(attention_scores[-1][0].numpy(), input_sentence, output_sentence)
-
 if __name__ == '__main__':
-    params = (8, 64, 64, 256, 512, 6)
+    params = (4, 64, 64, 256, 512, 2)
     model = model_func(10, 10, 50, 50, params)
     # model.summary()
 
@@ -159,4 +125,4 @@ if __name__ == '__main__':
     encoder_input_data = np.random.randint(0, 10, (1, 50))  # (batch_size, sequence_length)
     decoder_input_data = np.random.randint(0, 10, (1, 50))  # (batch_size, sequence_length)
 
-    visualise_attention(model, encoder_input_data, decoder_input_data)
+    # visualise_attention(model, encoder_input_data, decoder_input_data, 2, 4)

@@ -19,13 +19,13 @@ import keras
 from keras.utils import set_random_seed
 from keras import backend as K
 
-new = 1
+new = 0
 new_class_dict = 0
 caching = 0
 
 batch_size = 2  # 256
 epochs = 100
-repeat = 1
+repeat = 0
 
 print("starting transform2seq")
 
@@ -50,7 +50,7 @@ set_random_seed(a)
 print("seed = ", a)
 
 
-from model_file_2 import model_func
+# from model_file_2 import model_func
 from model_file_2 import *  # for loading
 from model_file_mine import *
 
@@ -156,6 +156,43 @@ print()
 # ---------------------------------- TESTING ------------------------------------------------------------------------
 from Levenshtein import distance
 distance("lewenstein", "levenshtein")
+import matplotlib.pyplot as plt
+
+def plot_attention_weights(attention_list, input_sentence, output_sentence, n, h):
+    fig = plt.figure(figsize=(16, 8))
+    for i, attention in enumerate(attention_list):
+        attention = attention[-1][0].numpy()
+        for j, attention_head in enumerate(attention):
+            ax = fig.add_subplot(n, h, i*h + j + 1)
+
+            # Plot the attention weights
+            ax.matshow(attention_head, cmap='viridis')
+
+            fontdict = {'fontsize': 10}
+
+            ax.set_xticks(range(len(input_sentence)))
+            ax.set_yticks(range(len(output_sentence)))
+
+            ax.set_xticklabels(input_sentence, fontdict=fontdict, rotation=90)
+            ax.set_yticklabels(output_sentence, fontdict=fontdict)
+
+            ax.set_xlabel(f'Head {j + 1}')
+
+    plt.tight_layout()
+    plt.show()
+def visualise_attention(model, encoder_input_data, decoder_input_data, n, h):
+    n_attention_scores = []
+    for i in range(n):
+        model = keras.Model(inputs=model.input,
+                            outputs=[model.output, model.get_layer(f'cross_att{i}').output])
+        _, attention_scores = model.call((encoder_input_data, decoder_input_data), training=False)
+        n_attention_scores.append(attention_scores)
+
+    # placeholder code before i fill in the text
+    input_sentence = [str(i) for i in range(encoder_input_data.shape[1])]
+    output_sentence = [str(i) for i in range(decoder_input_data.shape[1])]
+
+    plot_attention_weights(n_attention_scores, input_sentence, output_sentence, n, h)
 
 def translate(model, encoder_input, output_maxlen):
     output_line = [1]
@@ -172,6 +209,10 @@ def translate(model, encoder_input, output_maxlen):
         # Update the output sequence with the sampled token
         output_line.append(next_token)
         i += 1
+    try:
+        visualise_attention(model, encoder_input, np.array([output_line]), n, h)
+    except Exception as e:
+        print(e)
     return output_line
 
 print("Testing data preparation")

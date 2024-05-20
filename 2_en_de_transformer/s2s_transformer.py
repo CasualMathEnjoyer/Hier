@@ -128,6 +128,7 @@ print()
 
 # exit()
 # --------------------------------- TRAINING ------------------------------------------------------------------------
+# existuje generator na trenovaci data
 print("training")
 if repeat*epochs == 0:
     print("Skipping training")

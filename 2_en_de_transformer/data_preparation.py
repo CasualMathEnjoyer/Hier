@@ -36,6 +36,13 @@ val_in_file_name = "../data/src-sep-train-short.txt"
 val_out_file_name = "../data/tgt-train-short.txt"
 test_in_file_name = "../data/src-sep-train-short.txt"
 test_out_file_name = "../data/tgt-train-short.txt"
+# train_in_file_name = "data/src-sep-train-short.txt"
+# train_out_file_name = "data/tgt-train-short.txt"
+# val_in_file_name = "data/src-sep-train-short.txt"
+# val_out_file_name = "data/tgt-train-short.txt"
+# test_in_file_name = "data/src-sep-train-short.txt"
+# test_out_file_name = "data/tgt-train-short.txt"
+
 
 sep = ' '
 mezera = '_'

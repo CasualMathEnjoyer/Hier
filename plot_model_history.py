@@ -1,58 +1,49 @@
 import matplotlib.pyplot as plt
-import matplotlib
 import pickle
-matplotlib.use('TkAgg')
 import os
 
+import matplotlib
+matplotlib.use('TkAgg')
+
 root = "plots/"
-def plot_accuracy_history(plt, model_nums, history_dict, save=False):
+os.makedirs(root, exist_ok=True)
+
+def plot_accuracy_history(ax, model_nums, history_dict, save=False):
     try:
         with open(history_dict, 'rb') as file_pi:
             history = pickle.load(file_pi)
             # Plot training & validation accuracy values
-            plt.plot(history['accuracy'])
-            plt.plot(history['val_accuracy'])
-            plt.set_title(f'{model_nums} accuracy')
-            plt.set_ylabel('Accuracy')
-            plt.set_xlabel('Epoch')
-            plt.legend(['Train', 'Validation'], loc='upper left')
+            ax.plot(history['accuracy'])
+            ax.plot(history['val_accuracy'])
+            ax.set_title(f'{model_nums} accuracy')
+            ax.set_ylabel('Accuracy')
+            ax.set_xlabel('Epoch')
+            ax.legend(['Train', 'Validation'], loc='upper left')
             # Save the plot with the model name
             plot_filename = f"{root}{model_nums}_accuracy_plot.png"
             if save:
                 plt.savefig(plot_filename)
-
-            # plt.show()
-            return plt
     except Exception as e:
         print(e)
 
-def plot_loss_history(plt, model_nums, history_dict, save=False):
+def plot_loss_history(ax, model_nums, history_dict, save=False):
     try:
         with open(history_dict, 'rb') as file_pi:
             history = pickle.load(file_pi)
             # Plot training & validation loss values
-            plt.plot(history['loss'])
-            plt.plot(history['val_loss'])
-            plt.set_title(f'{model_nums} loss')
-            plt.set_ylabel('Loss')
-            plt.set_xlabel('Epoch')
-            plt.legend(['Train', 'Validation'], loc='upper left')
+            ax.plot(history['loss'])
+            ax.plot(history['val_loss'])
+            ax.set_title(f'{model_nums} loss')
+            ax.set_ylabel('Loss')
+            ax.set_xlabel('Epoch')
+            ax.legend(['Train', 'Validation'], loc='upper left')
             # Save the plot with the model name
             plot_filename = f"{root}{model_nums}_loss_plot.png"
 
             if save:
                 plt.savefig(plot_filename)
-
-            # plt.show()
-            return plt
     except Exception as e:
         print(e)
-# Example usage:
-# Assuming you have model_name and history_dict variables already defined
-# models = 'C:/Users/katka/OneDrive/Dokumenty/models_LSTM'
-#
-# mm_list = ["em32_dim64", "em64_dim64", "em64_dim128", "em64_dim128", "em64_dim256",
-#            "em64_dim512", "em128_dim512", "em128_dim256"]
 
 def get_folder_names(folder_path):
     folder_names = []
@@ -62,25 +53,39 @@ def get_folder_names(folder_path):
             folder_names.append(item)
     return folder_names
 
-models = 'C:/Users/katka/OneDrive/Dokumenty/model_10'
+def get_history_dicts(folder_path):
+    dicts = []
+    for item in os.listdir(folder_path):
+        if "HistoryDict" in item:
+            dicts.append(item)
+    return dicts
 
-mm_list = get_folder_names(models)
+# Example usage:
+model = "my_model1"
+models = f'/home/katka/Documents/{model}/'
+# mm_list = get_folder_names(models)
+# print(mm_list)
 
-fig, axs = plt.subplots(2, 3, figsize=(10, 6))
-# fig.suptitle("Title centered above all subplots", fontsize=14)
+dict_list = get_history_dicts(models)
+print(dict_list)
 
-for i, model_nums in enumerate(mm_list):
-    # model_file_name = models + f"/transform2seq_LSTM_{model_nums}"
-    model_file_name = models + f"/{model_nums}"
+fig, axs = plt.subplots(2, len(dict_list), figsize=(20, 10))
+fig.suptitle("Model Training History", fontsize=14)
+
+for i, model_dict_name in enumerate(dict_list):
+    row = i // len(dict_list)
+    col = i % len(dict_list)
+    # model_file_name = os.path.join(models, model_nums, f'{model_nums}_HistoryDict')
+    model_dict_path = os.path.join(models, model_dict_name)  # new keras gets dicts
     save = False
-    accuracy = plot_accuracy_history(axs[0, i], model_nums, model_file_name + '_HistoryDict', save)
-    loss = plot_loss_history(axs[1, i], model_nums, model_file_name + '_HistoryDict', save)
+    model_dict_name = model_dict_name.split('_')[-3] + "_" + model_dict_name.split('_')[-2]
+    plot_accuracy_history(axs[0, col], model_dict_name, model_dict_path, save)
+    plot_loss_history(axs[1, col], model_dict_name, model_dict_path, save)
 
 for ax in axs.flatten():
     ax.grid(True)  # Add grid to all axes
 
-plot_filename = f"{root}six_plots"
+plot_filename = f"{root}/{model}_plots.png"
+plt.tight_layout(rect=[0, 0, 1, 0.96])  # Adjust layout to make room for the title
 plt.savefig(plot_filename)
-
-plt.tight_layout()
 plt.show()

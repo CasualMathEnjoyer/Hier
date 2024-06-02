@@ -24,18 +24,18 @@ from data_file import Data
 # test_out_file_name = "../data/en_test.txt"
 
 
-# train_in_file_name = "../data/src-sep-train.txt"
-# train_out_file_name = "../data/tgt-train.txt"
-# val_in_file_name = "../data/src-sep-val.txt"
-# val_out_file_name = "../data/tgt-val.txt"
-# test_in_file_name = "../data/src-sep-test.txt"
-# test_out_file_name = "../data/tgt-test.txt"
-train_in_file_name = "../data/src-sep-train-short.txt"
-train_out_file_name = "../data/tgt-train-short.txt"
-val_in_file_name = "../data/src-sep-train-short.txt"
-val_out_file_name = "../data/tgt-train-short.txt"
-test_in_file_name = "../data/src-sep-train-short.txt"
-test_out_file_name = "../data/tgt-train-short.txt"
+train_in_file_name = "../data/src-sep-train.txt"
+train_out_file_name = "../data/tgt-train.txt"
+val_in_file_name = "../data/src-sep-val.txt"
+val_out_file_name = "../data/tgt-val.txt"
+test_in_file_name = "../data/src-sep-test.txt"
+test_out_file_name = "../data/tgt-test.txt"
+# train_in_file_name = "../data/src-sep-train-short.txt"
+# train_out_file_name = "../data/tgt-train-short.txt"
+# val_in_file_name = "../data/src-sep-train-short.txt"
+# val_out_file_name = "../data/tgt-train-short.txt"
+# test_in_file_name = "../data/src-sep-train-short.txt"
+# test_out_file_name = "../data/tgt-train-short.txt"
 # train_in_file_name = "data/src-sep-train-short.txt"
 # train_out_file_name = "data/tgt-train-short.txt"
 # val_in_file_name = "data/src-sep-train-short.txt"
@@ -52,7 +52,7 @@ end_line = '\n'
 print()
 
 
-def prepare_data():
+def prepare_data(skip_valid=False):
     print("data preparation...")
     source = Data(sep, mezera, end_line)
     target = Data(sep, mezera, end_line)
@@ -76,50 +76,58 @@ def prepare_data():
     assert len(source.padded) == len(target.padded_shift)
     assert len(source.padded) == len(target.padded_shift_one)
 
-    print(np.array(source.padded).shape)            # (1841, 98)
-    print(np.array(target.padded).shape)            # (1841, 109)
-    print(np.array(target.padded_shift).shape)      # (1841, 109)
-    print(np.array(target.padded_shift_one).shape)  # (1841, 109, 55)
+    # print(np.array(source.padded).shape)            # (1841, 98)
+    # print(np.array(target.padded).shape)            # (1841, 109)
+    # print(np.array(target.padded_shift).shape)      # (1841, 109)
+    # print(np.array(target.padded_shift_one).shape)  # (1841, 109, 55)
 
-    # VALIDATION:
-    print("validation files:")
-    val_source = Data(sep, mezera, end_line)
-    val_target = Data(sep, mezera, end_line)
-    with open(val_in_file_name, "r", encoding="utf-8") as f:
-        val_source.file = f.read()
-        f.close()
-    with open(val_out_file_name, "r", encoding="utf-8") as ff:
-        val_target.file = ff.read()
-        ff.close()
+    del source.file
+    del target.file
+    val_source, val_target = None, None
 
-    val_source.dict_chars = source.dict_chars
-    x_val = val_source.split_n_count(False)
-    val_source.padded = val_source.padding(x_val, source.maxlen)
+    if not skip_valid:
+        # VALIDATION:
+        print("validation files:")
+        val_source = Data(sep, mezera, end_line)
+        val_target = Data(sep, mezera, end_line)
+        with open(val_in_file_name, "r", encoding="utf-8") as f:
+            val_source.file = f.read()
+            f.close()
+        with open(val_out_file_name, "r", encoding="utf-8") as ff:
+            val_target.file = ff.read()
+            ff.close()
 
-    val_target.dict_chars = target.dict_chars
-    y_val = val_target.split_n_count(False)
-    val_target.padded = val_target.padding(y_val, target.maxlen)
-    val_target.padded_shift = val_target.padding_shift(y_val, target.maxlen)
-    val_target.padded_shift_one = to_categorical(val_target.padded_shift, num_classes=len(target.dict_chars))
+        val_source.dict_chars = source.dict_chars
+        x_val = val_source.split_n_count(False)
+        val_source.padded = val_source.padding(x_val, source.maxlen)
 
-    # print("source.maxlen:", source.maxlen)
-    # print("target.maxlen:", target.maxlen)
-    # print("source_val.maxlen:", val_source.maxlen)
-    # print("target_val.maxlen:", val_target.maxlen)
-    # print("source.dict:", len(source.dict_chars))
-    # print("target.dict:", len(target.dict_chars))
-    # print("source_val.dict:", len(val_source.dict_chars))
-    # print("target_val.dict:", len(val_target.dict_chars))
+        val_target.dict_chars = target.dict_chars
+        y_val = val_target.split_n_count(False)
+        val_target.padded = val_target.padding(y_val, target.maxlen)
+        val_target.padded_shift = val_target.padding_shift(y_val, target.maxlen)
+        val_target.padded_shift_one = to_categorical(val_target.padded_shift, num_classes=len(target.dict_chars))
 
-    assert len(x_val) == len(val_source.padded)
-    assert len(x_val) == len(y_val)
-    assert len(val_source.padded) == len(val_target.padded_shift)
-    assert len(val_source.padded) == len(val_target.padded_shift_one)
+        # print("source.maxlen:", source.maxlen)
+        # print("target.maxlen:", target.maxlen)
+        # print("source_val.maxlen:", val_source.maxlen)
+        # print("target_val.maxlen:", val_target.maxlen)
+        # print("source.dict:", len(source.dict_chars))
+        # print("target.dict:", len(target.dict_chars))
+        # print("source_val.dict:", len(val_source.dict_chars))
+        # print("target_val.dict:", len(val_target.dict_chars))
 
-    print(np.array(val_source.padded).shape)            # (1841, 98)
-    print(np.array(val_target.padded).shape)            # (1841, 109)
-    print(np.array(val_target.padded_shift).shape)      # (1841, 109)
-    print(np.array(val_target.padded_shift_one).shape)  # (1841, 109, 55)
+        assert len(x_val) == len(val_source.padded)
+        assert len(x_val) == len(y_val)
+        assert len(val_source.padded) == len(val_target.padded_shift)
+        assert len(val_source.padded) == len(val_target.padded_shift_one)
+
+        print(np.array(val_source.padded).shape)            # (1841, 98)
+        print(np.array(val_target.padded).shape)            # (1841, 109)
+        print(np.array(val_target.padded_shift).shape)      # (1841, 109)
+        print(np.array(val_target.padded_shift_one).shape)  # (1841, 109, 55)
+
+        del val_source.file
+        del val_target.file
 
     # ValueError: Shapes (None, 109, 55) and (None, 109, 63) are incompatible
 
@@ -129,11 +137,6 @@ def prepare_data():
     # print(y_train_pad.shape)
     # print(y_train_pad_shift.shape)
     # print(y_train_pad_one.shape)
-
-    del source.file
-    del target.file
-    del val_source.file
-    del val_target.file
 
     print("Data prepared")
     return source, target, val_source, val_target

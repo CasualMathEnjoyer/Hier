@@ -121,6 +121,9 @@ if __name__ == '__main__':
     model = model_func(10, 10, 50, 50, params)
     # model.summary()
 
+    for layer in model.layers:
+        print(layer.name)
+
     # Generate random input data with appropriate shapes
     encoder_input_data = np.random.randint(0, 10, (1, 50))  # (batch_size, sequence_length)
     decoder_input_data = np.random.randint(0, 10, (1, 50))  # (batch_size, sequence_length)

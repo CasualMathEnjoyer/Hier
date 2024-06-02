@@ -27,9 +27,14 @@ batch_size = 2  # 256
 epochs = 100
 repeat = 0
 
+samples = 5
+
 print("starting transform2seq")
 
 model_file_name = "models/transform_smol_delete"
+model_file_name = "/home/katka/Documents/my_model3/transformer1_n2_h2"
+# model_file_name = "/home/katka/Documents/my_model3/transformer2_n4_h4"
+# model_file_name = "/home/katka/Documents/my_model3/transformer_asmol"
 history_dict = model_file_name + '_HistoryDict'
 testing_cache_filename = model_file_name + '_TestingCache'
 print(model_file_name)
@@ -89,7 +94,7 @@ def save_model(model, model_file_name):
 if new_class_dict:
     start = time.time()
     print("data preparation...")
-    source, target, val_source, val_target = prepare_data()
+    source, target, val_source, val_target = prepare_data(skip_valid=True)
     to_save_list = [source, target, val_source, val_target]
     end = time.time()
     print("preparation of data took:", end - start)
@@ -159,7 +164,7 @@ from Levenshtein import distance
 distance("lewenstein", "levenshtein")
 import matplotlib.pyplot as plt
 
-def plot_attention_weights(attention_list, input_sentence, output_sentence, n, h):
+def plot_attention_weights(attention_list, input_sentence, output_sentence, n, h, line_num):
     fig = plt.figure(figsize=(16, 8))
     for i, attention in enumerate(attention_list):
         attention = attention[-1][0].numpy()
@@ -167,8 +172,12 @@ def plot_attention_weights(attention_list, input_sentence, output_sentence, n, h
             ax = fig.add_subplot(n, h, i*h + j + 1)
 
             # Plot the attention weights
-            ax.matshow(attention_head[:len(input_sentence), :len(input_sentence)],
+            ax.matshow(attention_head[:, :len(input_sentence)],
                        cmap='viridis')
+            # ax.matshow(attention_head[:-1, 1:len(input_sentence)+1],
+            #            cmap='viridis')
+            # ax.matshow(attention_head,
+            #            cmap='viridis')
 
             fontdict = {'fontsize': 10}
 
@@ -179,11 +188,14 @@ def plot_attention_weights(attention_list, input_sentence, output_sentence, n, h
             ax.set_yticklabels(output_sentence, fontdict=fontdict)
 
             ax.set_xlabel(f'Head {j + 1}')
-
     plt.tight_layout()
-    # plt.savefig("")
-    plt.show()
-def visualise_attention(model, encoder_input_data, decoder_input_data, n, h):
+    folder_name = "plots/attention/"
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+    fig_name = model_file_name.split("/")[-1] + f"_{line_num}"
+    plt.savefig(folder_name + fig_name, bbox_inches='tight')
+    # plt.show()
+def visualise_attention(model, encoder_input_data, decoder_input_data, n, h, line_num):
     n_attention_scores = []
     for i in range(n):
         model = keras.Model(inputs=model.input,
@@ -195,19 +207,31 @@ def visualise_attention(model, encoder_input_data, decoder_input_data, n, h):
     for token in encoder_input_data[0]:
         if token == 0:
             break
-        input_sentence.append(test_source.reverse_dict[token])
+        if token == 3:  # "_"
+            input_sentence.append(" ")
+        # elif token == 1:  # remove the <bos> token
+        #     pass
+        # elif token == 2:  # remove the <eos> token
+        #     pass
+        else:
+            input_sentence.append(test_source.reverse_dict[token])
 
     output_sentence = []
     for token in decoder_input_data[0]:
-        output_sentence.append(test_target.reverse_dict[token])
+        if token == 3:  # "_"
+            output_sentence.append(" ")
+        # elif token == 1:  # remove the <bos> token
+        #     pass
+        else:
+            output_sentence.append(test_target.reverse_dict[token])
 
     # placeholder code before i fill in the text
     # input_sentence = [str(i) for i in range(encoder_input_data.shape[1])]
     # output_sentence = [str(i) for i in range(decoder_input_data.shape[1])]
 
-    plot_attention_weights(n_attention_scores, input_sentence, output_sentence, n, h)
+    plot_attention_weights(n_attention_scores, input_sentence, output_sentence, n, h, line_num)
 
-def translate(model, encoder_input, output_maxlen):
+def translate(model, encoder_input, output_maxlen, line_num):
     output_line = [1]
     # i = 1
     i = 0
@@ -222,10 +246,10 @@ def translate(model, encoder_input, output_maxlen):
         # Update the output sequence with the sampled token
         output_line.append(next_token)
         i += 1
-    try:
-        visualise_attention(model, encoder_input, np.array([output_line]), n, h)
-    except Exception as e:
-        print(e)
+    # try:
+    #     visualise_attention(model, encoder_input, np.array([output_line]), n, h, line_num)
+    # except Exception as e:
+    #     print(f"Attention failed due to: {e}")
     return output_line
 
 print("Testing data preparation")
@@ -238,7 +262,6 @@ with open(test_out_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_target.file = f.read()
     f.close()
 
-samples = 5
 test_source.dict_chars = source.dict_chars
 x_test = test_source.split_n_count(False)[:samples]
 test_source.padded = test_source.padding(x_test, source.maxlen)
@@ -273,10 +296,10 @@ for j in tqdm(range(len(test_source.padded))):
         if encoder_cache_code in tested_dict:
             output_line = tested_dict[encoder_cache_code]
         else:
-            output_line = translate(model, encoder_input, target.maxlen)
+            output_line = translate(model, encoder_input, target.maxlen, j)
             tested_dict[encoder_cache_code] = output_line
     else:
-        output_line = translate(model, encoder_input, target.maxlen)
+        output_line = translate(model, encoder_input, target.maxlen, j)
         # print(output_line)
     output.append(output_line)
 # End Testing Loop
@@ -328,11 +351,11 @@ for j in range(len(list(output))):
     print("mistakes  : ", mistake_in_line)
     print("levenstein: ", levenstein)
     print("leven/all : ", levenstein/true_line_leng)
-    print("line lengh: ", line_lengh)
+    print("line lengh: ", true_line_leng)
     print()
     mistake_count += mistake_in_line
     all_levenstein += levenstein
-    all_line_lengh += line_lengh
+    all_line_lengh += true_line_leng
     all_chars += max_size
 
 pred_words_split_mezera, valid_words_split_mezera, valid_words_split_mezeraB = [], [], []
@@ -347,5 +370,6 @@ print("character accuracy:", round((1 - (mistake_count / all_chars))*100, 5), "%
 print("average Levenstein: ", all_levenstein / num_lines)
 print("all line lengh: ", all_line_lengh, ", all levenstein: ", all_levenstein)
 print("levenstein/all lengh: ", all_levenstein / all_line_lengh)
+print("1 - levenstein/all lengh: ", round((1 - (all_levenstein / all_line_lengh))*100, 5), "%")
 print("BLEU SCORE words:", nltk.translate.bleu_score.corpus_bleu(valid_words_split_mezeraB, pred_words_split_mezera))
 print("BLEU SCORE chars:", nltk.translate.bleu_score.corpus_bleu(valid_list_chars, output_list_chars))

@@ -167,7 +167,8 @@ def plot_attention_weights(attention_list, input_sentence, output_sentence, n, h
             ax = fig.add_subplot(n, h, i*h + j + 1)
 
             # Plot the attention weights
-            ax.matshow(attention_head, cmap='viridis')
+            ax.matshow(attention_head[:len(input_sentence), :len(input_sentence)],
+                       cmap='viridis')
 
             fontdict = {'fontsize': 10}
 
@@ -180,6 +181,7 @@ def plot_attention_weights(attention_list, input_sentence, output_sentence, n, h
             ax.set_xlabel(f'Head {j + 1}')
 
     plt.tight_layout()
+    # plt.savefig("")
     plt.show()
 def visualise_attention(model, encoder_input_data, decoder_input_data, n, h):
     n_attention_scores = []
@@ -189,9 +191,19 @@ def visualise_attention(model, encoder_input_data, decoder_input_data, n, h):
         _, attention_scores = model.call((encoder_input_data, decoder_input_data), training=False)
         n_attention_scores.append(attention_scores)
 
+    input_sentence = []
+    for token in encoder_input_data[0]:
+        if token == 0:
+            break
+        input_sentence.append(test_source.reverse_dict[token])
+
+    output_sentence = []
+    for token in decoder_input_data[0]:
+        output_sentence.append(test_target.reverse_dict[token])
+
     # placeholder code before i fill in the text
-    input_sentence = [str(i) for i in range(encoder_input_data.shape[1])]
-    output_sentence = [str(i) for i in range(decoder_input_data.shape[1])]
+    # input_sentence = [str(i) for i in range(encoder_input_data.shape[1])]
+    # output_sentence = [str(i) for i in range(decoder_input_data.shape[1])]
 
     plot_attention_weights(n_attention_scores, input_sentence, output_sentence, n, h)
 
@@ -244,6 +256,9 @@ del x_test, y_test
 output = []
 
 print("Testing...")
+test_source.create_reverse_dict(test_source.dict_chars)
+rev_dict = test_target.create_reverse_dict(test_target.dict_chars)
+
 if caching:
     print("Caching is ON")
     tested_dict = load_cached_dict(testing_cache_filename)
@@ -269,9 +284,8 @@ if caching:
     cache_dict(tested_dict, testing_cache_filename)
 
 # PRETY TESTING PRINTING
-rev_dict = test_target.create_reverse_dict(test_target.dict_chars)
 
-mistake_count, all_chars, all_levenstein = 0, 0, 0
+mistake_count, all_chars, all_levenstein, all_line_lengh = 0, 0, 0, 0
 line_lengh = len(valid[0])
 num_lines = len(valid)
 output_list_words, valid_list_words = [], []  # i could take the valid text from y_test but whatever
@@ -285,6 +299,7 @@ for j in range(len(list(output))):
         valid_line = valid_line[:zero_index]
     min_size = min([predicted_line.shape[0], valid_line.shape[0]])
     max_size = max([predicted_line.shape[0], valid_line.shape[0]])
+    true_line_leng = valid_line.shape[0]
 
     mistake_in_line = 0
     if min_size != max_size:
@@ -312,9 +327,12 @@ for j in range(len(list(output))):
     print("valid     : ", valid_text_line)
     print("mistakes  : ", mistake_in_line)
     print("levenstein: ", levenstein)
+    print("leven/all : ", levenstein/true_line_leng)
+    print("line lengh: ", line_lengh)
     print()
     mistake_count += mistake_in_line
     all_levenstein += levenstein
+    all_line_lengh += line_lengh
     all_chars += max_size
 
 pred_words_split_mezera, valid_words_split_mezera, valid_words_split_mezeraB = [], [], []
@@ -327,5 +345,7 @@ word_accuracy = m.on_words_accuracy(pred_words_split_mezera, valid_words_split_m
 print("word_accuracy:", round(word_accuracy*100, 5), "%")
 print("character accuracy:", round((1 - (mistake_count / all_chars))*100, 5), "%")
 print("average Levenstein: ", all_levenstein / num_lines)
+print("all line lengh: ", all_line_lengh, ", all levenstein: ", all_levenstein)
+print("levenstein/all lengh: ", all_levenstein / all_line_lengh)
 print("BLEU SCORE words:", nltk.translate.bleu_score.corpus_bleu(valid_words_split_mezeraB, pred_words_split_mezera))
 print("BLEU SCORE chars:", nltk.translate.bleu_score.corpus_bleu(valid_list_chars, output_list_chars))

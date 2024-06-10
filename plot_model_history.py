@@ -61,7 +61,7 @@ def get_history_dicts(folder_path):
     return dicts
 
 # Example usage:
-model = "my_model1"
+model = "my_model4"
 models = f'/home/katka/Documents/{model}/'
 # mm_list = get_folder_names(models)
 # print(mm_list)

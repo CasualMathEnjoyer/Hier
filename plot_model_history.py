@@ -69,23 +69,24 @@ models = f'/home/katka/Documents/{model}/'
 dict_list = get_history_dicts(models)
 print(dict_list)
 
-fig, axs = plt.subplots(2, len(dict_list), figsize=(20, 10))
-fig.suptitle("Model Training History", fontsize=14)
+for x in range(len(dict_list) // 4):
+    fig, axs = plt.subplots(2, 4, figsize=(20, 10))
+    fig.suptitle("Model Training History", fontsize=14)
 
-for i, model_dict_name in enumerate(dict_list):
-    row = i // len(dict_list)
-    col = i % len(dict_list)
-    # model_file_name = os.path.join(models, model_nums, f'{model_nums}_HistoryDict')
-    model_dict_path = os.path.join(models, model_dict_name)  # new keras gets dicts
-    save = False
-    model_dict_name = model_dict_name.split('_')[-3] + "_" + model_dict_name.split('_')[-2]
-    plot_accuracy_history(axs[0, col], model_dict_name, model_dict_path, save)
-    plot_loss_history(axs[1, col], model_dict_name, model_dict_path, save)
+    for i, model_dict_name in enumerate(dict_list[x*4:x*4 + 4]):
+        row = i // 4
+        col = i % 4
+        # model_file_name = os.path.join(models, model_nums, f'{model_nums}_HistoryDict')
+        model_dict_path = os.path.join(models, model_dict_name)  # new keras gets dicts
+        save = False
+        model_dict_name = model_dict_name.split('_')[-3] + "_" + model_dict_name.split('_')[-2]
+        plot_accuracy_history(axs[0, col], model_dict_name, model_dict_path, save)
+        plot_loss_history(axs[1, col], model_dict_name, model_dict_path, save)
 
-for ax in axs.flatten():
-    ax.grid(True)  # Add grid to all axes
+    for ax in axs.flatten():
+        ax.grid(True)  # Add grid to all axes
 
-plot_filename = f"{root}/{model}_plots.png"
-plt.tight_layout(rect=[0, 0, 1, 0.96])  # Adjust layout to make room for the title
-plt.savefig(plot_filename)
-plt.show()
+    plot_filename = f"{root}/{model}_plots_{x}.png"
+    plt.tight_layout(rect=[0, 0, 1, 0.96])  # Adjust layout to make room for the title
+    plt.savefig(plot_filename)
+    plt.show()

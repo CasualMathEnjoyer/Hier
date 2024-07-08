@@ -17,6 +17,7 @@ print("starting transform2seq")
 
 from metrics_evaluation import metrics as m
 from data_file import Data
+from testing_s2s import test_translation
 
 a = random.randrange(0, 2**32 - 1)
 # a = 1261263827
@@ -62,6 +63,7 @@ from model_file_BiLSTM import model_func, load_and_split_model, encoder_state_tr
 # end_line = '\n'
 
 model_file_name = "models/transform2seq_LSTM_em32_dim64"
+model_file_name = "/home/katka/Documents/models_LSTM/transform2seq_LSTM_em32_dim64"
 history_dict = model_file_name + '_HistoryDict'
 print(model_file_name)
 # model_file_name = "transform2seq_LSTM_delete"
@@ -97,11 +99,11 @@ sep = ' '
 mezera = '_'
 end_line = '\n'
 
-new = 1
+new = 0
 
 batch_size = 256
 epochs = 0
-repeat = 1 # full epoch_num=epochs*repeat
+repeat = 0 # full epoch_num=epochs*repeat
 
 # precision = to minimise false alarms
 # precision = TP/(TP + FP)
@@ -375,10 +377,19 @@ def model_test_new(encoder, decoder, x_test_pad, y_test_pad, y_test_pad_shift, r
     print(output_string)
     # it is not the best - implement cosine distance instead?                 TODO different then accuracy
     #                                                                         todo it be quite slow
+
+    # commenting because it needs all
     character_level_acc = m.calc_accuracy(predicted, valid, sample_limit, y_sent_len)
     print("character accuracy:", character_level_acc)
     print("f1 prec rec :", m.f1_precision_recall(target, predicted, valid))   # needs to be the target file
-    return output_string
+
+    for index in range(len(decoder_output_all)):
+        line = decoder_output_all[index]
+        for i in range(len(line)):
+            if line[i] == 0:
+                decoder_output_all[index] = decoder_output_all[index][:i]
+
+    return output_string, decoder_output_all
 
 print("testing...")
 print("testing data preparation")
@@ -417,7 +428,7 @@ print("new testing")
 encoder, decoder = load_and_split_model(model_file_name, source.vocab_size, target.vocab_size, source.maxlen, target.maxlen)
 rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
 
-output_text = model_test_new(encoder, decoder, x_test_pad, y_test_pad, y_test_pad_shift, rev_dict, sample_limit)
+output_text, list_output = model_test_new(encoder, decoder, x_test_pad, y_test_pad, y_test_pad_shift, rev_dict, sample_limit)
 
 #  WORD LEVEL ACCURACY
 split_output_text = output_text.split(end_line)
@@ -442,3 +453,7 @@ for i in range(len(new_pred)):
 
 word_accuracy = m.on_words_accuracy(new_pred, new_valid)
 print("word_accuracy:", word_accuracy)
+
+valid = list(y_test_pad.astype(np.int32))
+
+test_translation(list_output, valid, rev_dict, sep, mezera)

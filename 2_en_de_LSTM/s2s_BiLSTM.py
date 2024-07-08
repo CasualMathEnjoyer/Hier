@@ -17,36 +17,12 @@ print("starting transform2seq")
 
 from metrics_evaluation import metrics as m
 from data_file import Data
-from testing_s2s import test_translation
+from testing_s2s import test_translation, add_to_json
 
 a = random.randrange(0, 2**32 - 1)
 # a = 1261263827
 set_random_seed(a)
 print("seed = ", a)
-
-# TODO : plan
-# check if data is processed correctly   IT IS
-# 1 implement masking for lstm           DONE
-# 2 make easily switchable lstm here     DONE
-# see if it work                         DONE
-# fix precission                         TODO ?
-# fix testing                            DONE
-# save info into json or sth             TODO
-# consider rewritting the class system   TODO
-# split into more files?                 DONE
-# metriky? cosine similarity?            TODO
-
-# lepsi testovani                        DONE
-# bi lsm                                 DONE
-# attention transformer
-
-# todo - jaka mame data?
-
-# sci kit grit search - hleadni metaparametru
-# FTP - na ssh   rcp na kopirovani veci
-
-# celkem skoro 68 tisic slov
-# 47.5 tisic slov jenom jednou
 
 # from model_file import model_func, load_and_split_model, load_model_mine, encoder_state_transform
 # from model_file_LSTM import model_func, load_and_split_model
@@ -62,7 +38,8 @@ from model_file_BiLSTM import model_func, load_and_split_model, encoder_state_tr
 # mezera = '_'
 # end_line = '\n'
 
-model_file_name = "models/transform2seq_LSTM_em32_dim64"
+model_name = "transform2seq_LSTM_em32_dim64"
+model_file_name = f"models/{model_name}"
 model_file_name = "/home/katka/Documents/models_LSTM/transform2seq_LSTM_em32_dim64"
 history_dict = model_file_name + '_HistoryDict'
 print(model_file_name)
@@ -104,6 +81,8 @@ new = 0
 batch_size = 256
 epochs = 0
 repeat = 0 # full epoch_num=epochs*repeat
+
+sample_limit = 4
 
 # precision = to minimise false alarms
 # precision = TP/(TP + FP)
@@ -403,7 +382,6 @@ with open(test_out_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_y.file = f.read()
     f.close()
 
-sample_limit = 4
 test_x.dict_chars = source.dict_chars
 x_test = test_x.split_n_count(False)[:sample_limit]
 assert sample_limit == len(x_test)
@@ -456,4 +434,23 @@ print("word_accuracy:", word_accuracy)
 
 valid = list(y_test_pad.astype(np.int32))
 
-test_translation(list_output, valid, rev_dict, sep, mezera)
+dict = test_translation(list_output, valid, rev_dict, sep, mezera)
+
+
+def get_epochs_train_accuracy(history_dict):
+    with open(history_dict, 'rb') as file_pi:
+        history = pickle.load(file_pi)
+        epochs = len(history['accuracy'])
+        results = {
+            "train_accuracy": history['accuracy'][-1],
+            "val_accuracy": history['val_accuracy'][-1],
+            "train_loss": history['loss'][-1],
+            "val_loss": history['val_loss'][-1]
+        }
+    return epochs, results
+
+all_epochs, training_data = get_epochs_train_accuracy(history_dict)
+
+result_json_path = "LSTM_results.json"
+add_to_json(result_json_path, model_name, dict, sample_limit,
+                "final" , all_epochs, training_data, "2.10.0")

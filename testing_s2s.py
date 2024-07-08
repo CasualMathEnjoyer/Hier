@@ -98,7 +98,7 @@ import os
 
 
 def add_to_json(result_json_path, model_name: str, results: dict, sample_size: int,
-                version: str, all_epochs: int, keras_version: str):
+                version: str, all_epochs: int, training_data : dict, keras_version: str):
     # Create an empty dictionary to hold the data
     data = {}
 
@@ -124,6 +124,7 @@ def add_to_json(result_json_path, model_name: str, results: dict, sample_size: i
         "results": results,
         "sample_size": sample_size,
         "all_epochs": all_epochs,
+        "training_data": training_data,
         "keras_version": keras_version
     }
 
@@ -138,7 +139,11 @@ def add_to_json(result_json_path, model_name: str, results: dict, sample_size: i
 # model_name = "my_model"
 # results = {"word_accuracy": 99.9, "character_accuracy": 99.8, "average_levenstein": 1.2, "all_line_length": 1000, "all_levenstein": 50, "levenstein_per_length": 0.05, "one_minus_levenstein_per_length": 99.95, "bleu_score_words": 0.85, "bleu_score_chars": 0.88}
 # sample_size = 1000
-# version = "2.0"
+# version = "7.0"
 # all_epochs = 10
+# training_data = {
+#     "acc": 29,
+#     "loss": 444
+# }
 # keras_version = "2.4.0"
-# add_to_json(result_json_path, model_name, results, sample_size, version, all_epochs, keras_version)
+# add_to_json(result_json_path, model_name, results, sample_size, version, all_epochs, training_data, keras_version)

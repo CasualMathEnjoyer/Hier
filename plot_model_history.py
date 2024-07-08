@@ -53,9 +53,15 @@ def get_folder_names(folder_path):
             folder_names.append(item)
     return folder_names
 
-def get_history_dicts(folder_path):
+def get_history_dicts(folder_path, old=False):
     dicts = []
     for item in os.listdir(folder_path):
+        if old:
+            path_to_file = os.path.join(folder_path, item)
+            if os.path.isdir(path_to_file):
+                for file in os.listdir(path_to_file):
+                    if "HistoryDict" in file:
+                        dicts.append(item + "/" + file)
         if "HistoryDict" in item:
             dicts.append(item)
     return dicts
@@ -63,10 +69,13 @@ def get_history_dicts(folder_path):
 # Example usage:
 model = "my_model4"
 models = f'/home/katka/Documents/{model}/'
+models = f'/home/katka/Documents/models_LSTM'
+models = f"/home/katka/Documents/models_endocer_bin_zaloha"
+old = True
 # mm_list = get_folder_names(models)
 # print(mm_list)
 
-dict_list = get_history_dicts(models)
+dict_list = get_history_dicts(models, old)
 print(dict_list)
 
 for x in range(len(dict_list) // 4):

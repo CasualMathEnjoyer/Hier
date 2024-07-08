@@ -91,3 +91,54 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
         "bleu_score_words": bleu_score_words,
         "bleu_score_chars": bleu_score_chars
     }
+
+
+import json
+import os
+
+
+def add_to_json(result_json_path, model_name: str, results: dict, sample_size: int,
+                version: str, all_epochs: int, keras_version: str):
+    # Create an empty dictionary to hold the data
+    data = {}
+
+    # Check if the file exists
+    if os.path.exists(result_json_path):
+        # Load the existing data
+        with open(result_json_path, 'r') as file:
+            data = json.load(file)
+
+    # Initialize model data structure if it doesn't exist
+    if model_name not in data:
+        data[model_name] = {}
+
+    # Check if the version already exists under the model name
+    if version in data[model_name]:
+        existing_entry = data[model_name][version]
+        if existing_entry['all_epochs'] == all_epochs:
+            print("Skipping as there is already an entry with the same model name, version, and all epochs.")
+            return
+
+    # Add/update entry for the model version
+    data[model_name][version] = {
+        "results": results,
+        "sample_size": sample_size,
+        "all_epochs": all_epochs,
+        "keras_version": keras_version
+    }
+
+    # Write the data back to the file
+    with open(result_json_path, 'w') as file:
+        json.dump(data, file, indent=4)
+
+    print(f"Added/Updated entry for model: {model_name}, version: {version}")
+
+# Example usage
+# result_json_path = "results.json"
+# model_name = "my_model"
+# results = {"word_accuracy": 99.9, "character_accuracy": 99.8, "average_levenstein": 1.2, "all_line_length": 1000, "all_levenstein": 50, "levenstein_per_length": 0.05, "one_minus_levenstein_per_length": 99.95, "bleu_score_words": 0.85, "bleu_score_chars": 0.88}
+# sample_size = 1000
+# version = "2.0"
+# all_epochs = 10
+# keras_version = "2.4.0"
+# add_to_json(result_json_path, model_name, results, sample_size, version, all_epochs, keras_version)

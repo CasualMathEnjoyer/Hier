@@ -64,30 +64,32 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
     word_accuracy = m.on_words_accuracy(pred_words_split_mezera, valid_words_split_mezera)
 
     word_accuracy = m.on_words_accuracy(pred_words_split_mezera, valid_words_split_mezera)
-    character_accuracy = (1 - (mistake_count / all_chars)) * 100
+    character_accuracy = (1 - (mistake_count / all_chars))
     average_levenstein = all_levenstein / num_lines
     levenstein_per_length = all_levenstein / all_line_lengh
-    one_minus_levenstein_per_length = (1 - (all_levenstein / all_line_lengh)) * 100
+    one_minus_levenstein_per_length = (1 - (all_levenstein / all_line_lengh))
     bleu_score_words = nltk.translate.bleu_score.corpus_bleu(valid_words_split_mezeraB, pred_words_split_mezera)
     bleu_score_chars = nltk.translate.bleu_score.corpus_bleu(valid_list_chars, output_list_chars)
 
-    print("word_accuracy:", round(word_accuracy * 100, 5), "%")
-    print("character accuracy:", round(character_accuracy, 5), "%")
-    print("average Levenstein: ", average_levenstein)
+    round_place = 7
+
+    print("word_accuracy:", round(word_accuracy, round_place))
+    print("character accuracy:", round(character_accuracy, round_place))
+    print("average Levenstein: ", round(average_levenstein, round_place))
     print("all line length: ", all_line_lengh, ", all levenstein: ", all_levenstein)
-    print("levenstein/all length: ", levenstein_per_length)
-    print("1 - levenstein/all length: ", round(one_minus_levenstein_per_length, 5), "%")
+    print("levenstein/all length: ", round(levenstein_per_length, round_place))
+    print("1 - levenstein/all length: ", round(one_minus_levenstein_per_length, round_place))
     print("BLEU SCORE words:", bleu_score_words)
     print("BLEU SCORE chars:", bleu_score_chars)
 
     return {
-        "word_accuracy": round(word_accuracy * 100, 5),
-        "character_accuracy": round(character_accuracy, 5),
-        "average_levenstein": average_levenstein,
+        "word_accuracy": round(word_accuracy, round_place),
+        "character_accuracy": round(character_accuracy, round_place),
+        "average_levenstein": round(average_levenstein, round_place),
         "all_line_length": all_line_lengh,
         "all_levenstein": all_levenstein,
-        "levenstein_per_length": levenstein_per_length,
-        "one_minus_levenstein_per_length": round(one_minus_levenstein_per_length, 5),
+        "levenstein_per_length": round(levenstein_per_length, round_place),
+        "one_minus_levenstein_per_length": round(one_minus_levenstein_per_length, round_place),
         "bleu_score_words": bleu_score_words,
         "bleu_score_chars": bleu_score_chars
     }

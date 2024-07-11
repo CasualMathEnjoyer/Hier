@@ -83,10 +83,10 @@ batch_size = 256
 epochs = 0
 repeat = 0  # full epoch_num=epochs*repeat
 
-sample_limit = 8
-version = "8_sample"
+sample_limit = 2
+version = "2_sample"
 keras_version = "2.10.0"
-result_json_path = "LSTM_results.json"
+result_json_path = f"LSTM_results_{version}.json"
 
 def load_model_mine(model_name):
     # from model_file import PositionalEmbedding, TransformerEncoder, TransformerDecoder
@@ -95,9 +95,6 @@ def load_model_mine(model_name):
     #                                                            'TransformerDecoder': TransformerDecoder
     # })
     return keras.models.load_model(model_name)
-
-def save_model_info(model_name, ):
-    pass
 
 print()
 print("data preparation...")
@@ -179,14 +176,17 @@ with open(test_out_file_name, "r", encoding="utf-8") as f:  # with spaces
     f.close()
 
 test_x.dict_chars = source.dict_chars
-x_test = test_x.split_n_count(False)[:sample_limit]
-assert sample_limit == len(x_test)
+if sample_limit == -1: x_test = test_x.split_n_count(False)
+else: x_test = test_x.split_n_count(False)[:sample_limit]
 x_test_pad = test_x.padding(x_test, source.maxlen)
 
 test_y.dict_chars = target.dict_chars
-y_test = test_y.split_n_count(False)[:sample_limit]
+if sample_limit == -1: y_test = test_y.split_n_count(False)
+else: y_test = test_y.split_n_count(False)[:sample_limit]
 y_test_pad = test_y.padding(y_test, target.maxlen)
 y_test_pad_shift = test_y.padding_shift(y_test, target.maxlen)
+
+num_testing_sentences = len(x_test)
 
 assert len(x_test) == len(y_test)
 assert len(y_test) == len(y_test_pad_shift)
@@ -199,18 +199,37 @@ assert len(y_test) == len(y_test_pad_shift)
 # print(y_train_pad.shape)
 # print(y_train_pad_shift.shape)
 # print(y_train_pad_one.shape)
-
+print()
+print("MODEL EVALUATION")
 model_folder = "/home/katka/Documents/models_LSTM"
-for file in model_folder:
-    if not os.path.isdir(os.path.join(model_folder, file)):
+print(os.listdir(model_folder))
+
+import json
+
+for model_name in os.listdir(model_folder):
+    if not os.path.isdir(os.path.join(model_folder, model_name)):
         continue
-    model_name = file
+
+    # Check if the file exists
+    if os.path.exists(result_json_path):
+        # Load the existing data
+        with open(result_json_path, 'r') as file:
+            data = json.load(file)
+            if model_name in data:
+                print("SKIPPING MODEL:", model_name)
+                continue
 
     # model_name = "transform2seq_LSTM_em32_dim64"
-    model_file_name = f"models/{model_name}"
-    model_file_name = "/home/katka/Documents/models_LSTM/transform2seq_LSTM_em32_dim64"
+    # model_file_name = f"models/{model_name}"
+    model_file_name = f"{model_folder}/{model_name}"
     history_dict = model_file_name + '_HistoryDict'
     print(model_file_name)
+    try:
+        embedding_dim = int(model_file_name.split('_')[-2])
+    except ValueError:
+        embedding_dim = int(model_name.split("_")[-2][2:])
+    latent_dim = int(model_name.split("_")[-1][3:])
+
 
     # --------------------------------- MODEL ---------------------------------------------------------------------------
     print("model starting...")
@@ -323,13 +342,13 @@ for file in model_folder:
             val_all += val
         print("accuracy all:", round(1-(val_all/(sent_len*num_sent)), 2))  # formating na dve desetina mista
         print("f1 prec rec :", m.f1_precision_recall(target, value_tokens, valid_shift))
-    def model_test_new(encoder, decoder, x_test_pad, y_test_pad, y_test_pad_shift, rev_dict, sample_limit):
+    def model_test_new(encoder, decoder, x_test_pad, y_test_pad, y_test_pad_shift, rev_dict, num_sentences):
         decoder_output_all = []
 
         x_sent_len = x_test_pad[0].size
         y_sent_len = y_test_pad[0].size
-        x_test_pad = x_test_pad.reshape(sample_limit, 1, x_sent_len)  # reshape so encoder takes just one sentence
-        y_test_pad = y_test_pad.reshape(sample_limit, 1, y_sent_len)  # and is not angry about dimensions
+        x_test_pad = x_test_pad.reshape(num_sentences, 1, x_sent_len)  # reshape so encoder takes just one sentence
+        y_test_pad = y_test_pad.reshape(num_sentences, 1, y_sent_len)  # and is not angry about dimensions
         # print("y_test_pad_shape trans", y_test_pad.shape)
         print("printing stopped")
         # ------ stop printing --------
@@ -378,9 +397,9 @@ for file in model_folder:
 
         # PRINT OUTPUT
         output_string = ''
-        assert sample_limit != 0
+        assert num_sentences != 0
         assert y_sent_len != 0
-        for i in range(sample_limit):
+        for i in range(num_sentences):
             for j in range(y_sent_len):
                 letter = rev_dict[predicted[i][j]]
                 if letter == "<bos>":
@@ -397,7 +416,7 @@ for file in model_folder:
         #                                                                         todo it be quite slow
 
         # commenting because it needs all
-        character_level_acc = m.calc_accuracy(predicted, valid, sample_limit, y_sent_len)
+        character_level_acc = m.calc_accuracy(predicted, valid, num_sentences, y_sent_len)
         print("character accuracy:", character_level_acc)
         print("f1 prec rec :", m.f1_precision_recall(target, predicted, valid))   # needs to be the target file
 
@@ -421,10 +440,11 @@ for file in model_folder:
     print("new testing")
     # GET ENCODER AND DECODER
     # inputs should be the same as in training data
-    encoder, decoder = load_and_split_model(model_file_name, source.vocab_size, target.vocab_size, source.maxlen, target.maxlen)
+    encoder, decoder = load_and_split_model(model_file_name, source.vocab_size, target.vocab_size,
+                                            source.maxlen, target.maxlen, latent_dim, embedding_dim)
     rev_dict = test_y.create_reverse_dict(test_y.dict_chars)
 
-    output_text, list_output = model_test_new(encoder, decoder, x_test_pad, y_test_pad, y_test_pad_shift, rev_dict, sample_limit)
+    output_text, list_output = model_test_new(encoder, decoder, x_test_pad, y_test_pad, y_test_pad_shift, rev_dict, num_testing_sentences)
 
     #  WORD LEVEL ACCURACY
     split_output_text = output_text.split(end_line)
@@ -470,5 +490,5 @@ for file in model_folder:
     all_epochs, training_data = get_epochs_train_accuracy(history_dict)
 
     add_to_json(result_json_path, model_name, dict, sample_limit,
-                    version , all_epochs, training_data, keras_version)
+                    all_epochs, training_data, keras_version)
     print()

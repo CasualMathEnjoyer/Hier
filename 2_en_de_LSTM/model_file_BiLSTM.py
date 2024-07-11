@@ -8,8 +8,8 @@ from keras.layers import Masking, Embedding
 
 # 0.3734
 # parameters
-embed_dim = 32
-latent_dim = 64
+# embed_dim = 32
+# latent_dim = 64
 
 def encoder_state_transform(encoder_output):
     state_h, state_c, state_h2, state_c2 = encoder_output
@@ -51,8 +51,9 @@ def model_func(in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
 def load_model_mine(model_name):
     return load_model(model_name)
 
-def load_and_split_model(model_folder_path, in_vocab_size, out_vocab_size, in_seq_len, out_seq_len):
-    latent_dim = 64
+def load_and_split_model(model_folder_path, in_vocab_size, out_vocab_size, in_seq_len, out_seq_len,
+                         latent_dim, embed_dim):
+    # latent_dim = 64
     # embed_dim = 17
 
     # # CREATE THE MODEL

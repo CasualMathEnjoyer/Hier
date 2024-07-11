@@ -4,7 +4,6 @@ import numpy as np
 from Levenshtein import distance
 from metrics_evaluation.rosm_lev import LevenshteinDistance as rosmLev
 ros_distance = rosmLev()
-distance("lewenstein", "levenshtein")
 
 def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
     """ input translated dataset as list of list of tokens"""
@@ -18,6 +17,8 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
         print("test line number:", j)
         predicted_line = np.array(output[j])
         valid_line = np.array(valid[j])
+        print("predicted ", predicted_line.shape)
+        print("valid_line", valid_line)
         if 0 in valid_line:  # aby to neusekavalo vetu
             zero_index = np.argmax(valid_line == 0)
             valid_line = valid_line[:zero_index]
@@ -116,7 +117,7 @@ import os
 
 
 def add_to_json(result_json_path, model_name: str, results: dict, sample_size: int,
-                version: str, all_epochs: int, training_data : dict, keras_version: str):
+                all_epochs: int, training_data : dict, keras_version: str):
     # Create an empty dictionary to hold the data
     data = {}
 
@@ -130,15 +131,8 @@ def add_to_json(result_json_path, model_name: str, results: dict, sample_size: i
     if model_name not in data:
         data[model_name] = {}
 
-    # Check if the version already exists under the model name
-    if version in data[model_name]:
-        existing_entry = data[model_name][version]
-        if existing_entry['all_epochs'] == all_epochs:
-            print("Skipping as there is already an entry with the same model name, version, and all epochs.")
-            return
-
     # Add/update entry for the model version
-    data[model_name][version] = {
+    data[model_name] = {
         "results": results,
         "sample_size": sample_size,
         "all_epochs": all_epochs,
@@ -150,7 +144,7 @@ def add_to_json(result_json_path, model_name: str, results: dict, sample_size: i
     with open(result_json_path, 'w') as file:
         json.dump(data, file, indent=4)
 
-    print(f"Added/Updated entry for model: {model_name}, version: {version}")
+    print(f"Added/Updated entry for model: {model_name}")
 
 # Example usage
 # result_json_path = "results.json"

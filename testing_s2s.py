@@ -2,10 +2,14 @@ import nltk
 from metrics_evaluation import metrics as m
 import numpy as np
 from Levenshtein import distance
+from metrics_evaluation.rosm_lev import LevenshteinDistance as rosmLev
+ros_distance = rosmLev()
 distance("lewenstein", "levenshtein")
+
 def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
     """ input translated dataset as list of list of tokens"""
     mistake_count, all_chars, all_levenstein, all_line_lengh = 0, 0, 0, 0
+    all_ros_levenstein = 0
     line_lengh = len(valid[0])
     num_lines = len(valid)
     output_list_words, valid_list_words = [], []  # i could take the valid text from y_test but whatever
@@ -43,15 +47,19 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
         output_list_chars.append(output_list_line)
         valid_list_chars.append([valid_list_line])  # to be accepted by BLEU scocre
         levenstein = distance(output_text_line, valid_text_line)
+        ros_levenstein = ros_distance.compute(output_text_line, valid_text_line)
         print("prediction: ", output_text_line)
         print("valid     : ", valid_text_line)
         print("mistakes  : ", mistake_in_line)
         print("levenstein: ", levenstein)
+        print("ros levens: ", ros_levenstein)
         print("leven/all : ", levenstein / true_line_leng)
+        print("ros/all : ", ros_levenstein / true_line_leng)
         print("line lengh: ", true_line_leng)
         print()
         mistake_count += mistake_in_line
         all_levenstein += levenstein
+        all_ros_levenstein += ros_levenstein
         all_line_lengh += true_line_leng
         all_chars += max_size
 
@@ -61,26 +69,31 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
         valid_words_split_mezera.append(valid_list_words[i].split(mezera))
         valid_words_split_mezeraB.append([valid_list_words[i].split(mezera)])
 
-    word_accuracy = m.on_words_accuracy(pred_words_split_mezera, valid_words_split_mezera)
+    round_place = 7
 
     word_accuracy = m.on_words_accuracy(pred_words_split_mezera, valid_words_split_mezera)
     character_accuracy = (1 - (mistake_count / all_chars))
     average_levenstein = all_levenstein / num_lines
     levenstein_per_length = all_levenstein / all_line_lengh
     one_minus_levenstein_per_length = (1 - (all_levenstein / all_line_lengh))
+    ros_per_lengh = round(all_ros_levenstein / all_line_lengh, round_place)
     bleu_score_words = nltk.translate.bleu_score.corpus_bleu(valid_words_split_mezeraB, pred_words_split_mezera)
+    one_minus_ros_per_length = round((1 - (all_ros_levenstein / all_line_lengh)), round_place)
     bleu_score_chars = nltk.translate.bleu_score.corpus_bleu(valid_list_chars, output_list_chars)
-
-    round_place = 7
 
     print("word_accuracy:", round(word_accuracy, round_place))
     print("character accuracy:", round(character_accuracy, round_place))
     print("average Levenstein: ", round(average_levenstein, round_place))
     print("all line length: ", all_line_lengh, ", all levenstein: ", all_levenstein)
+    print("all levenstein: ", all_levenstein)
     print("levenstein/all length: ", round(levenstein_per_length, round_place))
     print("1 - levenstein/all length: ", round(one_minus_levenstein_per_length, round_place))
+    print("all_ros_levenstein: ", all_ros_levenstein)
+    print("ros_leve/all length: ", ros_per_lengh)
+    print("1 - ros_leve/all length: ", one_minus_ros_per_length)
     print("BLEU SCORE words:", bleu_score_words)
     print("BLEU SCORE chars:", bleu_score_chars)
+    print()
 
     return {
         "word_accuracy": round(word_accuracy, round_place),
@@ -90,6 +103,9 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
         "all_levenstein": all_levenstein,
         "levenstein_per_length": round(levenstein_per_length, round_place),
         "one_minus_levenstein_per_length": round(one_minus_levenstein_per_length, round_place),
+        "all_ros_levenstein": all_ros_levenstein,
+        "ros_per_lengh": ros_per_lengh,
+        "one_minus_ros_per_lenght": one_minus_ros_per_length,
         "bleu_score_words": bleu_score_words,
         "bleu_score_chars": bleu_score_chars
     }

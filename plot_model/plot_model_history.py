@@ -67,10 +67,11 @@ def get_history_dicts(folder_path, old=False):
     return dicts
 
 # Example usage:
-model = "my_model4"
+# model = "my_model4"
+# model = "models_LSTM"
+# model = "models_endocer_bin_zaloha"
+model = "models_LSTM3/models_LSTM2"
 models = f'/home/katka/Documents/{model}/'
-models = f'/home/katka/Documents/models_LSTM'
-models = f"/home/katka/Documents/models_endocer_bin_zaloha"
 old = True
 # mm_list = get_folder_names(models)
 # print(mm_list)
@@ -95,7 +96,8 @@ for x in range(len(dict_list) // 4):
     for ax in axs.flatten():
         ax.grid(True)  # Add grid to all axes
 
-    plot_filename = f"{root}/{model}_plots_{x}.png"
+    plot_filename = f"{root}/models_LSTM3_plots_{x}.png"
+    print(plot_filename)
     plt.tight_layout(rect=[0, 0, 1, 0.96])  # Adjust layout to make room for the title
     plt.savefig(plot_filename)
     plt.show()

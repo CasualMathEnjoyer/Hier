@@ -4,14 +4,16 @@
 
 import gensim
 from gensim.models import Word2Vec
+import matplotlib
+matplotlib.use('TkAgg')
 
 egypt = False
-train = True
+train = False
 show = True
 letters = False
 
-create_model = 1
-load_model = 0
+create_model = 0
+load_model = 1
 
 labels = 1
 
@@ -113,9 +115,26 @@ if show:
     count = 0
     for i, word in enumerate(words):
         if labels:
-            plt.annotate(word, xy=(result[i, 0], result[i, 1]), fontsize=15)
+            plt.annotate(word, xy=(result[i, 0], result[i, 1]), fontsize=45)
         count += 1
     assert count == len(model1.wv)
+    plt.tight_layout()
+
+    # Define the color and thickness
+    # border_color = '#38b6ff'  # Change this to your desired color
+    border_color = '#ff3131'
+    border_color = '#7ed957'
+    border_thickness = 5  # Set the desired thickness
+
+    # Get the current axes
+    ax = plt.gca()
+
+    # Set the color and thickness of all the axes
+    for spine in ax.spines.values():
+        spine.set_color(border_color)
+        spine.set_linewidth(border_thickness)
+
+    plt.savefig("w2v_all_plot.pdf")
     plt.show()
 
     # model1.wv.similarity('orange', 'pear')

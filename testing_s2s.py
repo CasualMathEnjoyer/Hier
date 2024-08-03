@@ -14,10 +14,27 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
     output_list_words, valid_list_words = [], []  # i could take the valid text from y_test but whatever
     output_list_chars, valid_list_chars = [], []
     for j in range(len(list(output))):
+        if j > len(valid)-1:
+            print("Less items in valid then in prediction")
+            break
         print("test line number:", j)
-        predicted_line = np.array(output[j])
-        valid_line = np.array(valid[j])
-        print("predicted ", predicted_line.shape)
+        # print("predicted ", output[j])
+        # print("valid_line", list(valid[j]))
+        if 2 in output[j]:
+            if output[j][0] == 1 and output[j][-1] == 2:
+                predicted_line = np.array(output[j][1:-1])
+            else:
+                print("problem line:", output[j])
+                for i in range(len(output[j])):
+                    if output[j][i] == 2:
+                        # raise ValueError("predicted")
+                        predicted_line = np.array(output[j][1:i])
+        if 2 in valid[j]:
+            for i in range(len(valid[j])):
+                if valid[j][i] == 2:
+                    valid_line = np.array(valid[j][1:i])
+                    break
+        print("predicted ", predicted_line)
         print("valid_line", valid_line)
         if 0 in valid_line:  # aby to neusekavalo vetu
             zero_index = np.argmax(valid_line == 0)

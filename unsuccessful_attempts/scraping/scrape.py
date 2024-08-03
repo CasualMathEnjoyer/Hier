@@ -35,7 +35,7 @@ options = Options()
 options.add_argument('--headless=new')
 driver = webdriver.Chrome(options=options)
 
-with open('data.csv', mode='w', newline='',  encoding="utf-8") as data_csv:
+with open('data.csv', mode='w', newline='', encoding="utf-8") as data_csv:
     scraped_data = csv.writer(data_csv, delimiter=',')
     scraped_data.writerow(["transliteration", "translation", "price", "pictures"])
     url = 'https://ramses.ulg.ac.be/text'

@@ -336,7 +336,7 @@ class Data():
 
         return output_file_pad, binar
 
-def F1_score(y_true, y_pred):  # taken from old keras source code
+def F1_score(y_true, y_pred):  # taken from unsuccessful_attempts keras source code
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
     predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))

@@ -29,15 +29,23 @@ repeat = 0
 
 samples = 5
 
+version = "5_sample_model4"
+keras_version = "3.3.3"
+result_json_path = f"transformer_results_{version}.json"
+
 print("starting transform2seq")
 
-model_file_name = "models/transform_smol_delete"
-model_file_name = "/home/katka/Documents/my_model3/transformer1_n2_h2"
-# model_file_name = "/home/katka/Documents/my_model3/transformer2_n4_h4"
-# model_file_name = "/home/katka/Documents/my_model3/transformer_asmol"
-history_dict = model_file_name + '_HistoryDict'
-testing_cache_filename = model_file_name + '_TestingCache'
-print(model_file_name)
+model_name = 'transformer1_n2_h2'
+models_path = '/home/katka/Documents/my_model4'
+
+models = []
+for model_name in os.listdir(models_path):
+    if ".keras" in model_name:
+        model_name = model_name[:model_name.index(".keras")]
+        print(model_name)
+        models.append(model_name)
+
+# models = [model_name]
 
 class_data = "processed_data_dict.plk"
 
@@ -84,7 +92,7 @@ def load_model_mine(model_name):
 def save_model(model, model_file_name):
     try:
         model.save(model_file_name)
-        print("Model saved successfully the old way")
+        print("Model saved successfully the unsuccessful_attempts way")
     except Exception as e:
         model.save(model_file_name + ".keras")
         print("Model saved using KERAS 3")
@@ -116,20 +124,20 @@ else:
     print("loadig took:", end - start)
 
 # --------------------------------- MODEL ---------------------------------------------------------------------------
-old_dict = get_history_dict(history_dict, new)
-print("model starting...")
-if new:
-    print("CREATING A NEW MODEL")
-    model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, params)
-else:
-    print("LOADING A MODEL")
-    model = load_model_mine(model_file_name)
-
-model.compile(optimizer="adam",
-              loss="categorical_crossentropy",
-              metrics=["accuracy"])
-# model.summary()
-print()
+# old_dict = get_history_dict(history_dict, new)
+# print("model starting...")
+# if new:
+#     print("CREATING A NEW MODEL")
+#     model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, params)
+# else:
+#     print("LOADING A MODEL")
+#     model = load_model_mine(model_file_name)
+#
+# model.compile(optimizer="adam",
+#               loss="categorical_crossentropy",
+#               metrics=["accuracy"])
+# # model.summary()
+# print()
 
 # exit()
 # --------------------------------- TRAINING ------------------------------------------------------------------------
@@ -164,8 +172,14 @@ import matplotlib.pyplot as plt
 
 def plot_attention_weights(attention_list, input_sentence, output_sentence, n, h, line_num):
     fig = plt.figure(figsize=(16, 8))
+    # print("len(attention_list):", len(attention_list))
     for i, attention in enumerate(attention_list):
-        attention = attention[-1][0].numpy()
+        # print("i, attention:", i, len(attention))
+        # print("i, attention[-1]:", i, len(attention[-1]))
+        attention = attention[-1][0].numpy()  # because it's surrounded by brackets
+        # print("attention[-1][0].shape :", attention.shape)
+        # if i == 1:
+        #     continue
         for j, attention_head in enumerate(attention):
             ax = fig.add_subplot(n, h, i*h + j + 1)
 
@@ -192,7 +206,7 @@ def plot_attention_weights(attention_list, input_sentence, output_sentence, n, h
         os.makedirs(folder_name)
     fig_name = model_file_name.split("/")[-1] + f"_{line_num}"
     plt.savefig(folder_name + fig_name, bbox_inches='tight')
-    # plt.show()
+    plt.show()
 def visualise_attention(model, encoder_input_data, decoder_input_data, n, h, line_num):
     n_attention_scores = []
     for i in range(n):
@@ -261,11 +275,18 @@ with open(test_out_file_name, "r", encoding="utf-8") as f:  # with spaces
     f.close()
 
 test_source.dict_chars = source.dict_chars
-x_test = test_source.split_n_count(False)[:samples]
+if samples == -1:
+    x_test = test_source.split_n_count(False)
+else:
+    x_test = test_source.split_n_count(False)[:samples]
 test_source.padded = test_source.padding(x_test, source.maxlen)
 
 test_target.dict_chars = target.dict_chars
-y_test = test_target.split_n_count(False)[:samples]
+if samples == -1:
+    y_test = test_target.split_n_count(False)
+else:
+    y_test = test_target.split_n_count(False)[:samples]
+
 test_target.padded = test_target.padding(y_test, target.maxlen)
 test_target.padded_shift = test_target.padding_shift(y_test, target.maxlen)
 
@@ -280,32 +301,68 @@ print("Testing...")
 test_source.create_reverse_dict(test_source.dict_chars)
 rev_dict = test_target.create_reverse_dict(test_target.dict_chars)
 
-if caching:
-    print("Caching is ON")
-    tested_dict = load_cached_dict(testing_cache_filename)
-else:
-    print("Caching is OFF")
-# Testing Loop
-for j in tqdm(range(len(test_source.padded))):
-    i = 1
-    encoder_input = np.array([test_source.padded[j]])
+
+# for model_name in models:
+if True:
+
+    model_file_name = os.path.join(models_path, model_name)
+    # model_file_name = "/home/katka/Documents/my_model3/transformer2_n4_h4"
+    # model_file_name = "/home/katka/Documents/my_model3/transformer_asmol"
+    model_file_name = "/home/katka/Documents/my_model4/transformer5_asm_n4"
+    model_file_name = '/home/katka/Documents/my_model4/transformer5_2_2_d_model256'
+    history_dict = model_file_name + '_HistoryDict'
+    testing_cache_filename = model_file_name + '_TestingCache'
+    print(model_file_name)
+
+    model = load_model_mine(model_file_name)
+
     if caching:
-        encoder_cache_code = tuple(encoder_input[0])  # cos I can't use np array or list as a hash, [0] removes [around]
-        if encoder_cache_code in tested_dict:
-            output_line = tested_dict[encoder_cache_code]
+        print("Caching is ON")
+        tested_dict = load_cached_dict(testing_cache_filename)
+    else:
+        print("Caching is OFF")
+    # Testing Loop
+    for j in tqdm(range(len(test_source.padded))):
+        i = 1
+        encoder_input = np.array([test_source.padded[j]])
+        if caching:
+            encoder_cache_code = tuple(encoder_input[0])  # cos I can't use np array or list as a hash, [0] removes [around]
+            if encoder_cache_code in tested_dict:
+                output_line = tested_dict[encoder_cache_code]
+            else:
+                output_line = translate(model, encoder_input, target.maxlen, j)
+                tested_dict[encoder_cache_code] = output_line
         else:
             output_line = translate(model, encoder_input, target.maxlen, j)
-            tested_dict[encoder_cache_code] = output_line
-    else:
-        output_line = translate(model, encoder_input, target.maxlen, j)
-        # print(output_line)
-    output.append(output_line)
-# End Testing Loop
-if caching:
-    cache_dict(tested_dict, testing_cache_filename)
+            # print(output_line)
+        output.append(output_line)
+    # End Testing Loop
+    if caching:
+        cache_dict(tested_dict, testing_cache_filename)
 
-# PRETY TESTING PRINTING
+    # PRETY TESTING PRINTING
 
-from testing_s2s import test_translation
+    from testing_s2s import test_translation, add_to_json
 
-test_translation(output, valid, rev_dict, sep, mezera)
+    dict = test_translation(output, valid, rev_dict, sep, mezera)
+
+
+    def get_epochs_train_accuracy(history_dict):
+        with open(history_dict, 'rb') as file_pi:
+            history = pickle.load(file_pi)
+            epochs = len(history['accuracy'])
+            results = {
+                "train_accuracy": history['accuracy'][-1],
+                "val_accuracy": history['val_accuracy'][-1],
+                "train_loss": history['loss'][-1],
+                "val_loss": history['val_loss'][-1]
+            }
+        return epochs, results
+
+
+    all_epochs, training_data = get_epochs_train_accuracy(history_dict)
+
+    add_to_json(result_json_path, model_name, dict, samples,
+                all_epochs, training_data, keras_version)
+    print(f"Saved to json for model:{model_name}")
+    print()

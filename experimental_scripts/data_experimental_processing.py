@@ -1,4 +1,4 @@
-file = "data/smallvoc_fr.txt"
+file = "../data/smallvoc_fr.txt"
 fileF = "data/smallvoc_fr_.txt"
 
 with open(file, "r", encoding="utf-8") as f:  # with spaces

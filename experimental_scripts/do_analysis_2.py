@@ -9,7 +9,7 @@
 import pandas as pd
 
 # Load the clean document
-file_path = 'data_3_clean'
+file_path = '../data_3_clean'
 with open(file_path, 'r') as file:
     lines = file.readlines()
 

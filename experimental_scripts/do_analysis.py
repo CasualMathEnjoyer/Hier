@@ -13,10 +13,10 @@ def plot_histogram(mistake_dict):
 
 
 # PREPARE THE DATA
-with open("data_3") as file:
+with open("../data_3") as file:
     f = file.read()
 
-with open("data/src-sep-test.txt") as data:
+with open("../data/src-sep-test.txt") as data:
     source = data.read()
 
 f = f.split("test line number: ")[1:]
@@ -205,7 +205,7 @@ for item in one_mistake_insert:
     print(item[2], item[3])
 
 
-with open("data_3_clean") as file:
+with open("../data_3_clean") as file:
     f = file.read()
     f = f.split("test line number: ")[1:]
 

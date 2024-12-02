@@ -25,9 +25,9 @@ from model_file_mine import *
 model_name = 'transformer2_n4_h4'
 models_path = '/home/katka/Documents/Trained models/Transformer_encoder_decoder/'
 
-samples = 5
+samples = -1
 version = f"{samples}_sample_model4"
-keras_version = "3.3.3"
+keras_version = "3.7.0"
 result_json_path = f"transformer_results_{version}.json"
 
 caching = 1
@@ -170,8 +170,16 @@ print("loadig took:", end - start)
 
 
 print("Testing data preparation")
+
+test_in_file_name = "../data/sailor_separated_rsc.txt"
+test_out_file_name = "../data/sailor_test_trl.txt"
+
 test_source = Data(sep, mezera, end_line)
 test_target = Data(sep, mezera, end_line)
+#
+# test_source.file = "../data/sailor_separated_rsc.txt"
+# test_target.file = "../data/sailor_test_trl.txt"
+
 with open(test_in_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_source.file = f.read()
     f.close()

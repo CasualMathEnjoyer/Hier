@@ -20,7 +20,7 @@ from keras.utils import set_random_seed
 from keras import backend as K
 
 new = 0
-new_class_dict = 0
+new_class_dict = 1
 caching = 0
 
 batch_size = 2  # 256
@@ -35,17 +35,17 @@ result_json_path = f"transformer_results_{version}.json"
 
 print("starting transform2seq")
 
-model_name = 'transformer1_n2_h2'
-models_path = '/home/katka/Documents/my_model4'
+model_name = 'transformer2_n4_h4'
+models_path = '/home/katka/Documents/Trained models/Transformer_encoder_decoder/'
 
-models = []
-for model_name in os.listdir(models_path):
-    if ".keras" in model_name:
-        model_name = model_name[:model_name.index(".keras")]
-        print(model_name)
-        models.append(model_name)
+# models = []
+# for model_name in os.listdir(models_path):
+#     if ".keras" in model_name:
+#         model_name = model_name[:model_name.index(".keras")]
+#         # print(model_name)
+#         models.append(model_name)
 
-# models = [model_name]
+models = [model_name]
 
 class_data = "processed_data_dict.plk"
 
@@ -306,10 +306,6 @@ rev_dict = test_target.create_reverse_dict(test_target.dict_chars)
 if True:
 
     model_file_name = os.path.join(models_path, model_name)
-    # model_file_name = "/home/katka/Documents/my_model3/transformer2_n4_h4"
-    # model_file_name = "/home/katka/Documents/my_model3/transformer_asmol"
-    model_file_name = "/home/katka/Documents/my_model4/transformer5_asm_n4"
-    model_file_name = '/home/katka/Documents/my_model4/transformer5_2_2_d_model256'
     history_dict = model_file_name + '_HistoryDict'
     testing_cache_filename = model_file_name + '_TestingCache'
     print(model_file_name)

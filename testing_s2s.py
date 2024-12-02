@@ -5,6 +5,18 @@ from Levenshtein import distance
 from metrics_evaluation.rosm_lev import LevenshteinDistance as rosmLev
 ros_distance = rosmLev()
 
+output_prediction_file = '../data/SAILOR_output_prediction.txt'
+
+def process_custom_rules(text_line):
+    text_line = text_line.replace("a H a", "o H o")
+    text_line = text_line.replace("i", "j")
+    text_line = text_line.replace("s p", "z p")
+    text_line = text_line.replace("s n", "z n")
+    text_line = text_line.replace("s f", "z f")
+    text_line = text_line.replace("s b", "z b")
+    text_line = text_line.replace("s S", "z S")
+    return text_line
+
 def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
     """ input translated dataset as list of list of tokens"""
     mistake_count, all_chars, all_levenstein, all_line_lengh = 0, 0, 0, 0
@@ -13,6 +25,7 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
     num_lines = len(valid)
     output_list_words, valid_list_words = [], []  # i could take the valid text from y_test but whatever
     output_list_chars, valid_list_chars = [], []
+    predicted_lines = []
     for j in range(len(list(output))):
         if j > len(valid)-1:
             print("Less items in valid then in prediction")
@@ -60,6 +73,7 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
         for char in valid_line:
             valid_text_line += (rev_dict[char] + sep)
             valid_list_line.append(rev_dict[char])
+        output_text_line = process_custom_rules(output_text_line)
         output_list_words.append(output_text_line)
         valid_list_words.append(valid_text_line)
         output_list_chars.append(output_list_line)
@@ -80,6 +94,7 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
         all_ros_levenstein += ros_levenstein
         all_line_lengh += true_line_leng
         all_chars += max_size
+        predicted_lines.append(output_text_line)
 
     pred_words_split_mezera, valid_words_split_mezera, valid_words_split_mezeraB = [], [], []
     for i in range(len(output_list_words)):
@@ -112,6 +127,11 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
     print("BLEU SCORE words:", bleu_score_words)
     print("BLEU SCORE chars:", bleu_score_chars)
     print()
+
+    with open(output_prediction_file, 'w') as f:
+        for line in predicted_lines:
+            f.write(line + '\n')
+        f.close()
 
     return {
         "word_accuracy": round(word_accuracy, round_place),

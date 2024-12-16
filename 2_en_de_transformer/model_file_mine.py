@@ -22,6 +22,131 @@ class MyMaskingLayer(keras.layers.Layer):
         # mask = x[:, tf.newaxis, :]  # this works when input is a mask
         return mask
 
+import numpy as np
+import keras
+from keras.models import Model
+from keras.layers import Embedding
+
+def extend_model_embeddings(model, new_encoder_vocab_size, new_decoder_vocab_size):
+    """
+    Extends the embedding layers of a Transformer model with additional tokens.
+
+    Parameters:
+        model (keras.Model): The loaded Transformer model.
+        new_encoder_vocab_size (int): The new vocabulary size for the encoder.
+        new_decoder_vocab_size (int): The new vocabulary size for the decoder.
+
+    Returns:
+        keras.Model: A new model with extended embeddings.
+    """
+    # Get encoder and decoder embedding layers
+    encoder_embedding_layer = model.get_layer(name='embedding')
+    decoder_embedding_layer = model.get_layer(name='embedding_1')
+
+    # Extract existing weights
+    encoder_weights = encoder_embedding_layer.get_weights()[0]
+    decoder_weights = decoder_embedding_layer.get_weights()[0]
+
+    encoder_vocab_size, embedding_dim = encoder_weights.shape
+    decoder_vocab_size, _ = decoder_weights.shape
+
+    # Debugging dimensions
+    print(f"Original encoder_vocab_size: {encoder_vocab_size}")
+    print(f"Original decoder_vocab_size: {decoder_vocab_size}")
+    print(f"Embedding dimension: {embedding_dim}")
+
+    # Extend weights
+    new_encoder_weights = np.random.normal(size=(new_encoder_vocab_size, embedding_dim))
+    new_encoder_weights[:encoder_vocab_size] = encoder_weights
+
+    new_decoder_weights = np.random.normal(size=(new_decoder_vocab_size, embedding_dim))
+    new_decoder_weights[:decoder_vocab_size] = decoder_weights
+
+    # Create new embeddings
+    new_encoder_embedding = Embedding(
+        input_dim=new_encoder_vocab_size,
+        output_dim=embedding_dim,
+        weights=[new_encoder_weights],
+        trainable=True,
+        name="new_encoder_embedding"
+    )
+    new_decoder_embedding = Embedding(
+        input_dim=new_decoder_vocab_size,
+        output_dim=embedding_dim,
+        weights=[new_decoder_weights],
+        trainable=True,
+        name="new_decoder_embedding"
+    )
+
+    # Rebuild the model graph
+    encoder_input = model.input[0]
+    decoder_input = model.input[1]
+
+    # Replace the encoder embedding
+    encoder_embedded = new_encoder_embedding(encoder_input)
+    encoder_position_encoded = model.get_layer(name='custom_sine_position_encoding')(encoder_embedded)
+    encoder_position_encoded = model.get_layer(name='dropout')(encoder_position_encoded)
+
+    # Reconstruct the encoder layers
+    x = encoder_position_encoded
+    for layer in model.layers[4:28]:  # Replace these indices based on your architecture
+        if isinstance(layer, keras.layers.MultiHeadAttention):
+            x = layer(x, x, x)
+        else:
+            x = layer(x)
+    encoder_output = x
+
+    # Replace the decoder embedding
+    decoder_embedded = new_decoder_embedding(decoder_input)
+    decoder_position_encoded = model.get_layer(name='custom_sine_position_encoding_1')(decoder_embedded)
+    decoder_position_encoded = model.get_layer(name='dropout_13')(decoder_position_encoded)
+
+    # Reconstruct the decoder layers
+    y = decoder_position_encoded
+    for layer in model.layers[34:]:  # Replace these indices based on your architecture
+        if isinstance(layer, keras.layers.MultiHeadAttention):
+            if "cross_att" in layer.name:  # Cross-attention layer
+                y = layer(y, encoder_output, encoder_output)
+            else:  # Self-attention layer
+                y = layer(y, y, y)
+        else:
+            y = layer(y)
+
+    # Output layer
+    decoder_output = y
+
+    # Create and compile the new model
+    new_model = Model(inputs=[encoder_input, decoder_input], outputs=decoder_output)
+    new_model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
+
+    return new_model
+
+def adjust_output_layer(model, new_vocab_size):
+    """
+    Adjusts the output layer of the model to match the target vocabulary size.
+
+    Parameters:
+        model (keras.Model): The Transformer model.
+        new_vocab_size (int): The new size of the target vocabulary.
+
+    Returns:
+        keras.Model: A new model with the adjusted output layer.
+    """
+    # Get the input and intermediate outputs
+    inputs = model.input
+    intermediate_output = model.layers[-2].output  # Second-to-last layer output
+
+    # Replace the output layer
+    new_output = keras.layers.Dense(new_vocab_size, activation='softmax', name="new_decoder_output")(intermediate_output)
+
+    # Create a new model
+    new_model = Model(inputs=inputs, outputs=new_output)
+
+    # Compile the new model
+    new_model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
+
+    return new_model
+
 def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_maxlen, params):
     num_heads, key_dim, value_dim, d_ff, d_model, n = params
 

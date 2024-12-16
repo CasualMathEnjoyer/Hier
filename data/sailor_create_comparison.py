@@ -47,7 +47,7 @@ annotations = [
 #     "target_transl",
 #     "predic_transl"
 # ]
-output_file = "sailor_combined_output.json"
+output_file = "sailor_combined_output_before_processing.json"
 
 # Execute the function
 process_files(file_paths, output_file, annotations)

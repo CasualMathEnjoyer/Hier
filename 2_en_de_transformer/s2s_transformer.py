@@ -20,23 +20,33 @@ from keras.utils import set_random_seed
 from keras import backend as K
 
 new = 0
-new_class_dict = 1
+new_class_dict = 0
 caching = 0
 
 batch_size = 2  # 256
-epochs = 100
-repeat = 0
+epochs = 5
+repeat = 1
 
-samples = 5
+samples = -1
 
-version = "5_sample_model4"
+version = "sailor1"
 keras_version = "3.3.3"
-result_json_path = f"transformer_results_{version}.json"
+result_json_path = f"transformer_results_{version}_{samples}.json"
 
 print("starting transform2seq")
 
-model_name = 'transformer2_n4_h4'
-models_path = '/home/katka/Documents/Trained models/Transformer_encoder_decoder/'
+all_models_path = '/home/katka/Documents/Trained models/Transformer_encoder_decoder/'
+
+# model_name_short = 'transformer2_n4_h4'
+model_name_short = 'sailor_transformer2_n4_h4'
+
+finetune_model = True
+finetune_source = "../data/train_src_separated.txt"
+finetune_tgt = "../data/train_trl.txt"
+
+use_custom_testing = True
+custom_test_src = "../data/test_src_separated.txt"
+custom_test_tgt = "../data/test_trl.txt"
 
 # models = []
 # for model_name in os.listdir(models_path):
@@ -44,10 +54,12 @@ models_path = '/home/katka/Documents/Trained models/Transformer_encoder_decoder/
 #         model_name = model_name[:model_name.index(".keras")]
 #         # print(model_name)
 #         models.append(model_name)
-
-models = [model_name]
+#
+# models = [model_name]
 
 class_data = "processed_data_dict.plk"
+history_dict = f"{model_name_short}_HistoryDict"
+model_full_path = os.path.join(all_models_path, model_name_short)
 
 h = 4          # Number of self-attention heads
 d_k = 64       # Dimensionality of the linearly projected queries and keys
@@ -102,7 +114,10 @@ def save_model(model, model_file_name):
 if new_class_dict:
     start = time.time()
     print("data preparation...")
-    source, target, val_source, val_target = prepare_data(skip_valid=True)
+    if finetune_model:
+        source, target, val_source, val_target = prepare_data(skip_valid=False, files_val=[finetune_source, finetune_tgt], files_additional_train=[finetune_source, finetune_tgt])
+    else:
+        source, target, val_source, val_target = prepare_data(skip_valid=False)
     to_save_list = [source, target, val_source, val_target]
     end = time.time()
     print("preparation of data took:", end - start)
@@ -124,22 +139,29 @@ else:
     print("loadig took:", end - start)
 
 # --------------------------------- MODEL ---------------------------------------------------------------------------
-# old_dict = get_history_dict(history_dict, new)
-# print("model starting...")
-# if new:
-#     print("CREATING A NEW MODEL")
-#     model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, params)
-# else:
-#     print("LOADING A MODEL")
-#     model = load_model_mine(model_file_name)
-#
-# model.compile(optimizer="adam",
-#               loss="categorical_crossentropy",
-#               metrics=["accuracy"])
-# # model.summary()
-# print()
+old_dict = get_history_dict(history_dict, new)
+print("model starting...")
+if new:
+    print("CREATING A NEW MODEL")
+    model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, params)
+else:
+    print("LOADING A MODEL")
+    model = load_model_mine(model_full_path)
 
-# exit()
+model.compile(optimizer="adam",
+              loss="categorical_crossentropy",
+              metrics=["accuracy"])
+# model.summary()
+print()
+
+# for i, layer in enumerate(model.layers):
+#     print(f"Index: {i}, Name: {layer.name}, Type: {type(layer)}")
+
+
+if finetune_model:
+    print(target.vocab_size, len(target.dict_chars))
+    extend_model_embeddings(model, source.vocab_size, target.vocab_size)
+    model = adjust_output_layer(model, new_vocab_size=target.vocab_size)
 # --------------------------------- TRAINING ------------------------------------------------------------------------
 # existuje generator na trenovaci data
 print("training")
@@ -152,7 +174,7 @@ for i in range(repeat):
         epochs=epochs,
         validation_data=((val_source.padded, val_target.padded), val_target.padded_shift_one))
 
-    save_model(model, model_file_name)
+    save_model(model, model_full_path)
 
     new_dict = join_dicts(old_dict, history.history)
     old_dict = new_dict
@@ -204,7 +226,7 @@ def plot_attention_weights(attention_list, input_sentence, output_sentence, n, h
     folder_name = "plots/attention/"
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
-    fig_name = model_file_name.split("/")[-1] + f"_{line_num}"
+    fig_name = model_full_path.split("/")[-1] + f"_{line_num}"
     plt.savefig(folder_name + fig_name, bbox_inches='tight')
     plt.show()
 def visualise_attention(model, encoder_input_data, decoder_input_data, n, h, line_num):
@@ -267,6 +289,11 @@ def translate(model, encoder_input, output_maxlen, line_num):
 print("Testing data preparation")
 test_source = Data(sep, mezera, end_line)
 test_target = Data(sep, mezera, end_line)
+
+if use_custom_testing:
+    test_in_file_name = custom_test_src
+    test_out_file_name = custom_test_tgt
+
 with open(test_in_file_name, "r", encoding="utf-8") as f:  # with spaces
     test_source.file = f.read()
     f.close()
@@ -304,13 +331,12 @@ rev_dict = test_target.create_reverse_dict(test_target.dict_chars)
 
 # for model_name in models:
 if True:
+    model_full_path = os.path.join(all_models_path, model_name_short)
+    history_dict = model_full_path + '_HistoryDict'
+    testing_cache_filename = model_full_path + '_TestingCache'
+    print(model_full_path)
 
-    model_file_name = os.path.join(models_path, model_name)
-    history_dict = model_file_name + '_HistoryDict'
-    testing_cache_filename = model_file_name + '_TestingCache'
-    print(model_file_name)
-
-    model = load_model_mine(model_file_name)
+    model = load_model_mine(model_full_path)
 
     if caching:
         print("Caching is ON")
@@ -358,7 +384,7 @@ if True:
 
     all_epochs, training_data = get_epochs_train_accuracy(history_dict)
 
-    add_to_json(result_json_path, model_name, dict, samples,
+    add_to_json(result_json_path, model_name_short, dict, samples,
                 all_epochs, training_data, keras_version)
-    print(f"Saved to json for model:{model_name}")
+    print(f"Saved to json for model:{model_name_short}")
     print()

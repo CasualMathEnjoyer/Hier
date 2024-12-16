@@ -21,8 +21,14 @@ model_name = 't2b_emb64_h4'
 model_file_name = f"{model_folder_path}{model_name}"
 
 # test_file_name = "../data/src-sep-test.txt"
-test_file_name = "../data/sailor_test_src.txt"
-target_sep_file = "../data/sailor_separated_rsc.txt"
+# test_file_name = "../data/sailor_test_src.txt"
+# target_sep_file = "../data/sailor_separated_rsc.txt"
+
+test_file_name = "../data/train_src.txt"
+target_sep_file = "../data/train_src_separated.txt"
+
+test_file_name = "../data/test_src.txt"
+target_sep_file = "../data/test_src_separated.txt"
 
 sep = ' '
 mezera = '_'

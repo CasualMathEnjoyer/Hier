@@ -171,8 +171,11 @@ print("loadig took:", end - start)
 
 print("Testing data preparation")
 
-test_in_file_name = "../data/sailor_separated_rsc.txt"
-test_out_file_name = "../data/sailor_test_trl.txt"
+# test_in_file_name = "../data/sailor_separated_rsc.txt"
+# test_out_file_name = "../data/sailor_test_trl.txt"
+
+test_in_file_name = "../data/train_src_separated.txt"
+test_out_file_name = "../data/train_trl.txt"
 
 test_source = Data(sep, mezera, end_line)
 test_target = Data(sep, mezera, end_line)

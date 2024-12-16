@@ -52,8 +52,15 @@ end_line = '\n'
 print()
 
 
-def prepare_data(skip_valid=False):
+def prepare_data(skip_valid=False, files=[train_in_file_name, train_out_file_name], files_val=[val_in_file_name, val_out_file_name], files_additional_train=None):
     print("data preparation...")
+
+    train_in_file_name, train_out_file_name = files
+    if not skip_valid: val_in_file_name, val_out_file_name = files_val
+
+    print("training files:", train_in_file_name, train_out_file_name)
+
+    # class object inicialised, data added
     source = Data(sep, mezera, end_line)
     target = Data(sep, mezera, end_line)
     with open(train_in_file_name, "r", encoding="utf-8") as f:  # with spaces
@@ -63,27 +70,62 @@ def prepare_data(skip_valid=False):
         target.file = ff.read()
         ff.close()
 
-    print("first file:")
-    x_train = source.split_n_count(True)
-    source.padded = source.padding(x_train, source.maxlen)
-    print("second file:")
-    y_train = target.split_n_count(True)
-    target.padded = target.padding(y_train, target.maxlen)
-    # y_train_pad_one = to_categorical(y_train_pad)
-    target.padded_shift = target.padding_shift(y_train, target.maxlen)
-    target.padded_shift_one = to_categorical(target.padded_shift)
+    if files_additional_train is None:
+        print("first file:")
+        x_train = source.split_n_count(True)
+        source.padded = source.padding(x_train, source.maxlen)
+        print("second file:")
+        y_train = target.split_n_count(True)
+        target.padded = target.padding(y_train, target.maxlen)
+        # y_train_pad_one = to_categorical(y_train_pad)
+        target.padded_shift = target.padding_shift(y_train, target.maxlen)
+        target.padded_shift_one = to_categorical(target.padded_shift)
+
+    elif files_additional_train:
+        print("finetuning training files:", files_additional_train)
+        file_in, file_out = files_additional_train
+        with open(file_in, "r", encoding="utf-8") as f:
+            additional_source_file = f.read()
+            f.close()
+        with open(file_out, "r", encoding="utf-8") as ff:
+            additional_target_file = ff.read()
+            ff.close()
+        source.file += additional_source_file  # adding data to extend the vocabulary of the model
+        target.file += additional_target_file
+        _ = source.split_n_count(True)
+        _ = target.split_n_count(True)
+
+        source_maxlen = source.maxlen
+        target_maxlen = target.maxlen
+
+        source.file = additional_source_file  # removing the original data from the training
+        target.file = additional_target_file
+
+        # main pipeline
+        print("Additional files being processed...")
+        x_train = source.split_n_count(False)  # dict alreasy created from the bigger file
+        source.maxlen = source_maxlen
+        source.padded = source.padding(x_train, source.maxlen)
+        y_train = target.split_n_count(False)
+        target.maxlen = target_maxlen
+        target.padded = target.padding(y_train, target.maxlen)
+        target.padded_shift = target.padding_shift(y_train, target.maxlen)
+        target.padded_shift_one = to_categorical(target.padded_shift, num_classes=len(target.dict_chars))
 
     assert len(source.padded) == len(target.padded_shift)
     assert len(source.padded) == len(target.padded_shift_one)
 
-    # print(np.array(source.padded).shape)            # (1841, 98)
-    # print(np.array(target.padded).shape)            # (1841, 109)
-    # print(np.array(target.padded_shift).shape)      # (1841, 109)
-    # print(np.array(target.padded_shift_one).shape)  # (1841, 109, 55)
+    print(np.array(source.padded).shape)            # (1841, 98)
+    print(np.array(target.padded).shape)            # (1841, 109)
+    print(np.array(target.padded_shift).shape)      # (1841, 109)
+    print(np.array(target.padded_shift_one).shape)  # (1841, 109, 55)
 
     del source.file
     del target.file
     val_source, val_target = None, None
+
+    assert len(source.padded) == len(target.padded_shift)
+    assert len(source.padded) == len(target.padded_shift_one)
 
     if not skip_valid:
         # VALIDATION:

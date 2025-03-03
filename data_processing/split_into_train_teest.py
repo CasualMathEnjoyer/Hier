@@ -39,8 +39,8 @@ def save_data(data, source_output, target_output):
         tgt_out.writelines(target_data)
 
 # Input and output file paths
-source_file = 'sailor_test_src.txt'
-target_file = 'sailor_test_trl.txt'
+source_file = '../data/sailor_test_src.txt'
+target_file = '../data/sailor_test_trl.txt'
 
 train_source_output = 'train_src.txt'
 train_target_output = 'train_trl.txt'

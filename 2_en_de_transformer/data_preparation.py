@@ -4,7 +4,7 @@ import pickle
 from keras.utils import to_categorical
 
 
-from data_file import Data
+from Data import Data
 
 # TODO - check for lines of all zeros in tokens
 

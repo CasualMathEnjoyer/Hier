@@ -1,29 +1,19 @@
-
+import os
 import json
 import time
+import pickle
+import random
 from tqdm import tqdm
 
-from data_preparation import *
-
-os.environ["KERAS_BACKEND"] = "tensorflow"
-
-from keras.utils import set_random_seed
 from keras import backend as K
+from keras.utils import set_random_seed
 
 
-from model_file_2 import *  # for loading
+# from model_file_2 import *  # for loading
 from model_file_mine import *
-from model_function import save_model, load_model_mine, translate, get_epochs_train_accuracy
-
-
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-    try:
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-    except RuntimeError as e:
-        print(e)
-
+from model_function import save_model, load_model_mine, translate, get_epochs_train_accuracy, test_gpus
+from Data import Data
+from data_preparation import prepare_data, get_history_dict, join_dicts, load_cached_dict, cache_dict
 
 print("Starting transform2seq")
 
@@ -78,15 +68,17 @@ if run_settings["use_random_seed"]: a = random.randrange(0, 2**32 - 1)
 else: a = run_settings["seed"]
 set_random_seed(a)
 
+os.environ["KERAS_BACKEND"] = "tensorflow"
+test_gpus()
 
 # ---------------------------- DATA PROCESSING -------------------------------------------------
 if new_class_dict:
     start = time.time()
     print("[DATA] - preparation started")
     if finetune_model:
-        source, target, val_source, val_target = prepare_data(skip_valid=False, files=[train_in_file_name, train_out_file_name], files_val=[finetune_source, finetune_tgt], files_additional_train=[finetune_source, finetune_tgt])
+        source, target, val_source, val_target = prepare_data(run_settings, skip_valid=False, files=[train_in_file_name, train_out_file_name], files_val=[finetune_source, finetune_tgt], files_additional_train=[finetune_source, finetune_tgt])
     else:
-        source, target, val_source, val_target = prepare_data(skip_valid=False, files=[train_in_file_name, train_out_file_name], files_val=[val_in_file_name, val_out_file_name],)
+        source, target, val_source, val_target = prepare_data(run_settings, skip_valid=False, files=[train_in_file_name, train_out_file_name], files_val=[val_in_file_name, val_out_file_name],)
     to_save_list = [source, target, val_source, val_target]
     end = time.time()
     print("[DATA] - preparation finished")
@@ -164,8 +156,8 @@ else:
 
 if run_settings["test"]:
     print("[TESTING] - data preparation")
-    test_source = Data(sep, mezera, end_line)
-    test_target = Data(sep, mezera, end_line)
+    test_source = Data(run_settings["sep"], run_settings["mezera"], run_settings["end_line"])
+    test_target = Data(run_settings["sep"], run_settings["mezera"], run_settings["end_line"])
 
     if use_custom_testing:
         test_in_file_name = custom_test_src
@@ -242,7 +234,7 @@ if run_settings["test"]:
 
     from testing_s2s import test_translation, add_to_json
 
-    dict = test_translation(output, valid, rev_dict, sep, mezera, use_custom_rules=False)
+    dict = test_translation(output, valid, rev_dict, run_settings["sep"], run_settings["mezera"], use_custom_rules=False)
 
 
     all_epochs, training_data = get_epochs_train_accuracy(history_dict)

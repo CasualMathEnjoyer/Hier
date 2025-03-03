@@ -9,13 +9,17 @@
   "test_in_file_name" : "../data/src-sep-test.txt",
   "test_out_file_name" : "../data/tgt-test.txt",
 
-  "new_model": 1,
-  "new_class_dict": 1,
+  "sep": " ",
+  "mezera": "_",
+  "end_line": "\n",
+
+  "new_model": 0,
+  "new_class_dict": 0,
   "class_data": "processed_data_plk/processed_data_dict_delete.plk",
 
   "batch_size": 15,
 
-  "train": true,
+  "train": false,
   "epochs": 2,
   "repeat": 1,
 

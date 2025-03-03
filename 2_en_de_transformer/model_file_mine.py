@@ -2,6 +2,8 @@ import keras
 import numpy as np
 import tensorflow as tf
 import keras_nlp
+from keras.models import Model
+from keras.layers import Embedding
 
 class CustomSinePositionEncoding(keras.layers.Layer):
     def __init__(self, **kwargs):
@@ -21,11 +23,6 @@ class MyMaskingLayer(keras.layers.Layer):
         mask = mask[:, tf.newaxis, :]
         # mask = x[:, tf.newaxis, :]  # this works when input is a mask
         return mask
-
-import numpy as np
-import keras
-from keras.models import Model
-from keras.layers import Embedding
 
 def extend_model_embeddings(model, new_encoder_vocab_size, new_decoder_vocab_size):
     """

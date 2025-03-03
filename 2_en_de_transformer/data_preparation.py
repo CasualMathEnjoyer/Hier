@@ -44,15 +44,15 @@ from Data import Data
 # test_out_file_name = "data/tgt-train-short.txt"
 
 
-sep = ' '
-mezera = '_'
-end_line = '\n'
+# sep = ' '
+# mezera = '_'
+# end_line = '\n'
 
 
 print()
 
 
-def prepare_data(skip_valid=False, files=None, files_val=None, files_additional_train=None):
+def prepare_data(run_settings, skip_valid=False, files=None, files_val=None, files_additional_train=None):
     print("data preparation...")
 
     train_in_file_name, train_out_file_name = files
@@ -61,8 +61,8 @@ def prepare_data(skip_valid=False, files=None, files_val=None, files_additional_
     print("training files:", train_in_file_name, train_out_file_name)
 
     # class object inicialised, data added
-    source = Data(sep, mezera, end_line)
-    target = Data(sep, mezera, end_line)
+    source = Data(run_settings["sep"], run_settings["mezera"], run_settings["end_line"])
+    target = Data(run_settings["sep"], run_settings["mezera"], run_settings["end_line"])
     with open(train_in_file_name, "r", encoding="utf-8") as f:  # with spaces
         source.file = f.read()
         f.close()
@@ -130,8 +130,8 @@ def prepare_data(skip_valid=False, files=None, files_val=None, files_additional_
     if not skip_valid:
         # VALIDATION:
         print("validation files:")
-        val_source = Data(sep, mezera, end_line)
-        val_target = Data(sep, mezera, end_line)
+        val_source = Data(run_settings["sep"], run_settings["mezera"], run_settings["end_line"])
+        val_target = Data(run_settings["sep"], run_settings["mezera"], run_settings["end_line"])
         with open(val_in_file_name, "r", encoding="utf-8") as f:
             val_source.file = f.read()
             f.close()

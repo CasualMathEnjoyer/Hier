@@ -32,49 +32,43 @@ if gpus:
     except RuntimeError as e:
         print(e)
 
-# DATA AND TRAINING SETTING
-new = 0
-new_class_dict = 1
-caching = 0
-
-batch_size = 15  # 256
-epochs = 2
-repeat = 0
 
 print("starting transform2seq")
 
-all_models_path = '/home/katka/Documents/Trained models/Transformer_encoder_decoder/'
+run_settings_path = 'run_settings.json'
+with open(run_settings_path, encoding="utf-8") as f:
+    run_settings = json.load(f)
 
-model_name_short = 'transformer2_n4_h4'
+# Access loaded settings
+new = run_settings["new_model"]
+new_class_dict = run_settings["new_class_dict"]
+caching_in_testing = run_settings["caching_in_testing"]
 
-# model_name_short = 'transformer2_n4_h4_sailor'
-# assert model_name_short != 'transformer2_n4_h4'
+batch_size = run_settings["batch_size"]
+epochs = run_settings["epochs"]
+repeat = run_settings["repeat"]
 
-finetune_model = True
-finetune_source = "../data/train_src_separated.txt"
-finetune_tgt = "../data/train_trl.txt"
+all_models_path = run_settings["all_models_path"]
+model_name_short = run_settings["model_name_short"]
 
-# TESTING SETTING
-samples = 30
-use_custom_testing = False
-custom_test_src = "../data/test_src_separated.txt"
-custom_test_tgt = "../data/test_trl.txt"
+finetune_model = run_settings["finetune_model"]
+finetune_source = run_settings["finetune_source"]
+finetune_tgt = run_settings["finetune_tgt"]
 
-# JSON SETTING
-version = "original_data_test"
-keras_version = "3.7.0"
+samples = run_settings["samples"]
+use_custom_testing = run_settings["use_custom_testing"]
+custom_test_src = run_settings["custom_test_src"]
+custom_test_tgt = run_settings["custom_test_tgt"]
+
+version = run_settings["version"]
+keras_version = run_settings["keras_version"]
+
+class_data = run_settings["class_data"]
+
+print(run_settings)  # Optionally print to verify
+
+
 result_json_path = f"json_results/transformer_results_{version}_{samples}.json"
-
-# models = []
-# for model_name in os.listdir(models_path):
-#     if ".keras" in model_name:
-#         model_name = model_name[:model_name.index(".keras")]
-#         # print(model_name)
-#         models.append(model_name)
-#
-# models = [model_name]
-
-class_data = "processed_data_plk/processed_data_dict.plk"
 model_full_path = os.path.join(all_models_path, model_name_short)
 history_dict = f"{model_full_path}_HistoryDict"
 
@@ -353,7 +347,7 @@ if True:
 
     model = load_model_mine(model_full_path)
 
-    if caching:
+    if caching_in_testing:
         print("Caching is ON")
         tested_dict = load_cached_dict(testing_cache_filename)
     else:
@@ -362,7 +356,7 @@ if True:
     for j in tqdm(range(len(test_source.padded))):
         i = 1
         encoder_input = np.array([test_source.padded[j]])
-        if caching:
+        if caching_in_testing:
             encoder_cache_code = tuple(encoder_input[0])  # cos I can't use np array or list as a hash, [0] removes [around]
             if encoder_cache_code in tested_dict:
                 output_line = tested_dict[encoder_cache_code]
@@ -374,7 +368,7 @@ if True:
             # print(output_line)
         output.append(output_line)
     # End Testing Loop
-    if caching:
+    if caching_in_testing:
         cache_dict(tested_dict, testing_cache_filename)
 
     # PRETY TESTING PRINTING

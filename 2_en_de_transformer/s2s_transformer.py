@@ -1,28 +1,15 @@
-import nltk.translate.bleu_score
-import numpy as np
-import random
 
-import sys
-import os
-import pickle
-from tqdm import tqdm
+import json
 import time
-import joblib
-import nltk
-import matplotlib.pyplot as plt
+from tqdm import tqdm
 
-from metrics_evaluation import metrics as m
-from Data import Data
 from data_preparation import *
 
 os.environ["KERAS_BACKEND"] = "tensorflow"
-import keras
+
 from keras.utils import set_random_seed
 from keras import backend as K
 
-import tensorflow as tf
-
-import json
 
 from model_file_2 import *  # for loading
 from model_file_mine import *
@@ -40,9 +27,19 @@ if gpus:
 
 print("Starting transform2seq")
 
+# settings json loading ---------------------------------------
+model_settings_path = 'model_settings.json'
+with open(model_settings_path, encoding="utf-8") as f:
+    model_settings = json.load(f)
+
+model_compile_settings_path = 'model_compile_settings.json'
+with open(model_compile_settings_path, encoding="utf-8") as f:
+    model_compile_settings = json.load(f)
+
 run_settings_path = 'run_settings.json'
 with open(run_settings_path, encoding="utf-8") as f:
     run_settings = json.load(f)
+# ---------------------------------------------------------------
 
 # Access loaded settings
 new = run_settings["new_model"]
@@ -64,20 +61,10 @@ version = run_settings["version"]
 keras_version = run_settings["keras_version"]
 class_data = run_settings["class_data"]
 
-
-
+# dynamicaly change for namings
 result_json_path = f"json_results/transformer_results_{version}_{testing_samples}.json"
 model_full_path = os.path.join(all_models_path, model_name_short)
 history_dict = f"{model_full_path}_HistoryDict"
-
-
-model_settings_path = 'model_settings.json'
-with open(model_settings_path, encoding="utf-8") as f:
-    model_settings = json.load(f)
-
-model_compile_settings_path = 'model_compile_settings.json'
-with open(model_compile_settings_path, encoding="utf-8") as f:
-    model_compile_settings = json.load(f)
 
 
 if run_settings["use_random_seed"]: a = random.randrange(0, 2**32 - 1)
@@ -111,7 +98,6 @@ else:
     print("[DATA] - loading DATA classs")
     with open(class_data, 'rb') as class_data_dict:
         source, target, val_source, val_target = pickle.load(class_data_dict)
-        print("Class data loaded.")
         end = time.time()
     print("[DATA] - loadig finished")
     print("[DATA] - loadig took:", end - start)
@@ -140,6 +126,8 @@ if finetune_model:
     extend_model_embeddings(model, source.vocab_size, target.vocab_size)
     model = adjust_output_layer(model, new_vocab_size=target.vocab_size)
     print("[MODEL] - fine-tuning data augmentation finished")
+else:
+    print("[MODEL] - SKIPPING fine-tuning")
 # --------------------------------- TRAINING ------------------------------------------------------------------------
 # existuje generator na trenovaci data
 if run_settings["train"]:
@@ -160,10 +148,6 @@ if run_settings["train"]:
 
         K.clear_session()
     print("[TRAINING] - training finished")
-    # try:
-    #     model.save(model_file_name + ".keras", save_format="tf")
-    # except Exception as e:
-    #     model.export(model_file_name)  # saving for Keras3
 else:
     print("[TRAINING] - SKIPPING")
 
@@ -261,3 +245,5 @@ if run_settings["test"]:
     print("[TESTING] - FINISHED")
     print(f"[TESTING] - Saved to json for model: {model_name_short}")
     print()
+else:
+    print("[TESTING] - SKIPPING Testing")

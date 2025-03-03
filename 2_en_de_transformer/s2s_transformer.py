@@ -21,6 +21,8 @@ from keras import backend as K
 
 import tensorflow as tf
 
+import json
+
 gpus = tf.config.experimental.list_physical_devices('GPU')
 print(gpus)
 if gpus:
@@ -76,13 +78,11 @@ class_data = "processed_data_plk/processed_data_dict.plk"
 model_full_path = os.path.join(all_models_path, model_name_short)
 history_dict = f"{model_full_path}_HistoryDict"
 
-h = 4          # Number of self-attention heads
-d_k = 64       # Dimensionality of the linearly projected queries and keys
-d_v = 63       # Dimensionality of the linearly projected values                                     # values not used
-d_ff = 512      # Dimensionality of the inner fully connected layer
-d_model = 128  # Dimensionality of the model sub-layers' outputs
-n = 2          # Number of layers in the encoder stack
-params = h, d_k, d_v, d_ff, d_model, n
+
+model_settings_path = 'model_settings.json'
+with open(model_settings_path, encoding="utf-8") as f:
+    model_settings = json.load(f)
+
 
 a = random.randrange(0, 2**32 - 1)
 a = 12612638
@@ -158,7 +158,7 @@ old_dict = get_history_dict(history_dict, new)
 print("model starting...")
 if new:
     print("CREATING A NEW MODEL")
-    model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, params)
+    model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, model_settings)
 else:
     print("LOADING A MODEL")
     model = load_model_mine(model_full_path)

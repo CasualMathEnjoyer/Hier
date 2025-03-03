@@ -17,7 +17,7 @@ def process_custom_rules(text_line):
     text_line = text_line.replace("s S", "z S")
     return text_line
 
-def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
+def test_translation(output, valid : list, rev_dict : dict, sep, mezera, use_custom_rules=False):
     """ input translated dataset as list of list of tokens"""
     mistake_count, all_chars, all_levenstein, all_line_lengh = 0, 0, 0, 0
     all_ros_levenstein = 0
@@ -73,7 +73,7 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
         for char in valid_line:
             valid_text_line += (rev_dict[char] + sep)
             valid_list_line.append(rev_dict[char])
-        output_text_line = process_custom_rules(output_text_line)
+        if use_custom_rules: output_text_line = process_custom_rules(output_text_line)
         output_list_words.append(output_text_line)
         valid_list_words.append(valid_text_line)
         output_list_chars.append(output_list_line)
@@ -108,24 +108,28 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
     character_accuracy = (1 - (mistake_count / all_chars))
     average_levenstein = all_levenstein / num_lines
     levenstein_per_length = all_levenstein / all_line_lengh
-    one_minus_levenstein_per_length = (1 - (all_levenstein / all_line_lengh))
+    # one_minus_levenstein_per_length = (1 - (all_levenstein / all_line_lengh))
+    average_ros_levenstein = all_ros_levenstein / num_lines
     ros_per_lengh = round(all_ros_levenstein / all_line_lengh, round_place)
-    bleu_score_words = nltk.translate.bleu_score.corpus_bleu(valid_words_split_mezeraB, pred_words_split_mezera)
-    one_minus_ros_per_length = round((1 - (all_ros_levenstein / all_line_lengh)), round_place)
-    bleu_score_chars = nltk.translate.bleu_score.corpus_bleu(valid_list_chars, output_list_chars)
+    # bleu_score_words = nltk.translate.bleu_score.corpus_bleu(valid_words_split_mezeraB, pred_words_split_mezera)
+    # one_minus_ros_per_length = round((1 - (all_ros_levenstein / all_line_lengh)), round_place)
+    # bleu_score_chars = nltk.translate.bleu_score.corpus_bleu(valid_list_chars, output_list_chars)
 
     print("word_accuracy:", round(word_accuracy, round_place))
     print("character accuracy:", round(character_accuracy, round_place))
-    print("average Levenstein: ", round(average_levenstein, round_place))
-    print("all line length: ", all_line_lengh, ", all levenstein: ", all_levenstein)
+    print(f"num lines:{num_lines}, all line lengh:{all_line_lengh}")
+
     print("all levenstein: ", all_levenstein)
-    print("levenstein/all length: ", round(levenstein_per_length, round_place))
-    print("1 - levenstein/all length: ", round(one_minus_levenstein_per_length, round_place))
     print("all_ros_levenstein: ", all_ros_levenstein)
-    print("ros_leve/all length: ", ros_per_lengh)
-    print("1 - ros_leve/all length: ", one_minus_ros_per_length)
-    print("BLEU SCORE words:", bleu_score_words)
-    print("BLEU SCORE chars:", bleu_score_chars)
+
+    print("average Levenstein (per num lines): ", round(average_levenstein, round_place))
+    print("average Ros Levenstein (per num lines): ", round(average_ros_levenstein, round_place))
+    print("levenstein/all_length: ", round(levenstein_per_length, round_place))
+    # print("1 - levenstein/all length: ", round(one_minus_levenstein_per_length, round_place))
+    print("ROS_leve/all_length: ", ros_per_lengh)
+    # print("1 - ros_leve/all length: ", one_minus_ros_per_length)
+    # print("BLEU SCORE words:", bleu_score_words)
+    # print("BLEU SCORE chars:", bleu_score_chars)
     print()
 
     with open(output_prediction_file, 'w') as f:
@@ -136,16 +140,20 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera):
     return {
         "word_accuracy": round(word_accuracy, round_place),
         "character_accuracy": round(character_accuracy, round_place),
-        "average_levenstein": round(average_levenstein, round_place),
-        "all_line_length": all_line_lengh,
+        "num_lines": num_lines,
+        "all_line_lengh": all_line_lengh,
+
         "all_levenstein": all_levenstein,
-        "levenstein_per_length": round(levenstein_per_length, round_place),
-        "one_minus_levenstein_per_length": round(one_minus_levenstein_per_length, round_place),
         "all_ros_levenstein": all_ros_levenstein,
-        "ros_per_lengh": ros_per_lengh,
-        "one_minus_ros_per_lenght": one_minus_ros_per_length,
-        "bleu_score_words": bleu_score_words,
-        "bleu_score_chars": bleu_score_chars
+
+        "levenstein_per_num_lines": round(average_levenstein, round_place),
+        "ros_levenstein_per_num_lines": round(average_ros_levenstein, round_place),
+        "levenstein_per_length": round(levenstein_per_length, round_place),
+        # "one_minus_levenstein_per_length": round(one_minus_levenstein_per_length, round_place),
+        "ROS_per_lengh": ros_per_lengh,
+        # "one_minus_ros_per_lenght": one_minus_ros_per_length,
+        # "bleu_score_words": bleu_score_words,
+        # "bleu_score_chars": bleu_score_chars
     }
 
 

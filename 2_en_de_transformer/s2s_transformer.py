@@ -19,34 +19,49 @@ import keras
 from keras.utils import set_random_seed
 from keras import backend as K
 
+import tensorflow as tf
+
+gpus = tf.config.experimental.list_physical_devices('GPU')
+print(gpus)
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except RuntimeError as e:
+        print(e)
+
+# DATA AND TRAINING SETTING
 new = 0
-new_class_dict = 0
+new_class_dict = 1
 caching = 0
 
-batch_size = 2  # 256
-epochs = 5
-repeat = 1
-
-samples = -1
-
-version = "sailor1"
-keras_version = "3.3.3"
-result_json_path = f"transformer_results_{version}_{samples}.json"
+batch_size = 15  # 256
+epochs = 2
+repeat = 0
 
 print("starting transform2seq")
 
 all_models_path = '/home/katka/Documents/Trained models/Transformer_encoder_decoder/'
 
-# model_name_short = 'transformer2_n4_h4'
-model_name_short = 'sailor_transformer2_n4_h4'
+model_name_short = 'transformer2_n4_h4'
+
+# model_name_short = 'transformer2_n4_h4_sailor'
+# assert model_name_short != 'transformer2_n4_h4'
 
 finetune_model = True
 finetune_source = "../data/train_src_separated.txt"
 finetune_tgt = "../data/train_trl.txt"
 
-use_custom_testing = True
+# TESTING SETTING
+samples = 30
+use_custom_testing = False
 custom_test_src = "../data/test_src_separated.txt"
 custom_test_tgt = "../data/test_trl.txt"
+
+# JSON SETTING
+version = "original_data_test"
+keras_version = "3.7.0"
+result_json_path = f"json_results/transformer_results_{version}_{samples}.json"
 
 # models = []
 # for model_name in os.listdir(models_path):
@@ -57,9 +72,9 @@ custom_test_tgt = "../data/test_trl.txt"
 #
 # models = [model_name]
 
-class_data = "processed_data_dict.plk"
-history_dict = f"{model_name_short}_HistoryDict"
+class_data = "processed_data_plk/processed_data_dict.plk"
 model_full_path = os.path.join(all_models_path, model_name_short)
+history_dict = f"{model_full_path}_HistoryDict"
 
 h = 4          # Number of self-attention heads
 d_k = 64       # Dimensionality of the linearly projected queries and keys
@@ -366,7 +381,7 @@ if True:
 
     from testing_s2s import test_translation, add_to_json
 
-    dict = test_translation(output, valid, rev_dict, sep, mezera)
+    dict = test_translation(output, valid, rev_dict, sep, mezera, use_custom_rules=False)
 
 
     def get_epochs_train_accuracy(history_dict):

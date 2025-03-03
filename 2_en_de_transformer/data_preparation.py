@@ -24,12 +24,12 @@ from Data import Data
 # test_out_file_name = "../data/en_test.txt"
 
 
-train_in_file_name = "../data/src-sep-train.txt"
-train_out_file_name = "../data/tgt-train.txt"
-val_in_file_name = "../data/src-sep-val.txt"
-val_out_file_name = "../data/tgt-val.txt"
-test_in_file_name = "../data/src-sep-test.txt"
-test_out_file_name = "../data/tgt-test.txt"
+# train_in_file_name = "../data/src-sep-train.txt"
+# train_out_file_name = "../data/tgt-train.txt"
+# val_in_file_name = "../data/src-sep-val.txt"
+# val_out_file_name = "../data/tgt-val.txt"
+# test_in_file_name = "../data/src-sep-test.txt"
+# test_out_file_name = "../data/tgt-test.txt"
 # train_in_file_name = "../data/src-sep-train-short.txt"
 # train_out_file_name = "../data/tgt-train-short.txt"
 # val_in_file_name = "../data/src-sep-train-short.txt"
@@ -52,7 +52,7 @@ end_line = '\n'
 print()
 
 
-def prepare_data(skip_valid=False, files=[train_in_file_name, train_out_file_name], files_val=[val_in_file_name, val_out_file_name], files_additional_train=None):
+def prepare_data(skip_valid=False, files=None, files_val=None, files_additional_train=None):
     print("data preparation...")
 
     train_in_file_name, train_out_file_name = files

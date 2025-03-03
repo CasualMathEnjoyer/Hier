@@ -61,6 +61,13 @@ version = run_settings["version"]
 keras_version = run_settings["keras_version"]
 class_data = run_settings["class_data"]
 
+train_in_file_name = run_settings["train_in_file_name"]
+train_out_file_name = run_settings["train_out_file_name"]
+val_in_file_name = run_settings["val_in_file_name"]
+val_out_file_name = run_settings["val_out_file_name"]
+test_in_file_name = run_settings["test_in_file_name"]
+test_out_file_name = run_settings["test_out_file_name"]
+
 # dynamicaly change for namings
 result_json_path = f"json_results/transformer_results_{version}_{testing_samples}.json"
 model_full_path = os.path.join(all_models_path, model_name_short)
@@ -77,9 +84,9 @@ if new_class_dict:
     start = time.time()
     print("[DATA] - preparation started")
     if finetune_model:
-        source, target, val_source, val_target = prepare_data(skip_valid=False, files_val=[finetune_source, finetune_tgt], files_additional_train=[finetune_source, finetune_tgt])
+        source, target, val_source, val_target = prepare_data(skip_valid=False, files=[train_in_file_name, train_out_file_name], files_val=[finetune_source, finetune_tgt], files_additional_train=[finetune_source, finetune_tgt])
     else:
-        source, target, val_source, val_target = prepare_data(skip_valid=False)
+        source, target, val_source, val_target = prepare_data(skip_valid=False, files=[train_in_file_name, train_out_file_name], files_val=[val_in_file_name, val_out_file_name],)
     to_save_list = [source, target, val_source, val_target]
     end = time.time()
     print("[DATA] - preparation finished")
@@ -131,7 +138,7 @@ else:
 # --------------------------------- TRAINING ------------------------------------------------------------------------
 # existuje generator na trenovaci data
 if run_settings["train"]:
-    print("[TRAINING] - training started]")
+    print("[TRAINING] - training started")
     for i in range(repeat):
         history = model.fit(
             (source.padded, target.padded), target.padded_shift_one,

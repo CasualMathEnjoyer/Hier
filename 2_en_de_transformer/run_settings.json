@@ -2,8 +2,15 @@
   "all_models_path": "/home/katka/Documents/Trained models/Transformer_encoder_decoder/",
   "model_name_short": "testing_model_delete",
 
-  "new_model": 0,
-  "new_class_dict": 0,
+  "train_in_file_name" : "../data/src-sep-train.txt",
+  "train_out_file_name" : "../data/tgt-train.txt",
+  "val_in_file_name" : "../data/src-sep-val.txt",
+  "val_out_file_name" : "../data/tgt-val.txt",
+  "test_in_file_name" : "../data/src-sep-test.txt",
+  "test_out_file_name" : "../data/tgt-test.txt",
+
+  "new_model": 1,
+  "new_class_dict": 1,
   "class_data": "processed_data_plk/processed_data_dict_delete.plk",
 
   "batch_size": 15,

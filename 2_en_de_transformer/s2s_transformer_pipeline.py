@@ -13,7 +13,7 @@ from keras.utils import set_random_seed
 from model_file_mine import *
 from model_function import save_model, load_model_mine, translate, get_epochs_train_accuracy, test_gpus
 from Data import Data
-from data_preparation import get_history_dict, join_dicts, load_cached_dict, cache_dict, create_new_class_dict, load_class_data
+from data_preparation import get_history_dict, join_dicts, load_cached_dict, cache_dict, create_new_class_dict, load_class_data, create_new_class_dict_testing
 
 print("Starting transform2seq")
 
@@ -78,14 +78,8 @@ else: source, target, val_source, val_target = load_class_data(run_settings)
 # --------------------------------- MODEL ---------------------------------------------------------------------------
 old_dict = get_history_dict(history_dict, new)
 print("[MODEL] - starting")
-if new:
-    print("[MODEL] - creating new model")
-    model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, model_settings)
-    print("[MODEL] - CREATED")
-else:
-    print("[MODEL] - loading existing model")
-    model = load_model_mine(model_full_path)
-    print("[MODEL] - LOADED")
+if new: model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, model_settings)
+else: model = load_model_mine(model_full_path)
 
 model.compile(optimizer=model_compile_settings['optimizer'],
               loss=model_compile_settings['loss'],
@@ -95,14 +89,13 @@ print("[MODEL] - COMPILED")
 # model.summary()
 
 if finetune_model:
-    print("[MODEL] - fine-tuning data augmentation")
     extend_model_embeddings(model, source.vocab_size, target.vocab_size)
     model = adjust_output_layer(model, new_vocab_size=target.vocab_size)
-    print("[MODEL] - fine-tuning data augmentation finished")
+    print("[MODEL] - fine-tuning preparation finished")
 else:
     print("[MODEL] - SKIPPING fine-tuning")
+
 # --------------------------------- TRAINING ------------------------------------------------------------------------
-# existuje generator na trenovaci data
 if run_settings["train"]:
     print("[TRAINING] - training started")
     for i in range(repeat):
@@ -126,51 +119,8 @@ else:
 
 
 # ---------------------------------- TESTING ------------------------------------------------------------------------
-
-
 if run_settings["test"]:
-    print("[TESTING] - data preparation")
-    test_source = Data(run_settings["sep"], run_settings["mezera"], run_settings["end_line"])
-    test_target = Data(run_settings["sep"], run_settings["mezera"], run_settings["end_line"])
-
-    if use_custom_testing:
-        test_in_file_name = custom_test_src
-        test_out_file_name = custom_test_tgt
-
-    with open(test_in_file_name, "r", encoding="utf-8") as f:  # with spaces
-        test_source.file = f.read()
-        f.close()
-    with open(test_out_file_name, "r", encoding="utf-8") as f:  # with spaces
-        test_target.file = f.read()
-        f.close()
-
-    test_source.dict_chars = source.dict_chars
-    if testing_samples == -1:
-        x_test = test_source.split_n_count(False)
-    else:
-        x_test = test_source.split_n_count(False)[:testing_samples]
-    test_source.padded = test_source.padding(x_test, source.maxlen)
-
-    test_target.dict_chars = target.dict_chars
-    if testing_samples == -1:
-        y_test = test_target.split_n_count(False)
-    else:
-        y_test = test_target.split_n_count(False)[:testing_samples]
-
-    test_target.padded = test_target.padding(y_test, target.maxlen)
-    test_target.padded_shift = test_target.padding_shift(y_test, target.maxlen)
-
-    valid = list(test_target.padded.astype(np.int32))
-
-    assert len(x_test) == len(y_test)
-    del x_test, y_test
-
-    output = []
-
-    test_source.create_reverse_dict(test_source.dict_chars)
-    rev_dict = test_target.create_reverse_dict(test_target.dict_chars)
-
-
+    test_source, test_target = create_new_class_dict_testing(run_settings, source, target)
 
     print("[TESTING] - starting testing")
     model_full_path = os.path.join(all_models_path, model_name_short)
@@ -180,16 +130,18 @@ if run_settings["test"]:
 
     model = load_model_mine(model_full_path)
 
-    if caching_in_testing:
+    if run_settings["caching_in_testing"]:
         print("[TESTING] - CACHE ON")
         tested_dict = load_cached_dict(testing_cache_filename)
     else:
         print("[TESTING] - CACHE OFF")
+
     # Testing Loop
+    output = []
     for j in tqdm(range(len(test_source.padded))):
         i = 1
         encoder_input = np.array([test_source.padded[j]])
-        if caching_in_testing:
+        if run_settings["caching_in_testing"]:
             encoder_cache_code = tuple(encoder_input[0])  # cos I can't use np array or list as a hash, [0] removes [around]
             if encoder_cache_code in tested_dict:
                 output_line = tested_dict[encoder_cache_code]
@@ -198,18 +150,18 @@ if run_settings["test"]:
                 tested_dict[encoder_cache_code] = output_line
         else:
             output_line = translate(model, encoder_input, target.maxlen, j)
-            # print(output_line)
         output.append(output_line)
-    # End Testing Loop
-    if caching_in_testing:
+
+    if run_settings["caching_in_testing"]:
         cache_dict(tested_dict, testing_cache_filename)
 
-    # PRETY TESTING PRINTING
-
+    # PRETTY TESTING PRINTING
     from testing_s2s import test_translation, add_to_json
 
-    dict = test_translation(output, valid, rev_dict, run_settings["sep"], run_settings["mezera"], use_custom_rules=False)
+    rev_dict = test_target.create_reverse_dict(test_target.dict_chars)
+    valid = list(test_target.padded.astype(np.int32))
 
+    dict = test_translation(output, valid, rev_dict, run_settings["sep"], run_settings["mezera"], use_custom_rules=False)
 
     all_epochs, training_data = get_epochs_train_accuracy(history_dict)
 

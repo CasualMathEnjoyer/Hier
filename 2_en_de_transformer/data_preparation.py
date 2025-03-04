@@ -293,5 +293,48 @@ def load_class_data(run_settings):
     print("[DATA] - loadig took:", end - start)
     return source, target, val_source, val_target
 
+def create_new_class_dict_testing(run_settings, source, target):
+    test_in_file_name = run_settings["test_in_file_name"]
+    test_out_file_name = run_settings["test_out_file_name"]
+    testing_samples = run_settings["testing_samples"]
+
+    print("[TESTING] - data preparation")
+    test_source = Data(run_settings["sep"], run_settings["mezera"], run_settings["end_line"])
+    test_target = Data(run_settings["sep"], run_settings["mezera"], run_settings["end_line"])
+
+    if run_settings['use_custom_testing']:
+        test_in_file_name = run_settings['custom_test_src']
+        test_out_file_name = run_settings['custom_test_tgt']
+
+    with open(test_in_file_name, "r", encoding="utf-8") as f:  # with spaces
+        test_source.file = f.read()
+        f.close()
+    with open(test_out_file_name, "r", encoding="utf-8") as f:  # with spaces
+        test_target.file = f.read()
+        f.close()
+
+    test_source.dict_chars = source.dict_chars
+    if testing_samples == -1:
+        x_test = test_source.split_n_count(False)
+    else:
+        x_test = test_source.split_n_count(False)[:testing_samples]
+    test_source.padded = test_source.padding(x_test, source.maxlen)
+
+    test_target.dict_chars = target.dict_chars
+    if testing_samples == -1:
+        y_test = test_target.split_n_count(False)
+    else:
+        y_test = test_target.split_n_count(False)[:testing_samples]
+
+    test_target.padded = test_target.padding(y_test, target.maxlen)
+    test_target.padded_shift = test_target.padding_shift(y_test, target.maxlen)
+
+    assert len(x_test) == len(y_test)
+    del x_test, y_test
+
+    test_source.create_reverse_dict(test_source.dict_chars)
+    return test_source, test_target
+
+
 if __name__ == "__main__":
     source, target, val_source, val_target = prepare_data()

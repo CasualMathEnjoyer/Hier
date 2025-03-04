@@ -36,6 +36,8 @@ def extend_model_embeddings(model, new_encoder_vocab_size, new_decoder_vocab_siz
     Returns:
         keras.Model: A new model with extended embeddings.
     """
+
+    print("[MODEL] - fine-tuning: extending model embeddings")
     # Get encoder and decoder embedding layers
     encoder_embedding_layer = model.get_layer(name='embedding')
     decoder_embedding_layer = model.get_layer(name='embedding_1')
@@ -129,6 +131,8 @@ def adjust_output_layer(model, new_vocab_size):
     Returns:
         keras.Model: A new model with the adjusted output layer.
     """
+
+    print("[MODEL] - fine-tuning: adjusting output layer")
     # Get the input and intermediate outputs
     inputs = model.input
     intermediate_output = model.layers[-2].output  # Second-to-last layer output
@@ -145,6 +149,7 @@ def adjust_output_layer(model, new_vocab_size):
     return new_model
 
 def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_maxlen, model_settings_params):
+    print("[MODEL] - creating new model")
     num_heads = model_settings_params["h"]
     key_dim = model_settings_params["d_k"]
     value_dim = model_settings_params["d_v"]
@@ -241,6 +246,7 @@ def model_func(encoder_vocab_len, decoder_vocab_len, encoder_maxlen, decoder_max
 
     decoder_dense_output = keras.layers.Dense(decoder_vocab_len, activation='softmax', name='decoder_output')(decoded)
 
+    print("[MODEL] - CREATED")
     return keras.Model(inputs=[encoder_input, decoder_input], outputs=[decoder_dense_output])
 
 if __name__ == '__main__':

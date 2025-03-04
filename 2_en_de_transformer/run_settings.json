@@ -13,13 +13,13 @@
   "mezera": "_",
   "end_line": "\n",
 
-  "new_model": 1,
+  "new_model": 0,
   "new_class_dict": 0,
   "class_data": "processed_data_plk/processed_data_dict_delete.plk",
 
   "batch_size": 15,
 
-  "train": true,
+  "train": false,
   "epochs": 1,
   "repeat": 1,
 

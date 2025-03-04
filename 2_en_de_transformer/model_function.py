@@ -5,6 +5,7 @@ import os
 import pickle
 
 def load_model_mine(model_name):
+    print("[MODEL] - loading existing model")
     try:
         custom_objects = {
             'EncoderLayer': EncoderLayer,
@@ -17,14 +18,17 @@ def load_model_mine(model_name):
             'AddNormalization': AddNormalization,
             'FeedForward': FeedForward
         }
-        return keras.models.load_model(model_name, custom_objects=custom_objects)  # KERAS 2
+        model = keras.models.load_model(model_name, custom_objects=custom_objects)  # KERAS 2
+        print("[MODEL] - LOADED - Keras 2")
+        return model
     except Exception as e:
         custom_objects = {
             "MyMaskingLayer" : MyMaskingLayer,
             "CustomSinePositionEncoding" : CustomSinePositionEncoding
         }
-        return keras.models.load_model(model_name + ".keras", custom_objects=custom_objects)
-        # return keras.models.load_model(model_name + ".keras")
+        model = keras.models.load_model(model_name + ".keras", custom_objects=custom_objects)
+        print("[MODEL] - LOADED - Keras 3")
+        return model
 
 def save_model(model, model_file_name):
     try:

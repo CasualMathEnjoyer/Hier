@@ -2,7 +2,7 @@ import numpy as np
 import os
 import pickle
 from keras.utils import to_categorical
-
+import time
 
 from Data import Data
 
@@ -245,6 +245,53 @@ def load_cached_dict(filename):
 def split_by_underscore(input_list):
     result = [list(group) for group in ''.join(input_list).split('_') if group]
     return result
+
+def create_new_class_dict(run_settings):
+    train_in_file_name = run_settings["train_in_file_name"]
+    train_out_file_name = run_settings["train_out_file_name"]
+    val_in_file_name = run_settings["val_in_file_name"]
+    val_out_file_name = run_settings["val_out_file_name"]
+
+    class_data = run_settings["class_data"]
+
+    finetune_source = run_settings["finetune_source"]
+    finetune_tgt = run_settings["finetune_tgt"]
+
+    start = time.time()
+    print("[DATA] - preparation started")
+    if run_settings['finetune_model']:
+        source, target, val_source, val_target = prepare_data(run_settings, skip_valid=False, files=[train_in_file_name, train_out_file_name], files_val=[finetune_source, finetune_tgt],
+                                                              files_additional_train=[finetune_source, finetune_tgt])
+    else:
+        source, target, val_source, val_target = prepare_data(run_settings, skip_valid=False, files=[train_in_file_name, train_out_file_name], files_val=[val_in_file_name, val_out_file_name], )
+    to_save_list = [source, target, val_source, val_target]
+    end = time.time()
+    print("[DATA] - preparation finished")
+    print("[DATA] - preparation of data took:", end - start)
+
+    def save_object(obj, filename):
+        with open(filename, 'wb') as outp:  # Overwrites any existing file.
+            pickle.dump(obj, outp, pickle.HIGHEST_PROTOCOL)
+
+    print("[DATA] - saving started")
+    save_start = time.time()
+    save_object(to_save_list, class_data)
+    save_end = time.time()
+    print("[DATA] - saving finished")
+    print("[DATA] - saving took: ", save_end - save_start)
+    return source, target, val_source, val_target
+
+
+def load_class_data(run_settings):
+    class_data = run_settings["class_data"]
+    start = time.time()
+    print("[DATA] - loading DATA classs")
+    with open(class_data, 'rb') as class_data_dict:
+        source, target, val_source, val_target = pickle.load(class_data_dict)
+        end = time.time()
+    print("[DATA] - loadig finished")
+    print("[DATA] - loadig took:", end - start)
+    return source, target, val_source, val_target
 
 if __name__ == "__main__":
     source, target, val_source, val_target = prepare_data()

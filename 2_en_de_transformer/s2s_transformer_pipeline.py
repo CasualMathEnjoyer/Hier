@@ -13,7 +13,7 @@ from keras.utils import set_random_seed
 from model_file_mine import *
 from model_function import save_model, load_model_mine, translate, get_epochs_train_accuracy, test_gpus
 from Data import Data
-from data_preparation import prepare_data, get_history_dict, join_dicts, load_cached_dict, cache_dict
+from data_preparation import get_history_dict, join_dicts, load_cached_dict, cache_dict, create_new_class_dict, load_class_data
 
 print("Starting transform2seq")
 
@@ -72,34 +72,8 @@ os.environ["KERAS_BACKEND"] = "tensorflow"
 test_gpus()
 
 # ---------------------------- DATA PROCESSING -------------------------------------------------
-if new_class_dict:
-    start = time.time()
-    print("[DATA] - preparation started")
-    if finetune_model:
-        source, target, val_source, val_target = prepare_data(run_settings, skip_valid=False, files=[train_in_file_name, train_out_file_name], files_val=[finetune_source, finetune_tgt], files_additional_train=[finetune_source, finetune_tgt])
-    else:
-        source, target, val_source, val_target = prepare_data(run_settings, skip_valid=False, files=[train_in_file_name, train_out_file_name], files_val=[val_in_file_name, val_out_file_name],)
-    to_save_list = [source, target, val_source, val_target]
-    end = time.time()
-    print("[DATA] - preparation finished")
-    print("[DATA] - preparation of data took:", end - start)
-    def save_object(obj, filename):
-        with open(filename, 'wb') as outp:  # Overwrites any existing file.
-            pickle.dump(obj, outp, pickle.HIGHEST_PROTOCOL)
-    print("[DATA] - saving started")
-    save_start = time.time()
-    save_object(to_save_list, class_data)
-    save_end = time.time()
-    print("[DATA] - saving finished")
-    print("[DATA] - saving took: ", save_end - save_start)
-else:
-    start = time.time()
-    print("[DATA] - loading DATA classs")
-    with open(class_data, 'rb') as class_data_dict:
-        source, target, val_source, val_target = pickle.load(class_data_dict)
-        end = time.time()
-    print("[DATA] - loadig finished")
-    print("[DATA] - loadig took:", end - start)
+if run_settings["new_class_dict"]: source, target, val_source, val_target = create_new_class_dict(run_settings)
+else: source, target, val_source, val_target = load_class_data(run_settings)
 
 # --------------------------------- MODEL ---------------------------------------------------------------------------
 old_dict = get_history_dict(history_dict, new)

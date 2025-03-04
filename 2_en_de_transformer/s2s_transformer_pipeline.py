@@ -49,6 +49,7 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
                   metrics=model_compile_settings['metrics'])
 
     print("[MODEL] - COMPILED")
+    print(f"[MODEL] - number of params = {model.count_params()}")
     # model.summary()
 
     if run_settings["finetune_model"]:

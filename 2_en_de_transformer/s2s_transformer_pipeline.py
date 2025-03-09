@@ -15,14 +15,25 @@ from data_preparation import get_history_dict, join_dicts, load_cached_dict, cac
 
 print("Starting transform2seq")
 
+
+def save_to_json(data, filename):
+    with open(filename, 'w') as json_file:
+        json.dump(data, json_file, indent=4)
+
 def run_model_pipeline(model_settings, model_compile_settings, run_settings):
     # ---------------------------------------------------------------
     all_models_path = run_settings["all_models_path"]
     model_name_short = run_settings["model_name_short"]
 
-    result_json_path = f"json_results/transformer_results_{run_settings['version']}_{run_settings['testing_samples']}.json"
     model_folder_path = os.path.join(all_models_path, model_name_short)
+    if not os.path.exists(model_folder_path):
+        info = {'runs': 0}
+    else:
+        with open(os.path.join(model_folder_path, 'info.json')) as f:
+            info = json.load(f)
+
     if not os.path.exists(model_folder_path): os.makedirs(model_folder_path)
+
     model_full_path = os.path.join(model_folder_path, model_name_short)
     history_dict = f"{model_full_path}_HistoryDict"
     testing_cache_filename = model_full_path + '_TestingCache'
@@ -30,6 +41,21 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
     if run_settings["use_random_seed"]: a = random.randrange(0, 2**32 - 1)
     else: a = run_settings["seed"]
     set_random_seed(a)
+
+    runs = info['runs']
+
+    run_settings['version'] = f'version{runs}'
+
+    result_json_name = f"testing_{run_settings['version']}_samples_{run_settings['testing_samples']}.json"
+    result_json_path = os.path.join(model_folder_path, result_json_name)
+
+    save_to_json(model_settings, os.path.join(model_folder_path, f"model_settings_{runs}.json"))
+    save_to_json(model_compile_settings, os.path.join(model_folder_path, f"model_compile_settings_{runs}.json"))
+    save_to_json(run_settings, os.path.join(model_folder_path, f"run_settings_{runs}.json"))
+
+    info["runs"] += 1
+
+    save_to_json(info, os.path.join(model_folder_path, f"info.json"))
 
     os.environ["KERAS_BACKEND"] = "tensorflow"
     test_gpus()

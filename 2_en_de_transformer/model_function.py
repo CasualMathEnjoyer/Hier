@@ -3,6 +3,7 @@ from model_file_2 import *  # objects for loading
 from model_file_mine import *
 import os
 import pickle
+from Tokens import Token
 
 def load_model_mine(model_name):
     print("[MODEL] - loading existing model")
@@ -125,14 +126,12 @@ def get_epochs_train_accuracy(history_dict):
     return epochs, results
 
 def translate(model, encoder_input, output_maxlen, line_num):
-    output_line = [1]
+    output_line = [Token.bos]
     # i = 1
     i = 0
     while i < output_maxlen:
         prediction = model.call((encoder_input, np.array([output_line])), training=False)  # enc shape: (1, maxlen), out shape: (1, j)
-        # next_token_probs = prediction[0, -1, :]  # Prediction is shape (1, i, 63)
         next_token_probs = prediction[0, i, :]  # prediction has the whole sentence every time
-        # next_token = np.random.choice(len(next_token_probs), p=next_token_probs)
         next_token = np.argmax(next_token_probs)
         if next_token == 0:
             break

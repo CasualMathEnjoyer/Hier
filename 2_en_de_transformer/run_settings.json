@@ -1,6 +1,6 @@
 {
-  "all_models_path": "/home/katka/Documents/Trained models/Transformer_encoder_decoder/",
-  "model_name_short": "testing_model_delete",
+  "all_models_path": "/home/katka/PycharmProjects/Hier/models",
+  "model_name_short": "model_testing",
 
   "train_in_file_name" : "../data/src-sep-train.txt",
   "train_out_file_name" : "../data/tgt-train.txt",
@@ -13,14 +13,14 @@
   "mezera": "_",
   "end_line": "\n",
 
-  "new_model": 0,
-  "new_class_dict": 0,
-  "class_data": "processed_data_plk/processed_data_dict_delete.plk",
+  "new_model": 1,
+  "new_class_dict": 1,
+  "class_data": "processed_data_plk/processed_data_dict_temp.plk",
 
-  "batch_size": 15,
+  "batch_size": 32,
 
   "train": true,
-  "epochs": 1,
+  "epochs": 5,
   "repeat": 1,
 
   "use_random_seed": false,
@@ -31,13 +31,13 @@
   "finetune_tgt": "../data/train_trl.txt",
 
   "test": true,
-  "testing_samples": 30,
+  "testing_samples": 100,
 
   "use_custom_testing": false,
   "custom_test_src": "../data/test_src_separated.txt",
   "custom_test_tgt": "../data/test_trl.txt",
   "caching_in_testing": 0,
 
-  "version": "idk_what_version",
+  "version": "version",
   "keras_version": "3.7.0"
 }

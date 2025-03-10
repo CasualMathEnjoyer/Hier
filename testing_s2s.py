@@ -4,6 +4,7 @@ import numpy as np
 from Levenshtein import distance
 from metrics_evaluation.rosm_lev import LevenshteinDistance as rosmLev
 ros_distance = rosmLev()
+from Tokens import Token
 
 output_prediction_file = '../data/SAILOR_output_prediction.txt'
 
@@ -31,9 +32,9 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera, use_cus
             print("Less items in valid then in prediction")
             break
         print("test line number:", j)
-        # print("predicted ", output[j])
+        print("predicted ", output[j])
         # print("valid_line", list(valid[j]))
-        if 2 in output[j]:
+        if Token.eos in output[j]:
             if output[j][0] == 1 and output[j][-1] == 2:
                 predicted_line = np.array(output[j][1:-1])
             else:
@@ -42,13 +43,17 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera, use_cus
                     if output[j][i] == 2:
                         # raise ValueError("predicted")
                         predicted_line = np.array(output[j][1:i])
-        if 2 in valid[j]:
+        else:
+            predicted_line = np.array(output[j])
+
+        if Token.eos in valid[j]:
             for i in range(len(valid[j])):
                 if valid[j][i] == 2:
                     valid_line = np.array(valid[j][1:i])
                     break
         print("predicted ", predicted_line)
         print("valid_line", valid_line)
+
         if 0 in valid_line:  # aby to neusekavalo vetu
             zero_index = np.argmax(valid_line == 0)
             valid_line = valid_line[:zero_index]
@@ -78,8 +83,10 @@ def test_translation(output, valid : list, rev_dict : dict, sep, mezera, use_cus
         valid_list_words.append(valid_text_line)
         output_list_chars.append(output_list_line)
         valid_list_chars.append([valid_list_line])  # to be accepted by BLEU scocre
+
         levenstein = distance(output_text_line, valid_text_line)
         ros_levenstein = ros_distance.compute(output_text_line, valid_text_line)
+
         print("prediction: ", output_text_line)
         print("valid     : ", valid_text_line)
         print("mistakes  : ", mistake_in_line)

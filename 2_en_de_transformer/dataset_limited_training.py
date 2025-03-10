@@ -16,7 +16,7 @@ run_settings_path = 'run_settings.json'
 with open(run_settings_path, encoding="utf-8") as f:
     run_settings = json.load(f)
 
-custom_training_datasets = '/home/katka/PycharmProjects/Hier/data/ramses_smaller'
+custom_training_datasets = '/home/katka/PycharmProjects/Hier/data/ramses_smaller_data'
 
 from data_processing.plot_model_vs_testing import save_plot
 

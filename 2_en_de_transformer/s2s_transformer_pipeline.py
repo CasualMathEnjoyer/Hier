@@ -13,6 +13,8 @@ from model_file_mine import *
 from model_function import save_model, load_model_mine, translate, get_epochs_train_accuracy, test_gpus
 from data_preparation import get_history_dict, join_dicts, load_cached_dict, cache_dict, create_new_class_dict, load_class_data, create_new_class_dict_testing
 
+from visualization.plot_model_history import plot_model_history
+
 print("Starting transform2seq")
 
 
@@ -157,6 +159,9 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
         print()
     else:
         print("[TESTING] - SKIPPING Testing")
+
+    plot_model_history(model_folder_path, model_name_short, title=model_name_short, metric="accuracy", show=False, save=True)
+    plot_model_history(model_folder_path, model_name_short, title=model_name_short, metric="loss", show=False, save=True)
 
 if __name__ == "__main__":
     model_settings_path = 'model_settings.json'

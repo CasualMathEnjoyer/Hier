@@ -127,24 +127,17 @@ def get_epochs_train_accuracy(history_dict):
         }
     return epochs, results
 
-def translate(model, encoder_input, output_maxlen, line_num):
-    output_line = [Token.bos]
-    # i = 1
-    i = 0
-    while i < output_maxlen:
-        prediction = model.call((encoder_input, np.array([output_line])), training=False)  # enc shape: (1, maxlen), out shape: (1, j)
-        next_token_probs = prediction[0, i, :]  # prediction has the whole sentence every time
-        next_token = np.argmax(next_token_probs)
-        if next_token == 0:
-            break
-        # Update the output sequence with the sampled token
-        output_line.append(next_token)
-        i += 1
-    # try:
-    #     visualise_attention(model, encoder_input, np.array([output_line]), n, h, line_num, test_source, test_target, model_full_path)
-    # except Exception as e:
-    #     print(f"Attention failed due to: {e}")
-    return output_line
+
+def translate(model, encoder_input, output_maxlen):
+    output_line = np.zeros(output_maxlen + 1, dtype=int)
+    output_line[0] = Token.bos
+    for i in range(1, output_maxlen + 1):
+        prediction = model.call((encoder_input, output_line[:i][np.newaxis, :]), training=False)
+        next_token = np.argmax(prediction[0, i-1, :])  # Use only the last step prediction
+        if next_token == Token.pad:
+            return output_line[:i].tolist()
+        output_line[i] = next_token
+    return output_line.tolist()
 
 def test_gpus():
     gpus = tf.config.experimental.list_physical_devices('GPU')

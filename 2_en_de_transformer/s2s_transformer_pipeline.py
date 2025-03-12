@@ -136,11 +136,16 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
                 if encoder_cache_code in tested_dict:
                     output_line = tested_dict[encoder_cache_code]
                 else:
-                    output_line = translate(model, encoder_input, target.maxlen, j)
+                    output_line = translate(model, encoder_input, target.maxlen)
                     tested_dict[encoder_cache_code] = output_line
             else:
-                output_line = translate(model, encoder_input, target.maxlen, j)
+                output_line = translate(model, encoder_input, target.maxlen)
+
             output.append(output_line)
+            # try:
+            #     visualise_attention(model, encoder_input, np.array([output_line]), n, h, line_num, test_source, test_target, model_full_path)
+            # except Exception as e:
+            #     print(f"Attention failed due to: {e}")
 
         if run_settings["caching_in_testing"]:
             cache_dict(tested_dict, testing_cache_filename)

@@ -12,6 +12,9 @@ from model_file_mine import *
 from Utils.model_function import save_model, load_model_mine, translate, get_epochs_train_accuracy, test_gpus
 from Utils.data_preparation import get_history_dict, join_dicts, load_cached_dict, cache_dict, create_new_class_dict, load_class_data, create_new_class_dict_testing
 
+import sys
+sys.path.append("..")
+
 from visualization.plot_model_history import plot_model_history
 
 print("Starting transform2seq")

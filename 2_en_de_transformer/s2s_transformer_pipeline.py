@@ -118,7 +118,8 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
 
         if run_settings["caching_in_testing"]:
             print("[TESTING] - CACHE ON")
-            tested_dict = load_cached_dict(testing_cache_filename)
+            if run_settings["clear_testing_cache"]: tested_dict = {}
+            else: tested_dict = load_cached_dict(testing_cache_filename)
         else:
             print("[TESTING] - CACHE OFF")
 
@@ -174,5 +175,7 @@ if __name__ == "__main__":
     run_settings_path = 'run_settings.json'
     with open(run_settings_path, encoding="utf-8") as f:
         run_settings = json.load(f)
+
+    run_settings["keras_version"] = keras.__version__
 
     run_model_pipeline(model_settings, model_compile_settings, run_settings)

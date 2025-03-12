@@ -8,7 +8,7 @@ from Levenshtein import distance
 
 from metrics_evaluation.rosm_lev import LevenshteinDistance as rosmLev
 ros_distance = rosmLev()
-from Tokens import Token
+from Utils.Tokens import Token
 
 output_prediction_file = '../data/SAILOR_output_prediction.txt'
 

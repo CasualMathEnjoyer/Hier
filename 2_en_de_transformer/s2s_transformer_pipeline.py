@@ -1,6 +1,5 @@
 import os
 import json
-import time
 import pickle
 import random
 from tqdm import tqdm
@@ -10,8 +9,8 @@ from keras.utils import set_random_seed
 
 # from model_file_2 import *  # for loading
 from model_file_mine import *
-from model_function import save_model, load_model_mine, translate, get_epochs_train_accuracy, test_gpus
-from data_preparation import get_history_dict, join_dicts, load_cached_dict, cache_dict, create_new_class_dict, load_class_data, create_new_class_dict_testing
+from Utils.model_function import save_model, load_model_mine, translate, get_epochs_train_accuracy, test_gpus
+from Utils.data_preparation import get_history_dict, join_dicts, load_cached_dict, cache_dict, create_new_class_dict, load_class_data, create_new_class_dict_testing
 
 from visualization.plot_model_history import plot_model_history
 

@@ -3,7 +3,9 @@ from model_file_2 import *  # objects for loading
 from model_file_mine import *
 import os
 import pickle
-from Tokens import Token
+import numpy as np
+import tensorflow as tf
+from Utils.Tokens import Token
 
 def load_model_mine(model_name):
     print("[MODEL] - loading existing model")

@@ -16,26 +16,28 @@ run_settings_path = 'run_settings.json'
 with open(run_settings_path, encoding="utf-8") as f:
     run_settings = json.load(f)
 
-custom_training_datasets = '/home/katka/PycharmProjects/Hier/data/ramses_smaller_data'
 
 from data_processing.plot_model_vs_testing import save_plot
 
-for iteration in range(3, 6):
-
+for iteration in range(1, 2):
     start_time = time.time()
     t = {}
-    for i in range(1, 68):
+    for i in range(1, 68, 6):  # every 6th model
         model_time = time.time()
 
         n = 1000 * i
 
         print("RUNNING MODEL: ", n)
-        # initial model training
+
+        custom_training_datasets = '/home/katka/PycharmProjects/Hier/data/ramses_smaller_data'
 
         run_settings["train_in_file_name"] = os.path.join(custom_training_datasets, f"src-sep-train_{n}.txt")
         run_settings["train_out_file_name"] = os.path.join(custom_training_datasets, f"tgt-train_{n}.txt")
 
+        run_settings["all_models_path"] = "/home/katka/PycharmProjects/Hier/models2"
+
         run_settings["model_name_short"] = f'model1_samples_{n}'
+
         run_settings["class_data"] = f"processed_data_plk/processed_data_dict_{n}.plk"
         if os.path.exists(run_settings["class_data"]): run_settings["new_class_dict"] = 0
 

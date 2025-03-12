@@ -1,4 +1,3 @@
-import numpy as np
 import os
 import pickle
 from keras.utils import to_categorical

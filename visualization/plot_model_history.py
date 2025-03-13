@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import pickle
 import os
-
+import numpy as np
 
 def plot_model_history(model_folder, model_name, title='Model', metric="accuracy", show=True, save=False):
     history_dict_path = os.path.join(model_folder, f'{model_name}_HistoryDict')
@@ -13,12 +13,15 @@ def plot_model_history(model_folder, model_name, title='Model', metric="accuracy
         with open(history_dict_path, 'rb') as file:
             history = pickle.load(file)
 
+        epochs = len(history[metric])
+        tick_interval = max(1, epochs // 10)
+
         plt.figure(figsize=(8, 5))
         plt.plot(history[metric], label="Train")
         plt.plot(history[f"val_{metric}"], label="Validation")
         plt.title(f"{title} {metric.capitalize()}")
         plt.xlabel("Epoch")
-        plt.xticks(range(len(history[metric])))
+        plt.xticks(np.arange(0, epochs, tick_interval))
         plt.ylabel(metric.capitalize())
         plt.legend()
         plt.grid(True)

@@ -3,6 +3,7 @@ import json
 import pickle
 import random
 from tqdm import tqdm
+import time
 
 from keras import backend as K
 from keras.utils import set_random_seed
@@ -25,6 +26,7 @@ def save_to_json(data, filename):
         json.dump(data, json_file, indent=4)
 
 def run_model_pipeline(model_settings, model_compile_settings, run_settings):
+    start_time = time.time()
     # ---------------------------------------------------------------
     all_models_path = run_settings["all_models_path"]
     model_name_short = run_settings["model_name_short"]
@@ -170,6 +172,17 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
 
     plot_model_history(model_folder_path, model_name_short, title=model_name_short, metric="accuracy", show=False, save=True)
     plot_model_history(model_folder_path, model_name_short, title=model_name_short, metric="loss", show=False, save=True)
+
+    end_time = time.time()
+    time_passed = end_time - start_time
+
+    if "time_passed_run" not in info: info["time_passed_run"] = {}
+    info["time_passed_run"][runs] = {}
+    info["time_passed_run"][runs][f"sec"] = time_passed
+    info["time_passed_run"][runs][f"min"] = time_passed/60
+    info["time_passed_run"][runs][f"hou"] = time_passed/60/60
+
+    save_to_json(info, os.path.join(model_folder_path, f"info.json"))
 
 if __name__ == "__main__":
     model_settings_path = 'model_settings.json'

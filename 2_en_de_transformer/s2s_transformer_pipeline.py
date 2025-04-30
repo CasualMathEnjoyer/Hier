@@ -115,6 +115,9 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
             with open(history_dict, 'wb') as file_pi:
                 pickle.dump(new_dict, file_pi)
 
+            plot_model_history(model_folder_path, model_name_short, title=model_name_short, metric="accuracy", show=False, save=True)
+            plot_model_history(model_folder_path, model_name_short, title=model_name_short, metric="loss", show=False, save=True)
+
             K.clear_session()
         print("[TRAINING] - training finished")
     else:

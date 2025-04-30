@@ -6,7 +6,6 @@ from tqdm import tqdm
 import time
 
 from keras import backend as K
-from keras.utils import set_random_seed
 
 # from model_file_2 import *  # for loading
 from model_file_mine import *
@@ -20,6 +19,13 @@ from visualization.plot_model_history import plot_model_history
 
 print("Starting transform2seq")
 
+
+def set_seed(seed=42):
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    tf.random.set_seed(seed)
+    tf.config.experimental.enable_op_determinism()
 
 def save_to_json(data, filename):
     with open(filename, 'w') as json_file:
@@ -46,7 +52,7 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
 
     if run_settings["use_random_seed"]: a = random.randrange(0, 2**32 - 1)
     else: a = run_settings["seed"]
-    set_random_seed(a)
+    set_seed(a)
 
     runs = info['runs']
 
@@ -76,11 +82,6 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
     if run_settings["new_model"]: model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, model_settings)
     else: model = load_model_mine(model_full_path)
 
-    model.compile(optimizer=model_compile_settings['optimizer'],
-                  loss=model_compile_settings['loss'],
-                  metrics=model_compile_settings['metrics'])
-
-    print("[MODEL] - COMPILED")
     print(f"[MODEL] - number of params = {model.count_params()}")
     # model.summary()
 
@@ -90,6 +91,12 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
         print("[MODEL] - fine-tuning preparation finished")
     else:
         print("[MODEL] - SKIPPING fine-tuning")
+
+    # Compile the new model
+    model.compile(optimizer=model_compile_settings['optimizer'],
+                  loss=model_compile_settings['loss'],
+                  metrics=model_compile_settings['metrics'])
+    print("[MODEL] - COMPILED")
 
     # --------------------------------- TRAINING ------------------------------------------------------------------------
     if run_settings["train"]:
@@ -101,7 +108,10 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
                 epochs = run_settings["epochs"],
                 validation_data=((val_source.padded, val_target.padded), val_target.padded_shift_one))
 
-            save_model(model, model_full_path)
+            if run_settings["different_output_model"]:
+                save_model(model, os.path.join(model_folder_path, run_settings["output_model_name"]))
+            else:
+                save_model(model, model_full_path)
 
             new_dict = join_dicts(old_dict, history.history)
             old_dict = new_dict
@@ -193,7 +203,7 @@ if __name__ == "__main__":
     with open(model_compile_settings_path, encoding="utf-8") as f:
         model_compile_settings = json.load(f)
 
-    run_settings_path = 'run_settings.json'
+    run_settings_path = 'run_settings_finetune.json'
     with open(run_settings_path, encoding="utf-8") as f:
         run_settings = json.load(f)
 

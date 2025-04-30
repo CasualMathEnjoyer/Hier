@@ -108,10 +108,7 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
                 epochs = run_settings["epochs"],
                 validation_data=((val_source.padded, val_target.padded), val_target.padded_shift_one))
 
-            if run_settings["different_output_model"]:
-                save_model(model, os.path.join(model_folder_path, run_settings["output_model_name"]))
-            else:
-                save_model(model, model_full_path)
+            save_model(model, model_full_path)
 
             new_dict = join_dicts(old_dict, history.history)
             old_dict = new_dict

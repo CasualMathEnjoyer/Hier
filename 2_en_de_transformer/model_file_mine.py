@@ -91,14 +91,29 @@ def extend_model_embeddings(model, new_encoder_vocab_size, new_decoder_vocab_siz
     for layer in model.layers[4:28]:  # Replace these indices based on your architecture
         if isinstance(layer, keras.layers.MultiHeadAttention):
             x = layer(x, x, x)
+        elif isinstance(layer, keras.layers.InputLayer):
+            continue  # Skip InputLayer
         else:
-            x = layer(x)
+            try:
+                x = layer(x)
+            except Exception as e:
+                print(f"Error in layer {layer.name}: {e}")
+                print(layer.get_config())
+                break
     encoder_output = x
 
     # Replace the decoder embedding
     decoder_embedded = new_decoder_embedding(decoder_input)
     decoder_position_encoded = model.get_layer(name='custom_sine_position_encoding_1')(decoder_embedded)
-    decoder_position_encoded = model.get_layer(name='dropout_13')(decoder_position_encoded)
+
+    # Find the first dropout after 'custom_sine_position_encoding_1'
+    seen = False
+    for layer in model.layers:
+        if layer.name == 'custom_sine_position_encoding_1':
+            seen = True
+        elif seen and isinstance(layer, keras.layers.Dropout):
+            decoder_position_encoded = layer(decoder_position_encoded)
+            break
 
     # Reconstruct the decoder layers
     y = decoder_position_encoded
@@ -116,7 +131,6 @@ def extend_model_embeddings(model, new_encoder_vocab_size, new_decoder_vocab_siz
 
     # Create and compile the new model
     new_model = Model(inputs=[encoder_input, decoder_input], outputs=decoder_output)
-    new_model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
 
     return new_model
 
@@ -142,9 +156,6 @@ def adjust_output_layer(model, new_vocab_size):
 
     # Create a new model
     new_model = Model(inputs=inputs, outputs=new_output)
-
-    # Compile the new model
-    new_model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
 
     return new_model
 

@@ -47,6 +47,7 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
     if not os.path.exists(model_folder_path): os.makedirs(model_folder_path)
 
     model_full_path = os.path.join(model_folder_path, model_name_short)
+    model_best_full_path = os.path.join(model_folder_path, model_name_short + "_best")
     history_dict = f"{model_full_path}_HistoryDict"
     testing_cache_filename = model_full_path + '_TestingCache'
 
@@ -65,6 +66,8 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
     save_to_json(model_compile_settings, os.path.join(model_folder_path, f"model_compile_settings_{runs}.json"))
     save_to_json(run_settings, os.path.join(model_folder_path, f"run_settings_{runs}.json"))
 
+    load_best = run_settings.get("load_best", False)
+
     info["runs"] += 1
 
     save_to_json(info, os.path.join(model_folder_path, f"info.json"))
@@ -80,7 +83,12 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
     old_dict = get_history_dict(history_dict, run_settings["new_model"])
     print("[MODEL] - starting")
     if run_settings["new_model"]: model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, model_settings)
-    else: model = load_model_mine(model_full_path)
+    elif load_best:
+        print("[MODEL] - loading best model")
+        model = load_model_mine(model_best_full_path)
+    else:
+        print("[MODEL] - loading last trained model")
+        model = load_model_mine(model_full_path)
 
     print(f"[MODEL] - number of params = {model.count_params()}")
     # model.summary()
@@ -100,13 +108,20 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
 
     # --------------------------------- TRAINING ------------------------------------------------------------------------
     if run_settings["train"]:
+        model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
+            filepath=f"{model_best_full_path}.keras",
+            monitor='val_accuracy',
+            mode='max',
+            save_best_only=True)
+
         print("[TRAINING] - training started")
         for i in range(run_settings["repeat"]):
             history = model.fit(
                 (source.padded, target.padded), target.padded_shift_one,
                 batch_size=run_settings["batch_size"],
                 epochs = run_settings["epochs"],
-                validation_data=((val_source.padded, val_target.padded), val_target.padded_shift_one))
+                validation_data=((val_source.padded, val_target.padded), val_target.padded_shift_one),
+                callbacks=[model_checkpoint_callback])
 
             save_model(model, model_full_path)
 
@@ -203,7 +218,7 @@ if __name__ == "__main__":
     with open(model_compile_settings_path, encoding="utf-8") as f:
         model_compile_settings = json.load(f)
 
-    run_settings_path = 'run_settings_finetune.json'
+    run_settings_path = 'run_settings.json'
     with open(run_settings_path, encoding="utf-8") as f:
         run_settings = json.load(f)
 

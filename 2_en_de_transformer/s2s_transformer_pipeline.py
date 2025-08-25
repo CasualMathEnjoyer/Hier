@@ -138,13 +138,18 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
     else:
         print("[TRAINING] - SKIPPING")
 
-
     # ---------------------------------- TESTING ------------------------------------------------------------------------
     if run_settings["test"]:
         test_source, test_target = create_new_class_dict_testing(run_settings, source, target)
 
         print("[TESTING] - starting testing")
-        model = load_model_mine(model_full_path)
+
+        if load_best:
+            print("[TESTING] - loading BEST model for testing")
+            model = load_model_mine(model_best_full_path)
+        else:
+            print("[TESTING] - loading model for testing")
+            model = load_model_mine(model_full_path)
 
         if run_settings["caching_in_testing"]:
             print("[TESTING] - CACHE ON")
@@ -225,3 +230,21 @@ if __name__ == "__main__":
     run_settings["keras_version"] = keras.__version__
 
     run_model_pipeline(model_settings, model_compile_settings, run_settings)
+
+
+"""
+RESULTS
+----------------------------------------
+num_lines                      | 4
+all_valid_chars                | 74
+all_pred_chars                 | 67
+max_all_chars                  | 75
+word_accuracy                  | 0.6
+character_accuracy             | 0.1216216
+all_ros_levenstein             | 20.0
+avg_RLEV_per_line              | 5.0
+avg_RLEV_per_valid_char        | 0.2702703
+avg_RLEV_per_pred_char         | 0.2985075
+----------------------------------------
+
+"""

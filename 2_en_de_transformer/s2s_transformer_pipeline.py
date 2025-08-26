@@ -49,6 +49,7 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
     model_full_path = os.path.join(model_folder_path, model_name_short)
     model_best_full_path = os.path.join(model_folder_path, model_name_short + "_best")
     history_dict = f"{model_full_path}_HistoryDict"
+    history_csv = os.path.join(model_folder_path, "training_history.csv")
     testing_cache_filename = model_full_path + '_TestingCache'
 
     if run_settings["use_random_seed"]: a = random.randrange(0, 2**32 - 1)
@@ -81,6 +82,14 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
 
     # --------------------------------- MODEL ---------------------------------------------------------------------------
     old_dict = get_history_dict(history_dict, run_settings["new_model"])
+
+    # csv alternative to saving history - human readable
+    initial_epoch = 0
+    if os.path.exists(history_csv):
+        with open(history_csv, "r", encoding="utf-8") as f:
+            lines = sum(1 for _ in f)
+        initial_epoch = max(0, lines - 1)  # minus header
+
     print("[MODEL] - starting")
     if run_settings["new_model"]: model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, model_settings)
     elif load_best:
@@ -114,14 +123,25 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
             mode='max',
             save_best_only=True)
 
+        early_stopping_callback = keras.callbacks.EarlyStopping(
+            monitor="val_accuracy",
+            mode="max",
+            patience=5,
+            restore_best_weights=True,
+            start_from_epoch=3
+        )
+
+        csv_logger_callback = keras.callbacks.CSVLogger(history_csv, append=True)
+
         print("[TRAINING] - training started")
         for i in range(run_settings["repeat"]):
             history = model.fit(
                 (source.padded, target.padded), target.padded_shift_one,
                 batch_size=run_settings["batch_size"],
                 epochs = run_settings["epochs"],
+                initial_epoch=initial_epoch,
                 validation_data=((val_source.padded, val_target.padded), val_target.padded_shift_one),
-                callbacks=[model_checkpoint_callback])
+                callbacks=[csv_logger_callback, early_stopping_callback, model_checkpoint_callback])
 
             save_model(model, model_full_path)
 

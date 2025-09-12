@@ -17,7 +17,7 @@ sys.path.append("..")
 
 from visualization.plot_model_history import plot_model_history
 
-print("Starting transform2seq")
+print("[PIPELINE] - starting transform2seq")
 
 
 def set_seed(seed=42):
@@ -225,7 +225,7 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
         print(f"[TESTING] - Saved to json for model: {model_name_short}")
         print()
     else:
-        print("[TESTING] - SKIPPING Testing")
+        print("[TESTING] - skipping testing")
 
     plot_model_history(model_folder_path, model_name_short, title=model_name_short, metric="accuracy", show=False, save=True)
     plot_model_history(model_folder_path, model_name_short, title=model_name_short, metric="loss", show=False, save=True)

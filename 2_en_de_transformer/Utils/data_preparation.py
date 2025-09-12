@@ -1,8 +1,6 @@
-import os
-import pickle
 from keras.utils import to_categorical
 import time
-
+import os, pickle, csv
 from Data import Data
 
 # TODO - check for lines of all zeros in tokens
@@ -128,17 +126,85 @@ def join_dicts(dict1, dict2):
     dict = {}
     if dict1 == {}:
         dict = dict2
+        return dict
 
     if dict1.keys() == dict2.keys(): pass
     else: print(f'{dict1.keys()=} != {dict2.keys()=}')
 
-    history_list = list(dict1.keys())
-    for i in range(len(dict1.keys())):
+    # Get all unique keys from both dictionaries
+    all_keys = set(dict1.keys()) | set(dict2.keys())
+    
+    for key in all_keys:
         ar = []
-        for item in dict1[history_list[i]]: ar.append(item)
-        for item in dict2[history_list[i]]: ar.append(item)
-        dict[history_list[i]] = ar
+        # Add items from dict1 if key exists
+        if key in dict1:
+            for item in dict1[key]: 
+                ar.append(item)
+        # Add items from dict2 if key exists
+        if key in dict2:
+            for item in dict2[key]: 
+                ar.append(item)
+        dict[key] = ar
     return dict
+def get_num_epochs_dict(history_like, prefer_metric="loss"):
+    # 1) Normalize to a dict or CSV rows
+    history_dict = None
+    csv_path = None
+
+    if isinstance(history_like, dict):
+        history_dict = history_like
+
+    elif isinstance(history_like, str):
+        if not os.path.exists(history_like):
+            raise FileNotFoundError(f"History file not found: {history_like}")
+
+        # CSVLogger case
+        if history_like.lower().endswith(".csv"):
+            csv_path = history_like
+        else:
+            # Assume pickle with a dict
+            with open(history_like, "rb") as f:
+                obj = pickle.load(f)
+            if not isinstance(obj, dict):
+                raise TypeError(
+                    f"Pickle did not contain a dict. Got type {type(obj)} from {history_like}"
+                )
+            history_dict = obj
+    else:
+        raise TypeError(
+            f"history_like must be a dict or a path string; got {type(history_like)}"
+        )
+
+    # 2) If CSV: count data rows (minus header)
+    if csv_path is not None:
+        with open(csv_path, newline="", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            rows = list(reader)
+        if not rows:
+            return 0
+        # first row is header; remaining are epochs
+        return max(0, len(rows) - 1)
+
+    # 3) If dict: use metric list lengths
+    if not history_dict:
+        return 0
+
+    # prefer a specific metric if present
+    if prefer_metric in history_dict and isinstance(history_dict[prefer_metric], (list, tuple)):
+        return len(history_dict[prefer_metric])
+
+    # otherwise take the maximum length among list/tuple values
+    max_len = 0
+    for _, values in history_dict.items():
+        if isinstance(values, (list, tuple)):
+            max_len = max(max_len, len(values))
+    return max_len
+def get_num_epochs_csv(history_csv):
+    if os.path.exists(history_csv):
+        with open(history_csv, "r", encoding="utf-8") as f:
+            lines = sum(1 for _ in f)
+        return max(0, lines - 1)  # minus header
+    return 0
 
 def cache_dict(dictionary, filename):
     with open(filename, 'wb') as f:

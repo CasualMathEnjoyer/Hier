@@ -114,10 +114,10 @@ def get_history_dict(dict_name, new):
     dict_exist = os.path.isfile(dict_name)
     if dict_exist:
         if new:
-            print("Rewriting History Dict")
+            print("[HISTORY] - rewriting history dict")
             return {}
         else:
-            print("Loading History Dict")
+            print("[HISTORY] - loading history dict")
             with open(dict_name, "rb") as file_pi:
                 old_dict = pickle.load(file_pi)
                 return old_dict
@@ -156,7 +156,7 @@ def get_num_epochs_dict(history_like, prefer_metric="loss"):
 
     elif isinstance(history_like, str):
         if not os.path.exists(history_like):
-            raise FileNotFoundError(f"History file not found: {history_like}")
+            return 0
 
         # CSVLogger case
         if history_like.lower().endswith(".csv"):
@@ -209,19 +209,19 @@ def get_num_epochs_csv(history_csv):
 def cache_dict(dictionary, filename):
     with open(filename, 'wb') as f:
         pickle.dump(dictionary, f)
-        print("Dict successfully saved: {}".format(filename))
+        print("[CACHE] - dict successfully saved: {}".format(filename))
 def load_cached_dict(filename):
     if os.path.exists(filename):
         with open(filename, 'rb') as f:
             loaded_dict = pickle.load(f)
             if loaded_dict:
-                print("Loaded dictionary from:", filename)
+                print("[CACHE] - loaded dictionary from:", filename)
                 return loaded_dict
             else:
-                print("Empty dictionary loaded from:", filename)
+                print("[CACHE] - empty dictionary loaded from:", filename)
                 return {}
     else:
-        print("No cached dictionary found at:", filename)
+        print("[CACHE] - no cached dictionary found at:", filename)
         return {}
 
 def create_new_class_dict(run_settings):

@@ -68,23 +68,55 @@ run_settings = {
     "keras_version": keras.__version__
 }
 
+OPTUNA_CROSS_STUDY_CACHE = "trial_history_new.json"
 
 
-def load_history():
-    if os.path.exists(OPTUNA_HISTORY_FILE):
-        with open(OPTUNA_HISTORY_FILE, "r") as f:
+def load_trial_cache():
+    if os.path.exists(OPTUNA_CROSS_STUDY_CACHE):
+        with open(OPTUNA_CROSS_STUDY_CACHE, "r") as f:
             return json.load(f)
     return {}
 
-def save_history(history):
-    with open(OPTUNA_HISTORY_FILE, "w") as f:
-        json.dump(history, f, indent=4)
+def save_trial_cache(cache):
+    with open(OPTUNA_CROSS_STUDY_CACHE, "w") as f:
+        json.dump(cache, f, indent=4)
 
-def params_to_key(params):
+def model_params_to_cache_key(params):
     return "_".join(f"{k}={v}" for k, v in sorted(params.items()))
 
+def get_cache_stats():
+    cache = load_trial_cache()
+    total_trials = len(cache)
+    successful_trials = sum(1 for v in cache.values() if v["val_accuracy"] != float('-inf'))
+    failed_trials = total_trials - successful_trials
+    
+    if successful_trials > 0:
+        best_accuracy = max(v["val_accuracy"] for v in cache.values() if v["val_accuracy"] != float('-inf'))
+        best_params = next(v["model_settings"] for v in cache.values() if v["val_accuracy"] == best_accuracy)
+    else:
+        best_accuracy = None
+        best_params = None
+    
+    return {
+        "total_trials": total_trials,
+        "successful_trials": successful_trials,
+        "failed_trials": failed_trials,
+        "best_accuracy": best_accuracy,
+        "best_params": best_params
+    }
 
-# todo - add storing of previous runs - json
+def print_cache_summary():
+    stats = get_cache_stats()
+    print("\n" + "="*50)
+    print("CACHE SUMMARY")
+    print("="*50)
+    print(f"Total cached trials: {stats['total_trials']}")
+    print(f"Successful trials: {stats['successful_trials']}")
+    print(f"Failed trials: {stats['failed_trials']}")
+    if stats['best_accuracy'] is not None:
+        print(f"Best accuracy: {stats['best_accuracy']:.4f}")
+        print(f"Best parameters: {stats['best_params']}")
+    print("="*50 + "\n")
 
 def objective(trial):
     trial.set_user_attr("sampler", sampler_name)
@@ -111,45 +143,70 @@ def objective(trial):
     # }
     # model_settings['d_v'] = model_settings['d_k']
 
-    history = load_history()
-    key = params_to_key(model_settings)
+    cache = load_trial_cache()
+    key = model_params_to_cache_key(model_settings)
 
     # If params seen before → return cached result
-    if key in history:
-        print(f"⚡ Using cached result for {key}")
+    if key in cache:
+        print(f"[CACHE] - using cached result for {key}")
         trial.set_user_attr("cached_from_previous", True)
-        return history[key]["val_accuracy"]
+        return cache[key]["val_accuracy"]
 
     trial.set_user_attr("cached_from_previous", False)
 
-    run_model_pipeline(model_settings, model_compile_settings, run_settings)
+    try:
+        print(f"[TRIAL] - running new trial with params: {model_settings}")
+        run_model_pipeline(model_settings, model_compile_settings, run_settings)
 
-    all_models_path = run_settings["all_models_path"]
-    model_name_short = run_settings["model_name_short"]
+        all_models_path = run_settings["all_models_path"]
+        model_name_short = run_settings["model_name_short"]
 
-    model_folder_path = os.path.join(all_models_path, model_name_short)
+        model_folder_path = os.path.join(all_models_path, model_name_short)
 
-    if not os.path.exists(model_folder_path): raise FileNotFoundError(model_folder_path)
+        if not os.path.exists(model_folder_path): 
+            raise FileNotFoundError(f"Model folder not found: {model_folder_path}")
 
-    model_full_path = os.path.join(model_folder_path, model_name_short)
-    history_dict = f"{model_full_path}_HistoryDict"
+        model_full_path = os.path.join(model_folder_path, model_name_short)
+        history_dict = f"{model_full_path}_HistoryDict"
 
-    history = get_history_dict(history_dict,False)
+        history_dict_data = get_history_dict(history_dict, False)
+        val_accuracy = max(history_dict_data[f"val_accuracy"])
 
-    print("Val_Accuracy:", history[f"val_accuracy"])
+        print(f"[TRIAL] - completed. Val_Accuracy: {val_accuracy}")
 
-    # todo - can do multi parameter optimization
-    return max(history[f"val_accuracy"])
+        # Save the result to cache
+        cache[key] = {
+            "val_accuracy": val_accuracy,
+            "model_settings": model_settings,
+            "trial_number": trial.number,
+            "study_name": trial.study.study_name,
+            "timestamp": trial.datetime_start.isoformat() if trial.datetime_start else None
+        }
+        save_trial_cache(cache)
+        print(f"[CACHE] - saved result to cache for key: {key}")
 
+        return val_accuracy
 
-
-
-
-OPTUNA_HISTORY_FILE = "trial_history.json"
-
+    except Exception as e:
+        print(f"[TRIAL] - failed with error: {str(e)}")
+        # Save failed trial to cache to avoid retrying
+        cache[key] = {
+            "val_accuracy": float('-inf'),  # Mark as failed
+            "model_settings": model_settings,
+            "trial_number": trial.number,
+            "study_name": trial.study.study_name,
+            "error": str(e),
+            "timestamp": trial.datetime_start.isoformat() if trial.datetime_start else None
+        }
+        save_trial_cache(cache)
+        print(f"[CACHE] - saved failed trial to cache for key: {key}")
+        raise e
 
 
 if __name__ == "__main__":
+    # Print initial cache summary
+    print_cache_summary()
+    
     samplers = {
         "TPE": TPESampler(),
         "GP": GPSampler(),
@@ -162,12 +219,35 @@ if __name__ == "__main__":
 
     sampler_name = "TPE"
 
-    study = optuna.create_study(study_name="s2s_small_2_TPE",
+    study = optuna.create_study(study_name="new_cache_test3",
                                 storage="sqlite:///optuna_study.db",
                                 direction="maximize",
                                 sampler=samplers[sampler_name],
                                 load_if_exists=True)
+    
+    print(f"[OPTIMIZATION] - starting with {sampler_name} sampler")
+    print(f"[OPTIMIZATION] - study: {study.study_name}")
+    print(f"[OPTIMIZATION] - existing trials in study: {len(study.trials)}")
+    
     study.optimize(objective, n_trials=50)
 
+    print("\n" + "="*60)
+    print("OPTIMIZATION COMPLETED")
+    print("="*60)
     print("Best trial:")
-    print(study.best_trial.params)
+    print(f"  Value: {study.best_value:.4f}")
+    print(f"  Parameters: {study.best_trial.params}")
+    print(f"  Trial number: {study.best_trial.number}")
+    
+    # Print final cache summary
+    print_cache_summary()
+    
+    # Optional: Print all cached results for analysis
+    history = load_trial_cache()
+    if history:
+        print("\n📋 ALL CACHED RESULTS:")
+        print("-" * 80)
+        for key, result in sorted(history.items(), key=lambda x: x[1]["val_accuracy"], reverse=True):
+            status = "✅" if result["val_accuracy"] != float('-inf') else "❌"
+            print(f"{status} {key}: {result['val_accuracy']:.4f}")
+        print("-" * 80)

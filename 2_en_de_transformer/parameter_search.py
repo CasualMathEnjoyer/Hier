@@ -84,13 +84,14 @@ def params_to_key(params):
     return "_".join(f"{k}={v}" for k, v in sorted(params.items()))
 
 
-
+# todo - add storing of previous runs - json
 
 def objective(trial):
     trial.set_user_attr("sampler", sampler_name)
 
     run_settings['model_name_short'] = f"{trial.study.study_name}_{trial.number}"
 
+    # first run
     model_settings = {
         "h": trial.suggest_int("h", 1, 6),  # number of heads
         "d_k": trial.suggest_categorical("d_k", [16, 32, 64]),  # key dimension
@@ -99,6 +100,16 @@ def objective(trial):
         "d_model": trial.suggest_categorical("d_model", [32, 64, 128]),
         "n": trial.suggest_int("n", 1, 4)  # number of layers
     }
+
+    # like in bakalarka
+    # model_settings = {
+    #     "h": trial.suggest_categorical("h", [2, 4, 8]),  # number of heads
+    #     "d_k": trial.suggest_categorical("d_k", [32, 64]),  # key dimension
+    #     "d_ff": trial.suggest_categorical("d_ff", [512, 1024, 2048]),  # feedforward layer size
+    #     "d_model": trial.suggest_categorical("d_model", [256, 512]),
+    #     "n": trial.suggest_categorical("n", [2, 4, 6])  # number of layers
+    # }
+    # model_settings['d_v'] = model_settings['d_k']
 
     history = load_history()
     key = params_to_key(model_settings)
@@ -127,6 +138,7 @@ def objective(trial):
 
     print("Val_Accuracy:", history[f"val_accuracy"])
 
+    # todo - can do multi parameter optimization
     return max(history[f"val_accuracy"])
 
 
@@ -148,9 +160,9 @@ if __name__ == "__main__":
         })
     }
 
-    sampler_name = "Random"
+    sampler_name = "TPE"
 
-    study = optuna.create_study(study_name="s2s_small_random",
+    study = optuna.create_study(study_name="s2s_small_2_TPE",
                                 storage="sqlite:///optuna_study.db",
                                 direction="maximize",
                                 sampler=samplers[sampler_name],

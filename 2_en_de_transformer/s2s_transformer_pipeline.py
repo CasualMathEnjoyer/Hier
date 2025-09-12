@@ -10,7 +10,7 @@ from keras import backend as K
 # from model_file_2 import *  # for loading
 from model_file_mine import *
 from Utils.model_function import save_model, load_model_mine, translate, get_epochs_train_accuracy, test_gpus
-from Utils.data_preparation import get_history_dict, join_dicts, load_cached_dict, cache_dict, create_new_class_dict, load_class_data, create_new_class_dict_testing
+from Utils.data_preparation import get_history_dict, join_dicts, get_num_epochs_dict, get_num_epochs_csv, load_cached_dict, cache_dict, create_new_class_dict, load_class_data, create_new_class_dict_testing
 
 import sys
 sys.path.append("..")
@@ -83,12 +83,19 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
     # --------------------------------- MODEL ---------------------------------------------------------------------------
     old_dict = get_history_dict(history_dict, run_settings["new_model"])
 
-    # csv alternative to saving history - human readable
-    initial_epoch = 0
-    if os.path.exists(history_csv):
-        with open(history_csv, "r", encoding="utf-8") as f:
-            lines = sum(1 for _ in f)
-        initial_epoch = max(0, lines - 1)  # minus header
+    initial_epoch_dict = get_num_epochs_dict(history_dict)
+    initial_epoch_csv = get_num_epochs_csv(history_csv)
+
+    if initial_epoch_dict != 0 and initial_epoch_csv != 0:
+        assert initial_epoch_dict == initial_epoch_csv, "initial_epoch_dict != initial_epoch_csv"
+        initial_epoch = initial_epoch_dict
+    elif initial_epoch_dict != 0:
+        initial_epoch = initial_epoch_dict
+    elif initial_epoch_csv != 0:
+        initial_epoch = initial_epoch_csv
+    else:
+        initial_epoch = 0
+
 
     print("[MODEL] - starting")
     if run_settings["new_model"]: model = model_func(source.vocab_size, target.vocab_size, source.maxlen, target.maxlen, model_settings)

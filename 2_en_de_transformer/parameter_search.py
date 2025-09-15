@@ -4,6 +4,8 @@ import optuna
 import optuna.visualization as vis
 from optuna.samplers import TPESampler, RandomSampler, GPSampler, GridSampler
 import os
+import numpy as np
+import random
 
 from s2s_transformer_pipeline import run_model_pipeline
 from Utils.data_preparation import get_history_dict
@@ -68,8 +70,11 @@ run_settings = {
     "keras_version": keras.__version__
 }
 
-OPTUNA_CROSS_STUDY_CACHE = "trial_history_new.json"
+OPTUNA_CROSS_STUDY_CACHE = "bakalarka_trial_cache.json"
 
+SEED = 42
+np.random.seed(SEED)
+random.seed(SEED)
 
 def load_trial_cache():
     if os.path.exists(OPTUNA_CROSS_STUDY_CACHE):
@@ -123,25 +128,26 @@ def objective(trial):
 
     run_settings['model_name_short'] = f"{trial.study.study_name}_{trial.number}"
 
-    # first run
-    model_settings = {
-        "h": trial.suggest_int("h", 1, 6),  # number of heads
-        "d_k": trial.suggest_categorical("d_k", [16, 32, 64]),  # key dimension
-        "d_v": trial.suggest_categorical("d_v", [16, 32, 64]),  # value dimension
-        "d_ff": trial.suggest_int("d_ff", 64, 512, step=64),  # feedforward layer size
-        "d_model": trial.suggest_categorical("d_model", [32, 64, 128]),
-        "n": trial.suggest_int("n", 1, 4)  # number of layers
-    }
+    # # first run
+    # model_settings = {
+    #     "h": trial.suggest_int("h", 1, 6),  # number of heads
+    #     "d_k": trial.suggest_categorical("d_k", [16, 32, 64]),  # key dimension
+    #     "d_v": trial.suggest_categorical("d_v", [16, 32, 64]),  # value dimension
+    #     "d_ff": trial.suggest_int("d_ff", 64, 512, step=64),  # feedforward layer size
+    #     "d_model": trial.suggest_categorical("d_model", [32, 64, 128]),
+    #     "n": trial.suggest_int("n", 1, 4)  # number of layers
+    # }
 
     # like in bakalarka
-    # model_settings = {
-    #     "h": trial.suggest_categorical("h", [2, 4, 8]),  # number of heads
-    #     "d_k": trial.suggest_categorical("d_k", [32, 64]),  # key dimension
-    #     "d_ff": trial.suggest_categorical("d_ff", [512, 1024, 2048]),  # feedforward layer size
-    #     "d_model": trial.suggest_categorical("d_model", [256, 512]),
-    #     "n": trial.suggest_categorical("n", [2, 4, 6])  # number of layers
-    # }
-    # model_settings['d_v'] = model_settings['d_k']
+    model_settings = {
+        "h": trial.suggest_categorical("h", [2, 4, 8]),  # number of heads
+        "d_k": trial.suggest_categorical("d_k", [32, 64]),  # key dimension
+        "d_ff": trial.suggest_categorical("d_ff", [512, 1024, 2048]),  # feedforward layer size
+        "d_model": trial.suggest_categorical("d_model", [256, 512]),
+        "n": trial.suggest_categorical("n", [2, 4, 6])  # number of layers
+    }
+
+    model_settings['d_v'] = model_settings['d_k']
 
     cache = load_trial_cache()
     key = model_params_to_cache_key(model_settings)
@@ -206,48 +212,56 @@ def objective(trial):
 if __name__ == "__main__":
     # Print initial cache summary
     print_cache_summary()
+
+    search_space = {
+        "h": [2, 4, 8],
+        "d_k": [32, 64],
+        "d_ff": [512, 1024, 2048],
+        "d_model": [256, 512],
+        "n": [2, 4, 6],
+    }
     
     samplers = {
-        "TPE": TPESampler(),
-        "GP": GPSampler(),
-        "Random": RandomSampler(),
-        "Grid": GridSampler({
-            "h": [2, 4, 6],
-            "d_k": [32, 64]
-        })
+        "TPE": TPESampler(seed=SEED),
+        "GP": GPSampler(seed=SEED),
+        "Random": RandomSampler(seed=SEED),
+        "Grid": GridSampler(search_space=search_space, seed=SEED)
     }
 
-    sampler_name = "TPE"
+    # sampler_name = "TPE"
 
-    study = optuna.create_study(study_name="new_cache_test3",
-                                storage="sqlite:///optuna_study.db",
-                                direction="maximize",
-                                sampler=samplers[sampler_name],
-                                load_if_exists=True)
-    
-    print(f"[OPTIMIZATION] - starting with {sampler_name} sampler")
-    print(f"[OPTIMIZATION] - study: {study.study_name}")
-    print(f"[OPTIMIZATION] - existing trials in study: {len(study.trials)}")
-    
-    study.optimize(objective, n_trials=50)
+    for sampler in samplers.keys():
+        sampler_name = sampler
 
-    print("\n" + "="*60)
-    print("OPTIMIZATION COMPLETED")
-    print("="*60)
-    print("Best trial:")
-    print(f"  Value: {study.best_value:.4f}")
-    print(f"  Parameters: {study.best_trial.params}")
-    print(f"  Trial number: {study.best_trial.number}")
-    
-    # Print final cache summary
-    print_cache_summary()
-    
-    # Optional: Print all cached results for analysis
-    history = load_trial_cache()
-    if history:
-        print("\n📋 ALL CACHED RESULTS:")
-        print("-" * 80)
-        for key, result in sorted(history.items(), key=lambda x: x[1]["val_accuracy"], reverse=True):
-            status = "✅" if result["val_accuracy"] != float('-inf') else "❌"
-            print(f"{status} {key}: {result['val_accuracy']:.4f}")
-        print("-" * 80)
+        study = optuna.create_study(study_name=f"bakalarka_{sampler_name}_short_3",
+                                    storage="sqlite:///optuna_study.db",
+                                    direction="maximize",
+                                    sampler=samplers[sampler_name],
+                                    load_if_exists=True)
+
+        print(f"[OPTIMIZATION] - starting with {sampler_name} sampler")
+        print(f"[OPTIMIZATION] - study: {study.study_name}")
+        print(f"[OPTIMIZATION] - existing trials in study: {len(study.trials)}")
+
+        study.optimize(objective, n_trials=50)
+
+        print("\n" + "="*60)
+        print("OPTIMIZATION COMPLETED")
+        print("="*60)
+        print("Best trial:")
+        print(f"  Value: {study.best_value:.4f}")
+        print(f"  Parameters: {study.best_trial.params}")
+        print(f"  Trial number: {study.best_trial.number}")
+
+        # Print final cache summary
+        print_cache_summary()
+
+        # Optional: Print all cached results for analysis
+        history = load_trial_cache()
+        if history:
+            print("\n📋 ALL CACHED RESULTS:")
+            print("-" * 80)
+            for key, result in sorted(history.items(), key=lambda x: x[1]["val_accuracy"], reverse=True):
+                status = "✅" if result["val_accuracy"] != float('-inf') else "❌"
+                print(f"{status} {key}: {result['val_accuracy']:.4f}")
+            print("-" * 80)

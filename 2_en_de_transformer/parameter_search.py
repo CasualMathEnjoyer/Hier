@@ -29,20 +29,28 @@ run_settings = {
     # "test_in_file_name" : "../data/src-sep-test.txt",
     # "test_out_file_name" : "../data/tgt-test.txt",
 
-    "train_in_file_name" : "../data/src-sep-train-short.txt",
-    "train_out_file_name" : "../data/tgt-train-short.txt",
-    "val_in_file_name" : "../data/src-sep-train-short.txt",
-    "val_out_file_name" : "../data/tgt-train-short.txt",
+    # "train_in_file_name" : "../data/src-sep-train-short.txt",
+    # "train_out_file_name" : "../data/tgt-train-short.txt",
+    # "val_in_file_name" : "../data/src-sep-train-short.txt",
+    # "val_out_file_name" : "../data/tgt-train-short.txt",
+    # "test_in_file_name" : "../data/src-sep-test.txt",
+    # "test_out_file_name" : "../data/tgt-test.txt",
+
+    "train_in_file_name" : "../data/src-sep-train_30.txt",
+    "train_out_file_name" : "../data/tgt-train_30.txt",
+    "val_in_file_name" : "../data/src-sep-train_30.txt",
+    "val_out_file_name" : "../data/tgt-train_30.txt",
     "test_in_file_name" : "../data/src-sep-test.txt",
     "test_out_file_name" : "../data/tgt-test.txt",
+
 
     "sep": " ",
     "mezera": "_",
     "end_line": "\n",
 
     "new_model": 1,
-    "new_class_dict": 0,
-    "class_data": "processed_data_plk/optuna_small.plk",
+    "new_class_dict": 1,
+    "class_data": "processed_data_plk/optuna_30.plk",
 
     "batch_size": 32,
 
@@ -51,7 +59,7 @@ run_settings = {
     "repeat": 1,
 
     "use_random_seed": False,
-    "seed": 12612638,
+    "seed": 42,
 
     "finetune_model": False,
     "finetune_source": "../data/train_src_separated.txt",
@@ -70,7 +78,7 @@ run_settings = {
     "keras_version": keras.__version__
 }
 
-OPTUNA_CROSS_STUDY_CACHE = "bakalarka_trial_cache.json"
+OPTUNA_CROSS_STUDY_CACHE = "main_30_cache.json"
 
 SEED = 42
 np.random.seed(SEED)
@@ -233,7 +241,7 @@ if __name__ == "__main__":
     for sampler in samplers.keys():
         sampler_name = sampler
 
-        study = optuna.create_study(study_name=f"bakalarka_{sampler_name}_short_3",
+        study = optuna.create_study(study_name=f"bakalarka_{sampler_name}_main_local",
                                     storage="sqlite:///optuna_study.db",
                                     direction="maximize",
                                     sampler=samplers[sampler_name],

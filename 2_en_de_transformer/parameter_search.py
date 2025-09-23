@@ -6,6 +6,7 @@ from optuna.samplers import TPESampler, RandomSampler, GPSampler, GridSampler
 import os
 import numpy as np
 import random
+import argparse
 
 from s2s_transformer_pipeline import run_model_pipeline
 from Utils.data_preparation import get_history_dict
@@ -15,68 +16,80 @@ model_compile_settings_path = 'model_compile_settings.json'
 with open(model_compile_settings_path, encoding="utf-8") as f:
     model_compile_settings = json.load(f)
     
-run_settings = {
-    "all_models_path": "/home/katka/PycharmProjects/Hier/models",
-    "model_name_short": "model_small_1",
+# run_settings = {
+#     "all_models_path": "/home/katka/PycharmProjects/Hier/models",
+#     "model_name_short": "model_small_1",
+#
+#     "different_output_model": False,
+#     "output_model_name": "model_finetuned",
+#
+#     # "train_in_file_name" : "../data/src-sep-train.txt",
+#     # "train_out_file_name" : "../data/tgt-train.txt",
+#     # "val_in_file_name" : "../data/src-sep-val.txt",
+#     # "val_out_file_name" : "../data/tgt-val.txt",
+#     # "test_in_file_name" : "../data/src-sep-test.txt",
+#     # "test_out_file_name" : "../data/tgt-test.txt",
+#
+#     # "train_in_file_name" : "../data/src-sep-train-short.txt",
+#     # "train_out_file_name" : "../data/tgt-train-short.txt",
+#     # "val_in_file_name" : "../data/src-sep-train-short.txt",
+#     # "val_out_file_name" : "../data/tgt-train-short.txt",
+#     # "test_in_file_name" : "../data/src-sep-test.txt",
+#     # "test_out_file_name" : "../data/tgt-test.txt",
+#
+#     "train_in_file_name" : "../data/src-sep-train_30.txt",
+#     "train_out_file_name" : "../data/tgt-train_30.txt",
+#     "val_in_file_name" : "../data/src-sep-train_30.txt",
+#     "val_out_file_name" : "../data/tgt-train_30.txt",
+#     "test_in_file_name" : "../data/src-sep-test.txt",
+#     "test_out_file_name" : "../data/tgt-test.txt",
+#
+#
+#     "sep": " ",
+#     "mezera": "_",
+#     "end_line": "\n",
+#
+#     "new_model": 1,
+#     "new_class_dict": 1,
+#     "class_data": "processed_data_plk/optuna_30.plk",
+#
+#     "batch_size": 32,
+#
+#     "train": True,
+#     "epochs": 20,
+#     "repeat": 1,
+#
+#     "use_random_seed": False,
+#     "seed": 42,
+#
+#     "finetune_model": False,
+#     "finetune_source": "../data/train_src_separated.txt",
+#     "finetune_tgt": "../data/train_trl.txt",
+#
+#     "test": False,
+#     "testing_samples": 4,
+#
+#     "use_custom_testing": False,
+#     "custom_test_src": "../data/test_src_separated.txt",
+#     "custom_test_tgt": "../data/test_trl.txt",
+#     "clear_testing_cache": 1,
+#     "caching_in_testing": 0,
+#
+#     "version": "version",
+#     "keras_version": keras.__version__
+# }
 
-    "different_output_model": False,
-    "output_model_name": "model_finetuned",
 
-    # "train_in_file_name" : "../data/src-sep-train.txt",
-    # "train_out_file_name" : "../data/tgt-train.txt",
-    # "val_in_file_name" : "../data/src-sep-val.txt",
-    # "val_out_file_name" : "../data/tgt-val.txt",
-    # "test_in_file_name" : "../data/src-sep-test.txt",
-    # "test_out_file_name" : "../data/tgt-test.txt",
+# Parse CLI arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("--run_settings", type=str, required=True,
+                    help="Path to run_settings JSON file")
+args = parser.parse_args()
 
-    # "train_in_file_name" : "../data/src-sep-train-short.txt",
-    # "train_out_file_name" : "../data/tgt-train-short.txt",
-    # "val_in_file_name" : "../data/src-sep-train-short.txt",
-    # "val_out_file_name" : "../data/tgt-train-short.txt",
-    # "test_in_file_name" : "../data/src-sep-test.txt",
-    # "test_out_file_name" : "../data/tgt-test.txt",
+# Load run_settings from JSON
+with open(args.run_settings, encoding="utf-8") as f:
+    run_settings = json.load(f)
 
-    "train_in_file_name" : "../data/src-sep-train_30.txt",
-    "train_out_file_name" : "../data/tgt-train_30.txt",
-    "val_in_file_name" : "../data/src-sep-train_30.txt",
-    "val_out_file_name" : "../data/tgt-train_30.txt",
-    "test_in_file_name" : "../data/src-sep-test.txt",
-    "test_out_file_name" : "../data/tgt-test.txt",
-
-
-    "sep": " ",
-    "mezera": "_",
-    "end_line": "\n",
-
-    "new_model": 1,
-    "new_class_dict": 1,
-    "class_data": "processed_data_plk/optuna_30.plk",
-
-    "batch_size": 32,
-
-    "train": True,
-    "epochs": 20,
-    "repeat": 1,
-
-    "use_random_seed": False,
-    "seed": 42,
-
-    "finetune_model": False,
-    "finetune_source": "../data/train_src_separated.txt",
-    "finetune_tgt": "../data/train_trl.txt",
-
-    "test": False,
-    "testing_samples": 4,
-
-    "use_custom_testing": False,
-    "custom_test_src": "../data/test_src_separated.txt",
-    "custom_test_tgt": "../data/test_trl.txt",
-    "clear_testing_cache": 1,
-    "caching_in_testing": 0,
-
-    "version": "version",
-    "keras_version": keras.__version__
-}
 
 OPTUNA_CROSS_STUDY_CACHE = "main_30_cache.json"
 

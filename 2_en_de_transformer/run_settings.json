@@ -1,14 +1,14 @@
 {
   "all_models_path": "/home/katka/PycharmProjects/Hier/models",
-  "model_name_short": "model_testing",
+  "model_name_short": "model_small_1",
 
   "different_output_model": false,
   "output_model_name": "model_finetuned",
 
-  "train_in_file_name" : "../data/src-sep-train.txt",
-  "train_out_file_name" : "../data/tgt-train.txt",
-  "val_in_file_name" : "../data/src-sep-val.txt",
-  "val_out_file_name" : "../data/tgt-val.txt",
+  "train_in_file_name" : "../data/src-sep-train_30.txt",
+  "train_out_file_name" : "../data/tgt-train_30.txt",
+  "val_in_file_name" : "../data/src-sep-train_30.txt",
+  "val_out_file_name" : "../data/tgt-train_30.txt",
   "test_in_file_name" : "../data/src-sep-test.txt",
   "test_out_file_name" : "../data/tgt-test.txt",
 
@@ -16,25 +16,25 @@
   "mezera": "_",
   "end_line": "\n",
 
-  "new_model": 0,
-  "new_class_dict": 0,
-  "class_data": "processed_data_plk/processed_data_dict_temp.plk",
+  "new_model": 1,
+  "new_class_dict": 1,
+  "class_data": "processed_data_plk/optuna_30.plk",
 
   "batch_size": 32,
 
   "train": true,
-  "epochs": 1,
+  "epochs": 20,
   "repeat": 1,
-  "load_best": true,
+  "load_best": false,
 
   "use_random_seed": false,
-  "seed": 12612638,
+  "seed": 42,
 
   "finetune_model": false,
   "finetune_source": "../data/train_src_separated.txt",
   "finetune_tgt": "../data/train_trl.txt",
 
-  "test": true,
+  "test": false,
   "testing_samples": 4,
 
   "use_custom_testing": false,

@@ -10,8 +10,8 @@ cd $PBS_O_WORKDIR
 
 module load cuda/12.4.1
 
-source /mnt/lustre/helios-home/morovkat/miniconda3/etc/profile.d/conda.sh
-conda activate H_keras3
+# H_keras3 is a directory, not a conda environment - add it to PYTHONPATH
+export PYTHONPATH="/mnt/lustre/helios-home/morovkat/H_keras3:${PYTHONPATH}"
 
 cd /mnt/lustre/helios-home/morovkat/H_optimize/2_en_de_transformer
 

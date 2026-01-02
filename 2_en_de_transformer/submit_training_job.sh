@@ -1,13 +1,13 @@
 #!/bin/bash
 
 #PBS -N transformer_TLA_training
-#PBS -l walltime=48:00:00
-#PBS -q gpu
+#PBS -l walltime=72:00:00
+#PBS -q cpu_a
 #PBS -j oe
 #PBS -l select=1:mem=32G:ncpus=8:ngpus=1
 
 # Training configuration - edit these as needed
-EPOCHS=20
+EPOCHS=40
 BATCH_SIZE=32
 MODEL_NAME="transformer_TLA"
 
@@ -29,7 +29,7 @@ cd $PBS_O_WORKDIR
 module load cuda/12.4.1
 
 source /mnt/lustre/helios-home/morovkat/miniconda3/etc/profile.d/conda.sh
-conda activate hiero-transformer
+conda activate H_keras3
 
 cd /mnt/lustre/helios-home/morovkat/hiero-transformer/2_en_de_transformer
 

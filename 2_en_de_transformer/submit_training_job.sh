@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#PBS -N transformer_TLA_training
-#PBS -l walltime=72:00:00
-#PBS -q cpu_a
+#PBS -N gpu_transformer_TLA_training
+#PBS -l walltime=24:00:00
+#PBS -q gpu
 #PBS -j oe
 #PBS -l select=1:mem=32G:ncpus=8:ngpus=1
 

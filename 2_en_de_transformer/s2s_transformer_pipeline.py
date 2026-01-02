@@ -244,88 +244,27 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description="Train transformer model with custom data")
+    parser = argparse.ArgumentParser(description="Train transformer model")
     parser.add_argument("--model-settings", default="model_settings.json",
                        help="Path to model settings JSON file")
     parser.add_argument("--compile-settings", default="model_compile_settings.json",
                        help="Path to model compile settings JSON file")
-    parser.add_argument("--train-src", required=True,
-                       help="Path to training source file")
-    parser.add_argument("--train-tgt", required=True,
-                       help="Path to training target file")
-    parser.add_argument("--val-src", required=True,
-                       help="Path to validation source file")
-    parser.add_argument("--val-tgt", required=True,
-                       help="Path to validation target file")
-    parser.add_argument("--test-src", required=True,
-                       help="Path to test source file")
-    parser.add_argument("--test-tgt", required=True,
-                       help="Path to test target file")
-    parser.add_argument("--model-name", default="transformer_TLA",
-                       help="Short name for the model")
-    parser.add_argument("--models-path", default="/mnt/lustre/helios-home/morovkat/hiero-transformer/models",
-                       help="Path to directory where models will be saved")
-    parser.add_argument("--epochs", type=int, default=20,
-                       help="Number of training epochs")
-    parser.add_argument("--batch-size", type=int, default=32,
-                       help="Batch size for training")
-    parser.add_argument("--class-data", default=None,
-                       help="Path to cached class data (optional)")
-    parser.add_argument("--new-class-dict", action="store_true",
-                       help="Create new class dictionary (don't use cached data)")
+    parser.add_argument("--run-settings", default="run_settings.json",
+                       help="Path to run settings JSON file")
     
     args = parser.parse_args()
     
-    # Load model settings
     with open(args.model_settings, encoding="utf-8") as f:
         model_settings = json.load(f)
-    
-    # Load compile settings
+
     with open(args.compile_settings, encoding="utf-8") as f:
         model_compile_settings = json.load(f)
-    
-    # Create run_settings from arguments
-    if args.class_data is None:
-        args.class_data = f"processed_data_plk/{args.model_name}.plk"
-    
-    run_settings = {
-        "all_models_path": args.models_path,
-        "model_name_short": args.model_name,
-        "different_output_model": False,
-        "output_model_name": args.model_name,
-        "train_in_file_name": args.train_src,
-        "train_out_file_name": args.train_tgt,
-        "val_in_file_name": args.val_src,
-        "val_out_file_name": args.val_tgt,
-        "test_in_file_name": args.test_src,
-        "test_out_file_name": args.test_tgt,
-        "sep": " ",
-        "mezera": "_",
-        "end_line": "\n",
-        "new_model": 1,
-        "new_class_dict": 1 if args.new_class_dict else 0,
-        "class_data": args.class_data,
-        "batch_size": args.batch_size,
-        "train": True,
-        "epochs": args.epochs,
-        "repeat": 1,
-        "load_best": False,
-        "use_random_seed": False,
-        "seed": 42,
-        "finetune_model": False,
-        "finetune_source": "",
-        "finetune_tgt": "",
-        "test": True,
-        "testing_samples": -1,
-        "use_custom_testing": False,
-        "custom_test_src": "",
-        "custom_test_tgt": "",
-        "clear_testing_cache": 1,
-        "caching_in_testing": 0,
-        "version": "version",
-        "keras_version": keras.__version__
-    }
-    
+
+    with open(args.run_settings, encoding="utf-8") as f:
+        run_settings = json.load(f)
+
+    run_settings["keras_version"] = keras.__version__
+
     run_model_pipeline(model_settings, model_compile_settings, run_settings)
 
 

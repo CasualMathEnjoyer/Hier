@@ -1,0 +1,49 @@
+{
+  "all_models_path": "/mnt/lustre/helios-home/morovkat/hiero-transformer/models",
+  "model_name_short": "transformer_TLA",
+
+  "different_output_model": false,
+  "output_model_name": "transformer_TLA",
+
+  "train_in_file_name": "/mnt/lustre/helios-home/morovkat/hiero-transformer/training_data/source_egy2tnt_cleaned.txt",
+  "train_out_file_name": "/mnt/lustre/helios-home/morovkat/hiero-transformer/training_data/target_egy2tnt_cleaned.txt",
+  "val_in_file_name": "/mnt/lustre/helios-home/morovkat/hiero-transformer/test_and_validation_data/validation_source_egy2tnt_cleaned.txt",
+  "val_out_file_name": "/mnt/lustre/helios-home/morovkat/hiero-transformer/test_and_validation_data/validation_target_egy2tnt_cleaned.txt",
+  "test_in_file_name": "/mnt/lustre/helios-home/morovkat/hiero-transformer/test_and_validation_data/test_source_egy2tnt_cleaned.txt",
+  "test_out_file_name": "/mnt/lustre/helios-home/morovkat/hiero-transformer/test_and_validation_data/test_target_egy2tnt_cleaned.txt",
+
+  "sep": " ",
+  "mezera": "_",
+  "end_line": "\n",
+
+  "new_model": 1,
+  "new_class_dict": 1,
+  "class_data": "processed_data_plk/transformer_TLA.plk",
+
+  "batch_size": 32,
+
+  "train": true,
+  "epochs": 40,
+  "repeat": 1,
+  "load_best": false,
+
+  "use_random_seed": false,
+  "seed": 42,
+
+  "finetune_model": false,
+  "finetune_source": "",
+  "finetune_tgt": "",
+
+  "test": true,
+  "testing_samples": -1,
+
+  "use_custom_testing": false,
+  "custom_test_src": "",
+  "custom_test_tgt": "",
+  "clear_testing_cache": 1,
+  "caching_in_testing": 0,
+
+  "version": "version",
+  "keras_version": "3.7.0"
+}
+

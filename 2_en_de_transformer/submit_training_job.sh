@@ -11,9 +11,9 @@ cd $PBS_O_WORKDIR
 module load cuda/12.4.1
 
 source /mnt/lustre/helios-home/morovkat/miniconda3/etc/profile.d/conda.sh
-conda activate hiero-transformer
+conda activate H_keras3
 
-cd /mnt/lustre/helios-home/morovkat/hiero-transformer/2_en_de_transformer
+cd /mnt/lustre/helios-home/morovkat/H_optimize/2_en_de_transformer
 
 # Model settings files
 MODEL_SETTINGS="model_settings_model7.json"

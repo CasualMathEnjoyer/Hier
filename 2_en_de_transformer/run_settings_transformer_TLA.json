@@ -5,8 +5,8 @@
   "different_output_model": false,
   "output_model_name": "transformer_TLA",
 
-  "train_in_file_name": "/mnt/lustre/helios-home/morovkat/hiero-transformer/training_data/source_egy2tnt_cleaned.txt",
-  "train_out_file_name": "/mnt/lustre/helios-home/morovkat/hiero-transformer/training_data/target_egy2tnt_cleaned.txt",
+  "train_in_file_name": "/mnt/lustre/helios-home/morovkat/hiero-transformer/training_data_ramses/source_egy2tnt_cleaned.txt",
+  "train_out_file_name": "/mnt/lustre/helios-home/morovkat/hiero-transformer/training_data_ramses/target_egy2tnt_cleaned.txt",
   "val_in_file_name": "/mnt/lustre/helios-home/morovkat/hiero-transformer/test_and_validation_data/validation_source_egy2tnt_cleaned.txt",
   "val_out_file_name": "/mnt/lustre/helios-home/morovkat/hiero-transformer/test_and_validation_data/validation_target_egy2tnt_cleaned.txt",
   "test_in_file_name": "/mnt/lustre/helios-home/morovkat/hiero-transformer/test_and_validation_data/test_source_egy2tnt_cleaned.txt",

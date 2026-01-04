@@ -1,0 +1,48 @@
+{
+  "all_models_path": "/mnt/lustre/helios-home/morovkat/H_optimize/models",
+  "model_name_short": "model7_full_ramses_unseparated",
+
+  "different_output_model": false,
+  "output_model_name": "model_finetuned",
+
+  "train_in_file_name" : "../data/src-train.txt",
+  "train_out_file_name" : "../data/tgt-train.txt",
+  "val_in_file_name" : "../data/src-train.txt",
+  "val_out_file_name" : "../data/tgt-train.txt",
+  "test_in_file_name" : "../data/src-test.txt",
+  "test_out_file_name" : "../data/tgt-test.txt",
+
+  "sep": " ",
+  "mezera": "_",
+  "end_line": "\n",
+
+  "new_model": 1,
+  "new_class_dict": 1,
+  "class_data": "processed_data_plk/full_ramses.plk",
+
+  "batch_size": 32,
+
+  "train": true,
+  "epochs": 60,
+  "repeat": 1,
+  "load_best": false,
+
+  "use_random_seed": false,
+  "seed": 42,
+
+  "finetune_model": false,
+  "finetune_source": "../data/train_src_separated.txt",
+  "finetune_tgt": "../data/train_trl.txt",
+
+  "test": true,
+  "testing_samples": -1,
+
+  "use_custom_testing": false,
+  "custom_test_src": "../data/test_src_separated.txt",
+  "custom_test_tgt": "../data/test_trl.txt",
+  "clear_testing_cache": 1,
+  "caching_in_testing": 0,
+
+  "version": "version",
+  "keras_version": "3.7.0"
+}

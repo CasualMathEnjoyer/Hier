@@ -1,14 +1,14 @@
 {
   "all_models_path": "/mnt/lustre/helios-home/morovkat/H_optimize/models",
-  "model_name_short": "model7_full_ramses_unseparated",
+  "model_name_short": "model7_full_ramses_unseparated2",
 
   "different_output_model": false,
   "output_model_name": "model_finetuned",
 
   "train_in_file_name" : "../data/src-train.txt",
   "train_out_file_name" : "../data/tgt-train.txt",
-  "val_in_file_name" : "../data/src-train.txt",
-  "val_out_file_name" : "../data/tgt-train.txt",
+  "val_in_file_name" : "../data/src-val.txt",
+  "val_out_file_name" : "../data/tgt-val.txt",
   "test_in_file_name" : "../data/src-test.txt",
   "test_out_file_name" : "../data/tgt-test.txt",
 

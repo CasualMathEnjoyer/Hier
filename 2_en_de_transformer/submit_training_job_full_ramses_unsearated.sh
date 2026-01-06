@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#PBS -N transformer_RAMSES_full_unseparated
+#PBS -N transformer_RAMSES_full_unseparated2
 #PBS -l walltime=24:00:00
 #PBS -q gpu
 #PBS -j oe

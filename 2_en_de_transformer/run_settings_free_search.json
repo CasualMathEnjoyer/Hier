@@ -1,0 +1,48 @@
+{
+  "all_models_path": "/home/katka/PycharmProjects/Hier/models_free_search",
+  "model_name_short": "model_small_1",
+
+  "different_output_model": false,
+  "output_model_name": "model_finetuned",
+
+  "train_in_file_name" : "../data/src-sep-train_30.txt",
+  "train_out_file_name" : "../data/tgt-train_30.txt",
+  "val_in_file_name" : "../data/src-sep-val_30.txt",
+  "val_out_file_name" : "../data/tgt-val_30.txt",
+  "test_in_file_name" : "../data/src-sep-test.txt",
+  "test_out_file_name" : "../data/tgt-test.txt",
+
+  "sep": " ",
+  "mezera": "_",
+  "end_line": "\n",
+
+  "new_model": 1,
+  "new_class_dict": 1,
+  "class_data": "processed_data_plk/optuna_30.plk",
+
+  "batch_size": 32,
+
+  "train": true,
+  "epochs": 20,
+  "repeat": 1,
+  "load_best": false,
+
+  "use_random_seed": false,
+  "seed": 42,
+
+  "finetune_model": false,
+  "finetune_source": "../data/train_src_separated.txt",
+  "finetune_tgt": "../data/train_trl.txt",
+
+  "test": false,
+  "testing_samples": 4,
+
+  "use_custom_testing": false,
+  "custom_test_src": "../data/test_src_separated.txt",
+  "custom_test_tgt": "../data/test_trl.txt",
+  "clear_testing_cache": 1,
+  "caching_in_testing": 0,
+
+  "version": "version",
+  "keras_version": "3.7.0"
+}

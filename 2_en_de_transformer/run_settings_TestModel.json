@@ -1,0 +1,53 @@
+{
+  "all_models_path": "/mnt/lustre/helios-home/morovkat/Hier_main/models",
+  "model_name_short": "model_BakalarkaBest",
+
+  "different_output_model": false,
+  "output_model_name": "model_finetuned",
+
+  "train_in_file_name" : "../data/src-sep-train.txt",
+  "train_out_file_name" : "../data/tgt-train.txt",
+  "val_in_file_name" : "../data/src-sep-val.txt",
+  "val_out_file_name" : "../data/tgt-val.txt",
+  "test_in_file_name" : "../data/src-sep-test.txt",
+  "test_out_file_name" : "../data/tgt-test.txt",
+
+  "sep": " ",
+  "mezera": "_",
+  "end_line": "\n",
+
+  "new_model": 0,
+  "new_class_dict": 1,
+  "class_data": "processed_data_plk/data2.plk",
+
+  "batch_size": 32,
+
+  "train": false,
+  "epochs": 20,
+  "repeat": 1,
+  "load_best": false,
+
+  "use_random_seed": false,
+  "seed": 42,
+
+  "finetune_model": false,
+  "finetune_source": "../data/train_src_separated.txt",
+  "finetune_tgt": "../data/train_trl.txt",
+
+  "test": true,
+  "testing_samples": -1,
+
+  "use_custom_testing": false,
+  "custom_test_src": "../data/test_src_separated.txt",
+  "custom_test_tgt": "../data/test_trl.txt",
+  "clear_testing_cache": 1,
+  "caching_in_testing": 0,
+
+  "use_early_stopping": true,
+  "early_stopping_patience": 5,
+  "early_stopping_restore_best_weights": true,
+  "early_stopping_start_from_epoch": 3,
+
+  "version": "version",
+  "keras_version": "3.7.0"
+}

@@ -16,14 +16,14 @@
   "mezera": "_",
   "end_line": "\n",
 
-  "new_model": 1,
-  "new_class_dict": 1,
+  "new_model": 0,
+  "new_class_dict": 0,
   "class_data": "processed_data_plk/full_ramses.plk",
 
   "batch_size": 32,
 
   "train": true,
-  "epochs": 60,
+  "epochs": 45,
   "repeat": 1,
   "load_best": false,
 

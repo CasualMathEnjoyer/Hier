@@ -131,15 +131,31 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
             mode='max',
             save_best_only=True)
 
-        early_stopping_callback = keras.callbacks.EarlyStopping(
-            monitor="val_accuracy",
-            mode="max",
-            patience=5,
-            restore_best_weights=True,
-            start_from_epoch=3
-        )
-
+        # EarlyStopping parameters (with defaults)
+        use_early_stopping = run_settings.get("use_early_stopping", True)
+        callbacks_list = []
+        
         csv_logger_callback = keras.callbacks.CSVLogger(history_csv, append=True)
+        callbacks_list.append(csv_logger_callback)
+        
+        if use_early_stopping:
+            early_stopping_patience = run_settings.get("early_stopping_patience", 5)
+            early_stopping_restore_best_weights = run_settings.get("early_stopping_restore_best_weights", True)
+            early_stopping_start_from_epoch = run_settings.get("early_stopping_start_from_epoch", 3)
+            
+            early_stopping_callback = keras.callbacks.EarlyStopping(
+                monitor="val_accuracy",
+                mode="max",
+                patience=early_stopping_patience,
+                restore_best_weights=early_stopping_restore_best_weights,
+                start_from_epoch=early_stopping_start_from_epoch
+            )
+            callbacks_list.append(early_stopping_callback)
+            print("[TRAINING] - Early stopping enabled")
+        else:
+            print("[TRAINING] - Early stopping disabled")
+        
+        callbacks_list.append(model_checkpoint_callback)
 
         print("[TRAINING] - training started")
         for i in range(run_settings["repeat"]):
@@ -149,7 +165,7 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
                 epochs = run_settings["epochs"],
                 initial_epoch=initial_epoch,
                 validation_data=((val_source.padded, val_target.padded), val_target.padded_shift_one),
-                callbacks=[csv_logger_callback, early_stopping_callback, model_checkpoint_callback])
+                callbacks=callbacks_list)
 
             save_model(model, model_full_path)
 

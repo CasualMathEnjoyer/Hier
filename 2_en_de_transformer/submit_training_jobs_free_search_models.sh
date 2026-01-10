@@ -22,6 +22,13 @@ declare -A MODEL_NAMES=(
     ["random"]="model_free_search_random"
 )
 
+# Job names (more descriptive with accuracy and trial info)
+declare -A JOB_NAMES=(
+    ["tpe"]="train_tpe_acc979482_trial41"
+    ["gp"]="train_gp_acc980199_trial38"
+    ["random"]="train_random_acc979225_trial33"
+)
+
 # Check if base run settings exists
 if [ ! -f "$BASE_RUN_SETTINGS" ]; then
     echo "Error: Base run settings file not found: $BASE_RUN_SETTINGS"
@@ -54,6 +61,7 @@ EOF
 submit_job() {
     local optimizer=$1
     local model_settings=$2
+    local job_name="${JOB_NAMES[$optimizer]}"
     local run_settings="run_settings_${optimizer}_free_search.json"
     local compile_settings="model_compile_settings.json"
     
@@ -63,7 +71,7 @@ submit_job() {
     cat > "$pbs_script" << EOF
 #!/bin/bash
 
-#PBS -N gpu_transformer_${optimizer}_free_search
+#PBS -N ${job_name}
 #PBS -l walltime=24:00:00
 #PBS -q gpu
 #PBS -j oe
@@ -151,7 +159,7 @@ echo "=========================================="
 echo ""
 echo "Submitted jobs:"
 for optimizer in "${!MODELS[@]}"; do
-    echo "  - ${optimizer}: gpu_transformer_${optimizer}_free_search"
+    echo "  - ${optimizer}: ${JOB_NAMES[$optimizer]}"
 done
 echo ""
 echo "Check job status with: qstat"

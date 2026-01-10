@@ -43,6 +43,11 @@
   "clear_testing_cache": 1,
   "caching_in_testing": 0,
 
+  "use_early_stopping": false,
+  "early_stopping_patience": 5,
+  "early_stopping_restore_best_weights": true,
+  "early_stopping_start_from_epoch": 3,
+
   "version": "version",
   "keras_version": "3.7.0"
 }

@@ -3,12 +3,21 @@ from metrics_evaluation import metrics as m
 import numpy as np
 import json
 import os
-
-from Levenshtein import distance
+import string
+import sys
 
 from metrics_evaluation.rosm_lev import LevenshteinDistance as rosmLev
 ros_distance = rosmLev()
 from Utils.Tokens import Token
+
+# Import metrics libraries for sacrebleu and rouge
+try:
+    import datasets
+    load_metric = datasets.load_metric
+    HAS_METRICS = True
+except ImportError:
+    HAS_METRICS = False
+    print("Warning: datasets library not available. ROUGE-L and SacreBLEU will not be calculated.", file=sys.stderr)
 
 output_prediction_file = '../data/SAILOR_output_prediction.txt'
 
@@ -73,6 +82,86 @@ def count_mistakes(valid_line, predicted_line):
         if valid_line[i] != predicted_line[i]:
             mistake_in_line += 1
     return mistake_in_line
+
+
+def calculate_gold(predictions, targets):
+    """
+    Calculate GOLD metric: number of sentences translated with no errors at all.
+    A sentence is "gold" if prediction exactly matches target (after stripping).
+    """
+    gold_count = 0
+    
+    for pred, tgt in zip(predictions, targets):
+        if pred.strip() == tgt.strip():
+            gold_count += 1
+    
+    return gold_count
+
+
+def calculate_rouge_and_bleu(predictions, targets):
+    """
+    Calculate ROUGE-L and SacreBLEU metrics at token level (word level).
+    Matches the implementation from calculate_metrics_ramses_format.py:
+    - Converts character-separated format to word-level format
+    - Removes spaces between characters, replaces underscores with spaces
+    - Then normalizes: strip punctuation, lowercase, split into tokens
+    """
+    if not HAS_METRICS:
+        return None, None
+    
+    if len(predictions) == 0:
+        return None, None
+    
+    # Load metrics
+    rouge_metric = load_metric("rouge")
+    sacrebleu_metric = load_metric("sacrebleu")
+    
+    # Process and add batches - convert to word-level format then normalize
+    for pred, tgt in zip(predictions, targets):
+        # Step 1: Remove spaces between characters to get word-level format
+        # "x a a _ = k _ a n x" -> "xaa_=k_anx"
+        pred_words = pred.replace(" ", "")
+        tgt_words = tgt.replace(" ", "")
+        
+        # Step 2: Replace underscores with spaces
+        # "xaa_=k_anx" -> "xaa =k anx"
+        pred_words = pred_words.replace("_", " ")
+        tgt_words = tgt_words.replace("_", " ")
+        
+        # Step 3: Normalize same way as calculate_metrics_ramses_format.py
+        # Strip punctuation, lowercase, split into tokens
+        pred_tokens = pred_words.strip(string.punctuation).lower().split()
+        tgt_tokens = tgt_words.strip(string.punctuation).lower().split()
+        
+        # Pass tokenized lists directly
+        # datasets library accepts both lists and strings, but lists give different results
+        sacrebleu_metric.add_batch(
+            predictions=[pred_tokens],
+            references=[[tgt_tokens]]
+        )
+        
+        # ROUGE also accepts tokenized lists
+        rouge_metric.add_batch(
+            predictions=[pred_tokens],
+            references=[[tgt_tokens]]
+        )
+    
+    # Compute metrics
+    rouge_result = rouge_metric.compute()
+    sacrebleu_result = sacrebleu_metric.compute()
+    
+    # Extract scores
+    sacrebleu = sacrebleu_result["score"]
+    
+    rougeL_value = rouge_result["rougeL"]
+    if isinstance(rougeL_value, (int, float)):
+        # evaluate library returns float (0-1)
+        rouge_l = 100 * float(rougeL_value)
+    else:
+        # datasets library returns object with .mid.fmeasure
+        rouge_l = 100 * rougeL_value.mid.fmeasure
+    
+    return rouge_l, sacrebleu
 
 def test_translation(transformer_output, valid : list, rev_dict : dict, sep, mezera, use_custom_rules=False):
     mistake_count = 0
@@ -150,6 +239,11 @@ def test_translation(transformer_output, valid : list, rev_dict : dict, sep, mez
     avg_RLEV_per_valid_char = round(all_ros_levenstein / all_valid_chars, round_place)
     avg_RLEV_per_pred_char = round(all_ros_levenstein / all_pred_chars, round_place)
 
+    # Calculate new metrics: sacrebleu, rouge L, and gold
+    print("Calculating additional metrics (sacrebleu, rouge L, gold)...")
+    rouge_l, sacrebleu = calculate_rouge_and_bleu(output_lines_strings, valid_lines_strings)
+    gold_count = calculate_gold(output_lines_strings, valid_lines_strings)
+
     header = "RESULTS"
     separator = "-" * (30 + round_place + 3)
     rows = [
@@ -164,6 +258,13 @@ def test_translation(transformer_output, valid : list, rev_dict : dict, sep, mez
         f"{'avg_RLEV_per_valid_char':<30} | {avg_RLEV_per_valid_char}",
         f"{'avg_RLEV_per_pred_char':<30} | {avg_RLEV_per_pred_char}",
     ]
+    
+    # Add new metrics to rows
+    if rouge_l is not None:
+        rows.append(f"{'rouge_l':<30} | {round(rouge_l, round_place)}")
+    if sacrebleu is not None:
+        rows.append(f"{'sacrebleu':<30} | {round(sacrebleu, round_place)}")
+    rows.append(f"{'gold':<30} | {gold_count}")
 
     print(header)
     print(separator)
@@ -178,7 +279,7 @@ def test_translation(transformer_output, valid : list, rev_dict : dict, sep, mez
             f.write(line + '\n')
         f.close()
 
-    return {
+    result_dict = {
         "num_lines": num_lines,
         "all_valid_chars": all_valid_chars,
         "all_pred_chars": all_pred_chars,
@@ -193,3 +294,12 @@ def test_translation(transformer_output, valid : list, rev_dict : dict, sep, mez
         "avg_RLEV_per_valid_char": avg_RLEV_per_valid_char,
         "avg_RLEV_per_pred_char": avg_RLEV_per_pred_char,
     }
+    
+    # Add new metrics
+    if rouge_l is not None:
+        result_dict["rouge_l"] = round(rouge_l, round_place)
+    if sacrebleu is not None:
+        result_dict["sacrebleu"] = round(sacrebleu, round_place)
+    result_dict["gold"] = gold_count
+    
+    return result_dict

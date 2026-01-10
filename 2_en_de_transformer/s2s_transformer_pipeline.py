@@ -4,6 +4,7 @@ import pickle
 import random
 from tqdm import tqdm
 import time
+from datetime import datetime
 
 from keras import backend as K
 
@@ -210,7 +211,7 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
             cache_dict(tested_dict, testing_cache_filename)
 
         # PRETTY TESTING PRINTING
-        from testing_s2s import test_translation, add_to_json
+        from testing_s2s import test_translation, add_to_json, cut_bos_and_eos
 
         rev_dict = test_target.create_reverse_dict(test_target.dict_chars)
         valid = list(test_target.padded.astype(np.int32))
@@ -221,6 +222,48 @@ def run_model_pipeline(model_settings, model_compile_settings, run_settings):
 
         add_to_json(result_json_path, model_name_short, dict, run_settings["testing_samples"],
                     all_epochs, training_data, run_settings["keras_version"])
+        
+        # Convert predictions to strings
+        predictions_strings = []
+        for j in range(len(output)):
+            predicted_line = cut_bos_and_eos(np.array(output[j]))
+            pred_line_string = ""
+            for char in predicted_line:
+                pred_line_string += (rev_dict[char] + run_settings["sep"])
+            predictions_strings.append(pred_line_string)
+        
+        # Convert targets to strings for reference
+        targets_strings = []
+        for j in range(len(valid)):
+            valid_line = cut_bos_and_eos(valid[j])
+            valid_line_string = ""
+            for char in valid_line:
+                valid_line_string += (rev_dict[char] + run_settings["sep"])
+            targets_strings.append(valid_line_string)
+        
+        # Create timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        predictions_json_path = os.path.join(model_folder_path, f"predictions_{timestamp}.json")
+        
+        # Prepare metadata
+        predictions_data = {
+            "metadata": {
+                "date_generated": datetime.now().isoformat(),
+                "source_test_file": run_settings.get("test_in_file_name", "N/A"),
+                "target_test_file": run_settings.get("test_out_file_name", "N/A"),
+                "number_of_sentences": len(predictions_strings),
+                "model_name": model_name_short,
+                "version": run_settings.get("version", "N/A"),
+                "testing_samples": run_settings.get("testing_samples", "N/A")
+            },
+            "metrics": dict,
+            "predictions": predictions_strings,
+            "targets": targets_strings
+        }
+        
+        save_to_json(predictions_data, predictions_json_path)
+        print(f"[TESTING] - Saved predictions to: {predictions_json_path}")
+        
         print("[TESTING] - FINISHED")
         print(f"[TESTING] - Saved to json for model: {model_name_short}")
         print()

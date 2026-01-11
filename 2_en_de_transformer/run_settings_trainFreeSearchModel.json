@@ -23,7 +23,7 @@
   "batch_size": 32,
 
   "train": true,
-  "epochs": 50,
+  "epochs": 100,
   "repeat": 1,
   "load_best": false,
 
